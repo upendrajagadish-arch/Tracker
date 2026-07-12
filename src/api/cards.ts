@@ -38,6 +38,17 @@ const CARD_ENDPOINTS: CardEndpoint[] = [
   'badges',
 ]
 
+/** Endpoints exposed by each platform's Stat API (skip missing routes to avoid noisy 404s). */
+const PLATFORM_ENDPOINTS: Record<Platform, CardEndpoint[]> = {
+  github: ['profile', 'stats', 'heatmap', 'badges'],
+  leetcode: CARD_ENDPOINTS,
+  codeforces: CARD_ENDPOINTS,
+  gfg: CARD_ENDPOINTS,
+  codechef: CARD_ENDPOINTS,
+  hackerrank: CARD_ENDPOINTS,
+  tuf: CARD_ENDPOINTS,
+}
+
 function emptyProfile(username: string): UnifiedProfile {
   return {
     displayName: null,
@@ -119,8 +130,9 @@ async function fetchCardEndpoint<T extends CardEndpoint>(
 async function fetchCardEndpoints(platform: Platform, username: string): Promise<CardEndpointData> {
   let successCount = 0
   let firstError: Error | null = null
+  const endpoints = PLATFORM_ENDPOINTS[platform]
   const entries = await Promise.all(
-    CARD_ENDPOINTS.map(async (endpoint) => {
+    endpoints.map(async (endpoint) => {
       try {
         const data = await fetchCardEndpoint(platform, username, endpoint)
         successCount += 1
@@ -131,6 +143,12 @@ async function fetchCardEndpoints(platform: Platform, username: string): Promise
       }
     }),
   )
+
+  for (const endpoint of CARD_ENDPOINTS) {
+    if (!endpoints.includes(endpoint)) {
+      entries.push([endpoint, endpointFallback(endpoint, username)] as const)
+    }
+  }
 
   if (successCount === 0) throw firstError ?? new Error(`${platform} request failed`)
 

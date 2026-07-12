@@ -175,7 +175,7 @@ export async function listStudentSkills(studentProfileId: string): Promise<Stude
     .from('student_tech_skills')
     .select('*')
     .eq('student_profile_id', studentProfileId)
-    .order('updated_at', { ascending: false })
+    .order('created_at', { ascending: false })
   if (error) throw error
   return attachTechSkills(data ?? [])
 }
@@ -186,7 +186,7 @@ export async function listStudentRoleInterests(studentProfileId: string): Promis
     .from('student_role_interests')
     .select('*')
     .eq('student_profile_id', studentProfileId)
-    .order('updated_at', { ascending: false })
+    .order('created_at', { ascending: false })
   if (error) throw error
   return data ?? []
 }

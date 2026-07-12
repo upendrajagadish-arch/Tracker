@@ -23,46 +23,42 @@
       ]
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/github/(.*)",
-      "dest": "https://github-stats.tashif.codes/$1"
+      "source": "/api/github/:path*",
+      "destination": "https://github-stats.tashif.codes/:path*"
     },
     {
-      "src": "/api/leetcode/(.*)",
-      "dest": "https://leetcode-stats.tashif.codes/$1"
+      "source": "/api/leetcode/:path*",
+      "destination": "https://leetcode-stats.tashif.codes/:path*"
     },
     {
-      "src": "/api/codeforces/(.*)",
-      "dest": "https://codeforces-stats.tashif.codes/$1"
+      "source": "/api/codeforces/:path*",
+      "destination": "https://codeforces-stats.tashif.codes/:path*"
     },
     {
-      "src": "/api/gfg/(.*)",
-      "dest": "https://gfg-stats.tashif.codes/$1"
+      "source": "/api/gfg/:path*",
+      "destination": "https://gfg-stats.tashif.codes/:path*"
     },
     {
-      "src": "/api/codechef/(.*)",
-      "dest": "https://codechef-stats.tashif.codes/$1"
+      "source": "/api/codechef/:path*",
+      "destination": "https://codechef-stats.tashif.codes/:path*"
     },
     {
-      "src": "/api/hackerrank/(.*)",
-      "dest": "https://hackerrank-stats.tashif.codes/$1"
+      "source": "/api/hackerrank/:path*",
+      "destination": "https://hackerrank-stats.tashif.codes/:path*"
     },
     {
-      "src": "/api/tuf/(.*)",
-      "dest": "https://tuf-stats.tashif.codes/$1"
+      "source": "/api/tuf/:path*",
+      "destination": "https://tuf-stats.tashif.codes/:path*"
     },
     {
-      "src": "/ph/(.*)",
-      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-      "dest": "/api/ph?path=$1"
+      "source": "/ph/:path*",
+      "destination": "/api/ph?path=:path*"
     },
     {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
