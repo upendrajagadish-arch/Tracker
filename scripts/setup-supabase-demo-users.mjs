@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Create placement demo Auth users + placement_user_profiles on hosted Supabase.
+ * Create dedicated RCEE placement staff Auth users + placement_user_profiles.
  *
  * Requires in environment (or .env.local parsed manually):
  *   SUPABASE_URL (or VITE_SUPABASE_URL)
@@ -45,30 +45,47 @@ if (!url || !serviceKey) {
   process.exit(1)
 }
 
-const DEMO_PASSWORD = 'demo123'
+const STAFF_PASSWORD = 'RCE_T&P'
 
-const DEMO_USERS = [
-  { email: 'admin@tracker.local', fullName: 'Admin User', role: 'admin' },
-  { email: 'tpo@tracker.local', fullName: 'TPO User', role: 'tpo' },
-  { email: 'faculty@tracker.local', fullName: 'Faculty User', role: 'faculty' },
-  { email: 'interviewer@tracker.local', fullName: 'Interviewer User', role: 'interviewer' },
-  { email: 'hr@tracker.local', fullName: 'HR User', role: 'hr' },
-  { email: 'student@tracker.local', fullName: 'Student User', role: 'student', rollNumber: 'CS2024001' },
+const STAFF_USERS = [
+  { email: 'admin@rcee.ac.in', fullName: 'RCEE Admin', role: 'admin' },
+  { email: 'tpo@rcee.ac.in', fullName: 'RCEE TPO', role: 'tpo' },
+  { email: 'faculty@rcee.ac.in', fullName: 'RCEE Faculty', role: 'faculty' },
+]
+
+const RETIRED_EMAILS = [
+  'admin@tracker.local',
+  'tpo@tracker.local',
+  'faculty@tracker.local',
+  'interviewer@tracker.local',
+  'hr@tracker.local',
+  'student@tracker.local',
 ]
 
 const admin = createClient(url, serviceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 })
 
-async function ensureUser({ email, fullName, role, rollNumber }) {
-  const { data: listed, error: listError } = await admin.auth.admin.listUsers({ perPage: 1000 })
-  if (listError) throw listError
+async function listAllUsers() {
+  const users = []
+  let page = 1
+  while (true) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 })
+    if (error) throw error
+    users.push(...data.users)
+    if (data.users.length < 1000) break
+    page += 1
+  }
+  return users
+}
 
-  let user = listed.users.find((u) => u.email?.toLowerCase() === email.toLowerCase())
+async function ensureUser({ email, fullName, role, rollNumber }) {
+  const users = await listAllUsers()
+  let user = users.find((u) => u.email?.toLowerCase() === email.toLowerCase())
   if (!user) {
     const { data, error } = await admin.auth.admin.createUser({
       email,
-      password: DEMO_PASSWORD,
+      password: STAFF_PASSWORD,
       email_confirm: true,
       user_metadata: { full_name: fullName },
     })
@@ -76,7 +93,11 @@ async function ensureUser({ email, fullName, role, rollNumber }) {
     user = data.user
     console.log(`Created auth user: ${email}`)
   } else {
-    const { error } = await admin.auth.admin.updateUserById(user.id, { password: DEMO_PASSWORD })
+    const { error } = await admin.auth.admin.updateUserById(user.id, {
+      password: STAFF_PASSWORD,
+      ban_duration: 'none',
+      user_metadata: { full_name: fullName },
+    })
     if (error) throw error
     console.log(`Updated password for: ${email}`)
   }
@@ -100,14 +121,40 @@ async function ensureUser({ email, fullName, role, rollNumber }) {
   }
 }
 
-console.log('Setting up CodeTrace placement demo users…\n')
+async function retireUser(email) {
+  const users = await listAllUsers()
+  const user = users.find((u) => u.email?.toLowerCase() === email.toLowerCase())
+  if (!user) {
+    console.log(`Retired account not found (skipped): ${email}`)
+    return
+  }
 
-for (const demo of DEMO_USERS) {
-  await ensureUser(demo)
+  const { error: banError } = await admin.auth.admin.updateUserById(user.id, {
+    ban_duration: '876000h',
+  })
+  if (banError) throw banError
+
+  const { error: profileError } = await admin
+    .from('placement_user_profiles')
+    .update({ is_active: false })
+    .eq('id', user.id)
+  if (profileError && profileError.code !== 'PGRST205') throw profileError
+
+  console.log(`Retired legacy login: ${email}`)
 }
 
-console.log('\nDone. Demo logins (password: demo123):')
-for (const demo of DEMO_USERS) {
-  console.log(`  ${demo.role.padEnd(12)} ${demo.email}`)
+console.log('Setting up RCEE placement staff accounts…\n')
+
+for (const retired of RETIRED_EMAILS) {
+  await retireUser(retired)
+}
+
+for (const staff of STAFF_USERS) {
+  await ensureUser(staff)
+}
+
+console.log('\nDone. Dedicated staff logins (password: RCE_T&P):')
+for (const staff of STAFF_USERS) {
+  console.log(`  ${staff.role.padEnd(8)} ${staff.email}`)
 }
 console.log('\nSign in at http://localhost:5173/login')

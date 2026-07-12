@@ -12,6 +12,7 @@ import { signOut } from '@/api/savedProfiles'
 import { placementHomeForRole } from '@/lib/placementAuth'
 import { getPlacementNavLinks, getRolePrefix, isPlacementNavActive } from '@/lib/placementNavigation'
 import { isStaffPlacementRole } from '@/lib/placementStaff'
+import { isAllowedStaffLogin } from '@/lib/placementStaffLogins'
 import { WorkspaceTabs } from '@/components/placement/WorkspaceTabs'
 import { cn } from '@/lib/utils'
 import { BRAND_NAME } from '@/lib/brand'
@@ -113,6 +114,21 @@ export function PlacementShell({ title, children, requireRole = true }: Placemen
         action={
           <Button asChild variant="outline" className="font-mono text-xs">
             <Link to="/app">Back to dashboard</Link>
+          </Button>
+        }
+      />
+    )
+  }
+
+  const staffEmail = placementProfile?.email || user.email || ''
+  if (requireRole && !isAllowedStaffLogin(staffEmail)) {
+    return (
+      <PlacementMessageCard
+        title="Unauthorized account"
+        description="Only dedicated RCEE staff accounts can access the placement office."
+        action={
+          <Button variant="outline" className="font-mono text-xs" onClick={() => void handleSignOut()}>
+            Sign out
           </Button>
         }
       />

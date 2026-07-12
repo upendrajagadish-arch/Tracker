@@ -54,16 +54,16 @@ Or the combined helper:
 npm run supabase:setup-hosted
 ```
 
-### Demo logins (password: `demo123`)
+### Staff logins (password: `RCE_T&P`)
 
 | Role | Email |
 |------|-------|
-| Admin | `admin@tracker.local` |
-| TPO | `tpo@tracker.local` |
-| Faculty | `faculty@tracker.local` |
-| Interviewer | `interviewer@tracker.local` |
-| HR | `hr@tracker.local` |
-| Student | `student@tracker.local` |
+| Admin | `admin@rcee.ac.in` |
+| TPO | `tpo@rcee.ac.in` |
+| Faculty | `faculty@rcee.ac.in` |
+
+Only these dedicated RCEE accounts can sign in to the placement office portal.
+Legacy `*.tracker.local` demo accounts are retired by the setup script.
 
 Sign in: **http://localhost:5173/login**
 

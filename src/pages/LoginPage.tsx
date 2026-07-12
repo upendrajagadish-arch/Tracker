@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { signInWithPassword, signOut } from '@/api/savedProfiles'
 import { fetchPlacementProfile, placementHomeForRole } from '@/lib/placementAuth'
 import { isStaffPlacementRole } from '@/lib/placementStaff'
+import { isAllowedStaffLogin } from '@/lib/placementStaffLogins'
 import { requireSupabase } from '@/lib/supabase'
 import { ALL_PLATFORMS } from '@/api/unifiedClient'
 import { BRAND_SLUG } from '@/lib/brand'
@@ -57,9 +58,14 @@ export function LoginPage() {
   const handleLogin = async (event: FormEvent) => {
     event.preventDefault()
     setError(null)
+    const normalizedEmail = email.trim().toLowerCase()
+    if (!isAllowedStaffLogin(normalizedEmail)) {
+      setError('This account is not authorized for placement office access.')
+      return
+    }
     setIsSigningIn(true)
     try {
-      await signInWithPassword(email.trim(), password)
+      await signInWithPassword(normalizedEmail, password)
       await refreshPlacementProfile()
       const client = requireSupabase()
       const { data: auth } = await client.auth.getUser()
@@ -71,6 +77,11 @@ export function LoginPage() {
           return
         }
         if (profile?.role && isStaffPlacementRole(profile.role)) {
+          if (!isAllowedStaffLogin(profile.email)) {
+            await signOut()
+            setError('This account is not authorized for placement office access.')
+            return
+          }
           router.history.push(placementHomeForRole(profile.role))
           return
         }
@@ -115,8 +126,8 @@ export function LoginPage() {
               Placement office
             </h1>
             <p className="mt-4 max-w-md font-mono text-sm leading-relaxed text-muted-foreground">
-              Sign in with your staff account to manage student placement records, resumes,
-              readiness, and resume books. Student login is not available here.
+              Sign in with your dedicated RCEE staff account to manage student placement records,
+              resumes, readiness, and resume books.
             </p>
 
             <div className="mt-8 grid gap-5 sm:grid-cols-3">
