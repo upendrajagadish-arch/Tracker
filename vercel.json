@@ -1,0 +1,68 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "headers": [
+    {
+      "source": "/robots.txt",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    },
+    {
+      "source": "/sitemap.xml",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400"
+        }
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/github/(.*)",
+      "dest": "https://github-stats.tashif.codes/$1"
+    },
+    {
+      "src": "/api/leetcode/(.*)",
+      "dest": "https://leetcode-stats.tashif.codes/$1"
+    },
+    {
+      "src": "/api/codeforces/(.*)",
+      "dest": "https://codeforces-stats.tashif.codes/$1"
+    },
+    {
+      "src": "/api/gfg/(.*)",
+      "dest": "https://gfg-stats.tashif.codes/$1"
+    },
+    {
+      "src": "/api/codechef/(.*)",
+      "dest": "https://codechef-stats.tashif.codes/$1"
+    },
+    {
+      "src": "/api/hackerrank/(.*)",
+      "dest": "https://hackerrank-stats.tashif.codes/$1"
+    },
+    {
+      "src": "/api/tuf/(.*)",
+      "dest": "https://tuf-stats.tashif.codes/$1"
+    },
+    {
+      "src": "/ph/(.*)",
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      "dest": "/api/ph?path=$1"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
+}

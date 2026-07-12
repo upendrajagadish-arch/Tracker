@@ -1,0 +1,541 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-heading: 'Space Grotesk', system-ui, sans-serif;
+  /* Space Grotesk carries body, headings, mastheads and inline figures.
+     Geist Pixel is the display accent, reserved for headline "scoreboard"
+     numbers and any deliberately pixel-styled figure. */
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-pixel: 'Geist Pixel', 'Space Grotesk', monospace;
+  /* Legacy alias — components tagged `font-serif` are all figures; point it
+     at the grotesk so those numbers read cleanly instead of as a thin serif. */
+  --font-serif: 'Space Grotesk', system-ui, sans-serif;
+
+  --color-background:   var(--background);
+  --color-foreground:   var(--foreground);
+  --color-card:         var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover:      var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary:      var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary:    var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted:        var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent:       var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive:  var(--destructive);
+  --color-border:       var(--border);
+  --color-input:        var(--input);
+  --color-ring:         var(--ring);
+  --radius-sm:  calc(var(--radius) * 0.6);
+  --radius-md:  calc(var(--radius) * 0.8);
+  --radius-lg:  var(--radius);
+  --radius-xl:  calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+/* Light fallback (unused — app forces .dark) */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(0.97 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.92 0.17 168);
+  --primary-foreground: oklch(0.09 0 0);
+  --secondary: oklch(0.93 0 0);
+  --secondary-foreground: oklch(0.145 0 0);
+  --muted: oklch(0.93 0 0);
+  --muted-foreground: oklch(0.49 0 0);
+  --accent: oklch(0.92 0.17 168);
+  --accent-foreground: oklch(0.09 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.88 0 0);
+  --input: oklch(0.88 0 0);
+  --ring: oklch(0.92 0.17 168 / 0.4);
+  --radius: 0.625rem;
+}
+
+/* Command Code dark theme — near-black canvas, indigo accent */
+.dark {
+  --background:   #050506;
+  --foreground:   #f3f4f6;
+  --card:         #0b0b0e;
+  --card-foreground: #f3f4f6;
+  --popover:      #0b0b0e;
+  --popover-foreground: #f3f4f6;
+  --primary:      #7c83ff;                 /* indigo accent */
+  --primary-foreground: #050506;
+  --secondary:    #101015;
+  --secondary-foreground: #f3f4f6;
+  --muted:        #101015;
+  --muted-foreground: #9296a1;
+  --accent:       #7c83ff;
+  --accent-foreground: #050506;
+  --destructive:  oklch(0.62 0.23 27);
+  --border:       rgba(255,255,255,.08);
+  --input:        rgba(255,255,255,.10);
+  --ring:         rgba(124,131,255,.35);
+  --radius:       0.7rem;
+}
+
+/* Platform brand colors */
+:root {
+  --platform-github:     #e0e0e0;
+  --platform-leetcode:   #ffa116;
+  --platform-codeforces: #1f8ef1;
+  --platform-gfg:        #2db55d;
+  --platform-codechef:   #b08968; /* lightened from brand #5B4638 for dark-bg legibility */
+  --platform-hackerrank: #2ec866;
+  --platform-tuf:        #ff7a3d;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    background-image: radial-gradient(900px 360px at 16% -10%, rgba(124,131,255,0.10), transparent 62%);
+    background-attachment: fixed;
+  }
+}
+
+/* ── Animations ──────────────────────────────────────────────────── */
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(124,131,255,0.30); }
+  50%       { box-shadow: 0 0 0 3px rgba(124,131,255,0.50), 0 0 20px rgba(124,131,255,0.15); }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
+}
+
+@keyframes drawLine {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes termBlink {
+  0%, 49%   { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.card-slide-up {
+  animation: slideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.glow-ring {
+  animation: glowPulse 2.5s ease-in-out infinite;
+}
+
+.fade-in {
+  animation: fadeIn 0.35s ease both;
+}
+
+.term-cursor {
+  animation: termBlink 1.1s step-end infinite;
+}
+
+.rating-line {
+  animation: drawLine 1.2s ease-out forwards;
+  animation-delay: 0.35s;
+}
+
+/* ── Editorial profile page ─────────────────────────────────────── */
+
+/* Dotted rule that fills the space between a label and its figure,
+   like a table-of-contents leader line. */
+.dot-leader {
+  flex: 1 1 auto;
+  min-width: 2rem;
+  margin: 0 0.75rem;
+  transform: translateY(-0.3em);
+  border-bottom: 1px dotted color-mix(in srgb, var(--color-foreground) 25%, transparent);
+}
+
+@keyframes riseIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.rise-in {
+  animation: riseIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ── Editorial detail-page system ─────────────────────────────────── */
+
+/* Staggered entrance for sections down a detail page. */
+@keyframes sectionRise {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.section-rise {
+  animation: sectionRise 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Editorial section auto-numbering via CSS counters. The counter is reset on
+   .section-group and incremented on each .editorial-section. Handles
+   conditional/optional blocks without any React bookkeeping. */
+.section-group {
+  counter-reset: section;
+}
+.editorial-section > div:first-child > span:first-child::before {
+  content: counter(section, decimal-leading-zero);
+  counter-increment: section;
+}
+
+/* Joined stat band — hairline-divided strip of figures. Layout is set with
+   Tailwind (2-col on mobile, horizontal row on sm+); the dividers only appear
+   on the horizontal row where they make sense. */
+.stat-band > * {
+  position: relative;
+}
+.stat-band > * + *::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 2.4em;
+  width: 1px;
+  transform: translateY(-50%);
+  background: color-mix(in srgb, var(--color-foreground) 10%, transparent);
+}
+/* Dividers are a horizontal-row embellishment — hide on the mobile grid. */
+@media (max-width: 639.98px) {
+  .stat-band > * + *::before { display: none; }
+  .stat-band > * { padding-inline: 0; }
+}
+
+/* Editorial difficulty / metric tiles — enclosed but quiet. */
+.tile {
+  border: 1px solid color-mix(in srgb, var(--color-foreground) 8%, transparent);
+  border-radius: calc(var(--radius) * 0.9);
+  background: color-mix(in srgb, var(--color-card) 70%, transparent);
+  transition: border-color 0.25s ease, transform 0.25s ease, background 0.25s ease;
+}
+.tile:hover {
+  border-color: color-mix(in srgb, var(--color-foreground) 16%, transparent);
+  background: color-mix(in srgb, var(--color-card) 92%, transparent);
+}
+
+/* Numerical alignment for tables. */
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* Geist Pixel is a bitmap-grid display face — it needs a hair of tracking and
+   a touch of line-height so the pixels don't collide. Reset any inherited
+   tight/negative tracking wherever the pixel face is used. */
+.font-pixel {
+  letter-spacing: 0.01em;
+  font-feature-settings: normal;
+}
+
+/* Editorial table row hover — platform-tinted, quiet. */
+.editorial-table tr {
+  transition: background 0.18s ease;
+}
+.editorial-table tbody tr:hover {
+  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+}
+
+/* Platform aura behind hero avatars. */
+.platform-aura {
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  filter: blur(14px);
+  opacity: 0.45;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Underline-on-hover for inline editorial links. */
+.link-quiet {
+  transition: color 0.18s ease, border-color 0.18s ease;
+}
+
+/* ── Search panel ─────────────────────────────────────────────────── */
+
+/* Per-row platform accent: the row sets --row-accent to the platform brand
+   color, and the input's focus ring + the row's left rail pick it up. */
+.search-row {
+  --row-accent: var(--color-primary);
+  position: relative;
+  transition: background 0.2s ease;
+}
+.search-row::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--row-accent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.search-row:focus-within::before { opacity: 1; }
+.search-row:focus-within {
+  background: color-mix(in srgb, var(--row-accent) 4%, transparent);
+}
+
+/* Input that uses --row-accent for its focus ring instead of the global
+   --color-ring. */
+.platform-input {
+  --row-accent: var(--color-primary);
+}
+.platform-input:focus-visible {
+  border-color: var(--row-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--row-accent) 22%, transparent);
+}
+
+/* Platform legend pills on the landing view. */
+.legend-pill {
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+.legend-pill:hover {
+  border-color: color-mix(in srgb, var(--pill-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--pill-accent) 8%, transparent);
+}
+
+/* ══ Terminal / hacker chrome ═════════════════════════════════════════
+   A nerdy "operating system" layer: CRT grid atmosphere, terminal windows
+   with traffic lights, shell prompts, blinking phosphor cursors, a glitching
+   wordmark and ASCII rules. Phosphor green signals the terminal; indigo stays
+   the brand primary. */
+
+:root {
+  --term-green: #4ee39b;                 /* phosphor accent — prompts, cursors */
+  --term-red:   #ff5f56;
+  --term-amber: #ffbd2e;
+}
+
+/* Faint CRT grid, brightest at the top of a surface. */
+.crt-grid { position: relative; isolation: isolate; }
+.crt-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-primary) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-primary) 9%, transparent) 1px, transparent 1px);
+  background-size: 34px 34px;
+  -webkit-mask-image: radial-gradient(130% 90% at 50% -10%, #000 28%, transparent 76%);
+          mask-image: radial-gradient(130% 90% at 50% -10%, #000 28%, transparent 76%);
+}
+
+/* Terminal window: titlebar + traffic lights + body. */
+.term-window {
+  position: relative;
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--radius) * 1.15);
+  background: color-mix(in srgb, var(--color-card) 82%, transparent);
+  box-shadow:
+    0 30px 80px -34px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  -webkit-backdrop-filter: blur(6px);
+          backdrop-filter: blur(6px);
+}
+.term-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-foreground) 4%, transparent);
+}
+.term-dot {
+  width: 0.72rem;
+  height: 0.72rem;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+
+/* Scanline overlay for CRT feel — sits above content, ignores pointer. */
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 3px);
+}
+
+/* Slow phosphor sweep travelling down a surface. */
+@keyframes scanSweep { 0% { top: -30%; } 100% { top: 130%; } }
+.scan-sweep { position: relative; overflow: hidden; }
+.scan-sweep::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 32%;
+  top: -30%;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--term-green) 8%, transparent), transparent);
+  animation: scanSweep 6s linear infinite;
+}
+
+/* Blinking block cursor appended to a line. */
+.caret::after {
+  content: "\2589";
+  margin-left: 0.14em;
+  color: var(--term-green);
+  animation: termBlink 1.05s step-end infinite;
+}
+
+/* Shell prompt glyph. */
+.prompt::before {
+  content: "$ ";
+  color: var(--term-green);
+  font-weight: 500;
+}
+
+/* Phosphor glow for accent text. */
+.glow-text { text-shadow: 0 0 20px color-mix(in srgb, currentColor 45%, transparent); }
+
+/* RGB-split glitch for the wordmark. The element carries the real text; the
+   pseudo-elements are coloured copies that jitter on a slow loop. */
+.glitch { position: relative; display: inline-block; }
+.glitch::before,
+.glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.glitch::before {
+  color: #ff3b6b;
+  mix-blend-mode: screen;
+  animation: glitchTop 3.4s infinite steps(2, end);
+}
+.glitch::after {
+  color: var(--term-green);
+  mix-blend-mode: screen;
+  animation: glitchBot 2.9s infinite steps(2, end);
+}
+@keyframes glitchTop {
+  0%, 90%, 100% { clip-path: inset(0 0 100% 0); transform: translate(0, 0); }
+  92%           { clip-path: inset(0 0 62% 0);  transform: translate(-3px, -1px); }
+  96%           { clip-path: inset(0 0 40% 0);  transform: translate(2px, 1px); }
+}
+@keyframes glitchBot {
+  0%, 88%, 100% { clip-path: inset(100% 0 0 0); transform: translate(0, 0); }
+  90%           { clip-path: inset(68% 0 0 0);  transform: translate(3px, 1px); }
+  95%           { clip-path: inset(46% 0 0 0);  transform: translate(-2px, -1px); }
+}
+
+/* ASCII leader — a dashed rule that reads like a terminal divider. */
+.ascii-rule {
+  flex: 1 1 auto;
+  height: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--color-foreground) 22%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section-rise, .rise-in, .card-slide-up, .fade-in, .rating-line, .term-cursor,
+  .caret::after, .scan-sweep::before, .glitch::before, .glitch::after {
+    animation: none !important;
+  }
+}
+
+/* ── Placement Office — uses CodeTrace dark terminal theme ── */
+.placement-theme {
+  /* Inherit global .dark tokens; only add placement-specific accents */
+}
+
+.placement-theme .resume-book-cover {
+  background: linear-gradient(145deg, #0b0b0e 0%, #101015 45%, #1a1a22 100%);
+  border: 1px solid var(--color-border);
+  min-width: 280px;
+}
+
+.placement-theme .resume-book-spread {
+  border: 1px solid color-mix(in srgb, var(--color-primary) 35%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 12%, transparent);
+}
+
+.placement-theme .book-page-left,
+.placement-theme .book-page-right {
+  background: color-mix(in srgb, var(--color-card) 92%, transparent);
+}
+
+.placement-theme .book-flip-forward {
+  transform: perspective(1200px) rotateY(-2deg);
+}
+
+.placement-theme .book-flip-backward {
+  transform: perspective(1200px) rotateY(2deg);
+}
+
+.placement-theme .placement-badge {
+  text-transform: capitalize;
+}
+
+/* Management summary print styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .management-summary-page,
+  .management-summary-page *,
+  .print-summary,
+  .print-summary * {
+    visibility: visible;
+  }
+
+  .management-summary-page {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+    background: white !important;
+  }
+
+  .placement-theme aside,
+  .placement-theme header {
+    display: none !important;
+  }
+
+  .print-summary-header {
+    display: block !important;
+  }
+
+  .print-summary .card,
+  .print-summary [data-slot='card'] {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+  }
+
+  .print-summary table {
+    font-size: 10pt;
+  }
+}
