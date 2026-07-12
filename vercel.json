@@ -54,10 +54,10 @@
     },
     {
       "source": "/ph/:path*",
-      "destination": "/api/ph?path=:path*"
+      "destination": "https://eu.i.posthog.com/:path*"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|ph/).*)",
       "destination": "/index.html"
     }
   ]
