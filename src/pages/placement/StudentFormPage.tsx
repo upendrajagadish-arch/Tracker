@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from '@tanstack/react-router'
+import { Download, FileText, Upload } from 'lucide-react'
 import { PlacementLink } from '@/components/placement/PlacementLink'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -9,6 +10,9 @@ import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
 import { PLACEMENT_STATUSES } from '@/components/placement/PlacementBadges'
 import { PlacementErrorAlert, PlacementLoadingBlock } from '@/components/placement/PlacementStates'
 import { createStudent, getStudent, updateStudent, type CreateStudentInput } from '@/api/placement/students'
+import { getActiveResume, getResumeDownloadUrl, uploadResume, type StudentResumeRow } from '@/api/placement/resumes'
+import { useAuth } from '@/hooks/useAuth'
+import { canManageResumes } from '@/lib/placementNavigation'
 import { ALL_PLATFORMS } from '@/api/unifiedClient'
 import type { PlatformHandles } from '@/lib/studentPlatformHandles'
 import type { Platform } from '@/types/api'
@@ -37,13 +41,26 @@ const emptyForm: CreateStudentInput = {
 
 export function StudentFormPage() {
   const router = useRouter()
-  const { base } = usePlacementPaths()
+  const { user } = useAuth()
+  const { base, role } = usePlacementPaths()
+  const canUploadResume = canManageResumes(role)
+  const fileRef = useRef<HTMLInputElement>(null)
   const { id } = useParams({ strict: false }) as { id?: string }
   const isEdit = Boolean(id && id !== 'new')
   const [form, setForm] = useState<CreateStudentInput>(emptyForm)
+  const [activeResume, setActiveResume] = useState<StudentResumeRow | null>(null)
+  const [resumeUploading, setResumeUploading] = useState(false)
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const loadResume = async (studentProfileId: string) => {
+    try {
+      setActiveResume(await getActiveResume(studentProfileId))
+    } catch {
+      setActiveResume(null)
+    }
+  }
 
   useEffect(() => {
     if (!isEdit || !id) return
@@ -73,6 +90,7 @@ export function StudentFormPage() {
           projectsSummary: student.projects_summary ?? '',
           isPlacementEligible: student.is_placement_eligible,
         })
+        await loadResume(student.id)
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load student')
       } finally {
@@ -109,6 +127,36 @@ export function StudentFormPage() {
       setError(err instanceof Error ? err.message : 'Save failed')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !id || !canUploadResume) return
+    setResumeUploading(true)
+    setError(null)
+    try {
+      const uploaded = await uploadResume({
+        studentProfileId: id,
+        file,
+        userId: user?.id ?? null,
+      })
+      setActiveResume(uploaded)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Resume upload failed')
+    } finally {
+      setResumeUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const handleResumeDownload = async () => {
+    if (!activeResume) return
+    try {
+      const url = await getResumeDownloadUrl(activeResume.id)
+      window.open(url, '_blank', 'noopener,noreferrer')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Resume download failed')
     }
   }
 
@@ -204,6 +252,46 @@ export function StudentFormPage() {
                 <span className="text-muted-foreground">Portfolio URL</span>
                 <Input className="mt-1 border-border bg-card" value={form.portfolioUrl} onChange={(e) => set('portfolioUrl', e.target.value)} />
               </label>
+              {isEdit && canUploadResume ? (
+                <div className="sm:col-span-2 rounded-lg border border-border bg-background/30 p-4">
+                  <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Resume</p>
+                  {activeResume ? (
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-card/60 px-3 py-2">
+                      <div className="flex min-w-0 items-center gap-2 text-sm">
+                        <FileText className="size-4 shrink-0 text-primary" />
+                        <span className="truncate font-medium">{activeResume.file_name}</span>
+                        <span className="font-mono text-xs text-muted-foreground">({activeResume.review_status})</span>
+                      </div>
+                      <Button type="button" size="sm" variant="outline" onClick={() => void handleResumeDownload()}>
+                        <Download className="size-3.5" />
+                        Download
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="mb-3 text-sm text-muted-foreground">No resume uploaded yet.</p>
+                  )}
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    className="hidden"
+                    onChange={handleResumeUpload}
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={resumeUploading}
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    <Upload className="size-3.5" />
+                    {resumeUploading ? 'Uploading…' : activeResume ? 'Replace resume' : 'Upload resume'}
+                  </Button>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    PDF preferred. The active resume appears on the student profile, resume books, and readiness views.
+                  </p>
+                </div>
+              ) : null}
               <div className="sm:col-span-2">
                 <p className="mb-2 text-sm text-muted-foreground">Coding platform handles (for live trace)</p>
                 <div className="grid gap-3 sm:grid-cols-2">

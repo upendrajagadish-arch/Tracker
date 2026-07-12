@@ -64,7 +64,7 @@ export function StudentResumeViewer({ studentProfileId, canUpload, uploadHref }:
     return (
       <PlacementEmptyState
         title="No resume on file"
-        description="Upload a PDF resume from the resumes module or student edit form."
+        description="Upload a PDF resume from the student edit form or resumes module."
         action={
           canUpload && uploadHref ? (
             <Button asChild variant="outline" size="sm">

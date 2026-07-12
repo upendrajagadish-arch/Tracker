@@ -612,7 +612,12 @@ export function ProfilePage({
 
   const isPlacement = mode === 'placement'
   const navBack = backTo ?? (isPlacement ? null : { to: '/app', label: 'cd ../results' })
-  const headerBadge = profileLabel ?? (isPlacement ? 'student profile' : `${BRAND_SLUG} · unified_profile`)
+  const headerBadge = profileLabel ?? (isPlacement ? 'student profile' : `${BRAND_SLUG} · student profile`)
+  const topRightLabel = isPlacement
+    ? (profileLabel ?? 'student profile')
+    : owner
+      ? `@${owner.username}`
+      : headerBadge
 
   return (
     <>
@@ -638,7 +643,7 @@ export function ProfilePage({
             <span />
           )}
           <span className="uppercase tracking-[0.2em] text-muted-foreground/60">
-            {owner ? `@${owner.username}` : headerBadge}
+            {topRightLabel}
           </span>
         </nav>
 

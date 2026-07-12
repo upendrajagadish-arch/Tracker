@@ -180,6 +180,7 @@ export function StudentDetailPage() {
                       displayName: student.full_name,
                       avatarUrl: null,
                     }}
+                    profileLabel="student profile"
                     mode="placement"
                     subtitle={student.email || null}
                     hideFooter
