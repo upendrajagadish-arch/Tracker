@@ -11,7 +11,7 @@ import { Flame, Award, Link2, LogIn, UserCircle2 } from 'lucide-react'
 import { Link, useNavigate } from '@tanstack/react-router'
 
 import type { Platform, Usernames } from '@/types/api'
-import type { PlatformCategory } from '@/types/unified'
+import type { PlatformCategory, UnifiedCard } from '@/types/unified'
 import { useProfileCards } from '@/hooks/useCards'
 import { fetchGitHubEngineering, type GitHubEngineering } from '@/api/github'
 import { useAuth } from '@/hooks/useAuth'
@@ -204,6 +204,10 @@ interface ProfilePageProps {
   profileLabel?: string
   hideShare?: boolean
   hideFooter?: boolean
+  /** Cached cards for public share views — skips live platform fetches. */
+  prefetchedCards?: UnifiedCard[]
+  /** Minimal public share layout without dashboard navigation. */
+  publicView?: boolean
 }
 
 export function ProfilePage({
@@ -215,6 +219,8 @@ export function ProfilePage({
   profileLabel,
   hideShare = false,
   hideFooter = false,
+  prefetchedCards,
+  publicView = false,
 }: ProfilePageProps = {}) {
   const [query] = useQueryStates({
     github: parseAsString.withDefault(''),
@@ -227,8 +233,27 @@ export function ProfilePage({
   })
 
   const profileUsernames = savedUsernames ?? { ...EMPTY_USERNAMES, ...query }
+  const usePrefetched = Boolean(prefetchedCards?.length)
 
-  const { cards, loaded, isLoading, activeCount } = useProfileCards(profileUsernames)
+  const { cards: fetchedCards, loaded: fetchedLoaded, isLoading: fetchingCards, activeCount: fetchedActiveCount } =
+    useProfileCards(usePrefetched ? {} : profileUsernames)
+
+  const loaded = usePrefetched ? prefetchedCards! : fetchedLoaded
+  const isLoading = usePrefetched ? false : fetchingCards
+  const activeCount = usePrefetched
+    ? prefetchedCards!.length
+    : fetchedActiveCount
+
+  const cards = usePrefetched
+    ? prefetchedCards!.map((card) => ({
+        platform: card.platform as Platform,
+        username: card.username,
+        card,
+        isLoading: false,
+        isError: false,
+        error: null,
+      }))
+    : fetchedCards
 
   const activeHandles = useMemo(
     () => cards.map((c) => [c.platform, c.username] as [Platform, string]),
@@ -277,7 +302,7 @@ export function ProfilePage({
         orgs: acc.orgs + e.orgs,
       }), { prsTotal: 0, prsMerged: 0, prsOpen: 0, stars: 0, orgs: 0 })
     },
-    enabled: githubAccounts.length > 0,
+    enabled: githubAccounts.length > 0 && !usePrefetched,
     staleTime: 45 * 60 * 1000,
   })
 
@@ -611,7 +636,7 @@ export function ProfilePage({
   }
 
   const isPlacement = mode === 'placement'
-  const navBack = backTo ?? (isPlacement ? null : { to: '/app', label: 'cd ../results' })
+  const navBack = publicView ? null : backTo ?? (isPlacement ? null : { to: '/app', label: 'cd ../results' })
   const headerBadge = profileLabel ?? (isPlacement ? 'student profile' : `${BRAND_SLUG} · student profile`)
   const topRightLabel = isPlacement
     ? (profileLabel ?? 'student profile')

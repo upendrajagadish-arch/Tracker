@@ -151,6 +151,8 @@ export interface Database {
           platform_handles: Json
           projects_summary: string
           is_active: boolean
+          share_token: string | null
+          is_shareable: boolean
           created_at: string
           updated_at: string
         }
@@ -181,6 +183,8 @@ export interface Database {
           platform_handles?: Json
           projects_summary?: string
           is_active?: boolean
+          share_token?: string | null
+          is_shareable?: boolean
           created_at?: string
           updated_at?: string
         }
@@ -541,6 +545,7 @@ export interface Database {
         Args: { p_token: string; p_page?: number; p_limit?: number }
         Returns: Json
       }
+      get_public_student_performance: { Args: { p_token: string }; Returns: Json }
     }
     Enums: {
       placement_role: PlacementRole

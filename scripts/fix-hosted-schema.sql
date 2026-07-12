@@ -23,6 +23,15 @@ ALTER TABLE public.student_profiles
   ADD COLUMN IF NOT EXISTS projects_summary text NOT NULL DEFAULT '',
   ADD COLUMN IF NOT EXISTS date_of_birth date;
 
+-- Public student performance share links
+ALTER TABLE public.student_profiles
+  ADD COLUMN IF NOT EXISTS share_token text,
+  ADD COLUMN IF NOT EXISTS is_shareable boolean NOT NULL DEFAULT false;
+
+CREATE UNIQUE INDEX IF NOT EXISTS student_profiles_share_token_idx
+  ON public.student_profiles(share_token)
+  WHERE share_token IS NOT NULL;
+
 -- Student coding profile snapshots
 CREATE TABLE IF NOT EXISTS public.student_coding_snapshots (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

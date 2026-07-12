@@ -27,7 +27,9 @@ import {
   type StudentCodingSnapshotRow,
 } from '@/api/placement/studentCodingProfile'
 import { listStudentSkills, type StudentTechSkillWithMeta } from '@/api/placement/techSkills'
+import { StudentPerformanceShare } from '@/components/placement/StudentPerformanceShare'
 import { canManageStudents, canManageResumes } from '@/lib/placementNavigation'
+import { hasPermission } from '@/lib/placementPermissions'
 import { countLinkedPlatforms, resolvePlatformHandles } from '@/lib/studentPlatformHandles'
 import { ALL_PLATFORMS } from '@/api/unifiedClient'
 
@@ -69,6 +71,8 @@ export function StudentDetailPage() {
   const [syncingProfile, setSyncingProfile] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [publicShareUrl, setPublicShareUrl] = useState<string | null>(null)
+  const canShare = hasPermission(role, 'students:update')
 
   const loadStudent = async () => {
     setLoading(true)
@@ -130,7 +134,11 @@ export function StudentDetailPage() {
   const profileUsernames = student ? studentUsernamesFromProfile(student) : null
 
   return (
-    <PlacementShell title="Student profile">
+    <PlacementShell
+      title="Student profile"
+      headerShareUrl={publicShareUrl ?? undefined}
+      headerShareTitle={student ? `${student.full_name} — Student Performance` : undefined}
+    >
       <PlacementPageStack>
         <PlacementAlerts error={error} />
 
@@ -167,6 +175,13 @@ export function StudentDetailPage() {
                     <Button asChild variant="outline" size="sm">
                       <PlacementLink href={`${base}/students/$id/edit`} params={{ id }}>Edit profile</PlacementLink>
                     </Button>
+                  ) : null}
+                  {canShare ? (
+                    <StudentPerformanceShare
+                      studentProfileId={student.id}
+                      studentName={student.full_name}
+                      onShareUrl={setPublicShareUrl}
+                    />
                   ) : null}
                 </div>
               </div>

@@ -21,6 +21,8 @@ interface PlacementShellProps {
   title?: string
   children: ReactNode
   requireRole?: boolean
+  headerShareUrl?: string
+  headerShareTitle?: string
 }
 
 function PlacementMessageCard({
@@ -53,7 +55,13 @@ function PlacementMessageCard({
   )
 }
 
-export function PlacementShell({ title, children, requireRole = true }: PlacementShellProps) {
+export function PlacementShell({
+  title,
+  children,
+  requireRole = true,
+  headerShareUrl,
+  headerShareTitle,
+}: PlacementShellProps) {
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { user, placementRole, placementLoading, isLoading, isConfigured, placementProfile } = useAuth()
@@ -201,7 +209,12 @@ export function PlacementShell({ title, children, requireRole = true }: Placemen
           </aside>
 
           <div className="min-w-0 flex-1">
-            <AppHeader backTo="/app" backLabel="dashboard" />
+            <AppHeader
+              backTo="/app"
+              backLabel="dashboard"
+              shareUrl={headerShareUrl}
+              shareTitle={headerShareTitle}
+            />
             <WorkspaceTabs active="placement" />
 
             <div className="mb-4 flex gap-2 overflow-x-auto pb-1 sm:hidden">

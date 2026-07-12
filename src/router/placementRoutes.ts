@@ -18,6 +18,7 @@ import { ReportsPage } from '@/pages/placement/ReportsPage'
 import { SharedStudentsPage } from '@/pages/placement/SharedStudentsPage'
 import { RemovedPlacementRedirectPage } from '@/pages/placement/RemovedPlacementRedirectPage'
 import { PublicResumeBookPage } from '@/pages/public/PublicResumeBookPage'
+import { PublicStudentPerformancePage } from '@/pages/public/PublicStudentPerformancePage'
 
 const REMOVED_PLACEMENT_PATHS = [
   'companies',
@@ -165,6 +166,11 @@ export function createPlacementRoutes(parent: AnyRoute) {
       getParentRoute: () => parent,
       path: 'public/resume-books/$token',
       component: PublicResumeBookPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: 'public/student-performance/$token',
+      component: PublicStudentPerformancePage,
     }),
   ]
 }
