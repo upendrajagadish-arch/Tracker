@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useParams } from '@tanstack/react-router'
+import { useParams, useSearch } from '@tanstack/react-router'
 import { PlacementLink } from '@/components/placement/PlacementLink'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -15,6 +15,8 @@ import { canExportResumeBooks } from '@/lib/placementNavigation'
 
 export function ResumeBookViewPage() {
   const { id } = useParams({ strict: false }) as { id: string }
+  const search = useSearch({ strict: false }) as { open?: string }
+  const autoOpen = search.open === '1'
   const { base, role } = usePlacementPaths()
   const canShare = canExportResumeBooks(role)
   const [book, setBook] = useState<ResumeBookRow | null>(null)
@@ -106,6 +108,7 @@ export function ResumeBookViewPage() {
           totalStudents={book.total_students}
           fetchStudents={fetchStudents}
           shareSettings={(book.share_settings as { allowResumeDownload?: boolean; allowExternalLinks?: boolean }) ?? {}}
+          autoOpen={autoOpen}
         />
       ) : null}
     </PlacementShell>

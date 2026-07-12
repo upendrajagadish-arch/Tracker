@@ -64,6 +64,84 @@ function createShareToken(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
 }
 
+function applyResumeBookFilters(
+  query: ReturnType<ReturnType<typeof requireSupabase>['from']>,
+  filters: ResumeBookFilters,
+) {
+  let next = query.eq('is_active', true)
+  const branch = filters.branch?.trim()
+  const batch = filters.batch?.trim()
+  if (branch) next = next.ilike('branch', branch)
+  if (batch) next = next.ilike('batch', batch)
+  if (filters.readinessStatus) next = next.eq('readiness_status', filters.readinessStatus)
+  if (filters.placementStatus) next = next.eq('placement_status', filters.placementStatus)
+  if (filters.minReadinessScore != null && !Number.isNaN(filters.minReadinessScore)) {
+    next = next.gte('readiness_score', filters.minReadinessScore)
+  }
+  return next
+}
+
+export interface ResumeBookPreviewStudent {
+  fullName: string
+  rollNumber: string
+  branch: string
+  batch: string
+  readinessScore: number | null
+}
+
+export interface ResumeBookPreviewResult {
+  total: number
+  cappedTotal: number
+  sample: ResumeBookPreviewStudent[]
+}
+
+export async function listResumeBookFilterOptions(): Promise<{ branches: string[]; batches: string[] }> {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('student_profiles')
+    .select('branch, batch')
+    .eq('is_active', true)
+  if (error) throw error
+
+  const branches = [...new Set((data ?? []).map((row) => row.branch?.trim()).filter(Boolean) as string[])].sort()
+  const batches = [...new Set((data ?? []).map((row) => row.batch?.trim()).filter(Boolean) as string[])].sort()
+  return { branches, batches }
+}
+
+export async function previewBookStudents(filters: ResumeBookFilters = {}): Promise<ResumeBookPreviewResult> {
+  const client = requireSupabase()
+  const cap = filters.limit ? Math.min(Math.max(1, filters.limit), 500) : 500
+
+  const { count, error: countError } = await applyResumeBookFilters(
+    client.from('student_profiles').select('*', { count: 'exact', head: true }),
+    filters,
+  )
+  if (countError) throw countError
+
+  const total = count ?? 0
+  const cappedTotal = Math.min(total, cap)
+
+  const { data, error } = await applyResumeBookFilters(
+    client.from('student_profiles').select('full_name, roll_number, branch, batch, readiness_score'),
+    filters,
+  )
+    .order('readiness_score', { ascending: false })
+    .limit(5)
+  if (error) throw error
+
+  return {
+    total,
+    cappedTotal,
+    sample: (data ?? []).map((row: Pick<Database['public']['Tables']['student_profiles']['Row'], 'full_name' | 'roll_number' | 'branch' | 'batch' | 'readiness_score'>) => ({
+      fullName: row.full_name,
+      rollNumber: row.roll_number,
+      branch: row.branch,
+      batch: row.batch,
+      readinessScore: row.readiness_score,
+    })),
+  }
+}
+
 function studentSnapshot(
   student: Database['public']['Tables']['student_profiles']['Row'],
   resume?: { id: string; storage_path: string } | null,
@@ -111,21 +189,20 @@ export async function generateBook(input: GenerateBookInput): Promise<ResumeBook
   const client = requireSupabase()
   const filters = input.filters ?? {}
 
-  let studentQuery = client
-    .from('student_profiles')
-    .select('*')
-    .eq('is_active', true)
-    .order('readiness_score', { ascending: false })
-
-  if (filters.branch) studentQuery = studentQuery.eq('branch', filters.branch)
-  if (filters.batch) studentQuery = studentQuery.eq('batch', filters.batch)
-  if (filters.readinessStatus) studentQuery = studentQuery.eq('readiness_status', filters.readinessStatus)
-  if (filters.placementStatus) studentQuery = studentQuery.eq('placement_status', filters.placementStatus)
-  if (filters.minReadinessScore != null) studentQuery = studentQuery.gte('readiness_score', filters.minReadinessScore)
-  if (filters.limit) studentQuery = studentQuery.limit(Math.min(filters.limit, 500))
+  let studentQuery = applyResumeBookFilters(client.from('student_profiles').select('*'), filters).order(
+    'readiness_score',
+    { ascending: false },
+  )
+  const cap = filters.limit ? Math.min(Math.max(1, filters.limit), 500) : 500
+  studentQuery = studentQuery.limit(cap)
 
   const { data: students, error: studentsError } = await studentQuery
   if (studentsError) throw studentsError
+  if (!students?.length) {
+    throw new Error(
+      'No active students match these filters. Clear branch/batch filters or lower the minimum readiness score, then try again.',
+    )
+  }
 
   const { data: auth } = await client.auth.getUser()
 

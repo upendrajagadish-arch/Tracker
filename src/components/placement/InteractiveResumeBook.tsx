@@ -284,6 +284,7 @@ export interface InteractiveResumeBookProps {
   shareSettings?: ResumeBookShareSettings
   isPublic?: boolean
   onDownloadResume?: (student: ResumeBookStudent) => void
+  autoOpen?: boolean
 }
 
 export function InteractiveResumeBook({
@@ -293,8 +294,9 @@ export function InteractiveResumeBook({
   shareSettings = {},
   isPublic = false,
   onDownloadResume,
+  autoOpen = false,
 }: InteractiveResumeBookProps) {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(autoOpen)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [flipDir, setFlipDir] = useState('')
   const [cache, setCache] = useState<Record<number, ResumeBookStudent>>({})
@@ -302,6 +304,10 @@ export function InteractiveResumeBook({
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [mobileList, setMobileList] = useState(false)
   const cacheRef = useRef<Record<number, ResumeBookStudent>>({})
+
+  useEffect(() => {
+    if (autoOpen && totalStudents > 0) setIsOpen(true)
+  }, [autoOpen, totalStudents])
 
   const loadStudent = useCallback(
     async (index: number) => {

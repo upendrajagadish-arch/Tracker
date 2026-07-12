@@ -459,7 +459,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .section-rise, .rise-in, .card-slide-up, .fade-in, .rating-line, .term-cursor,
-  .caret::after, .scan-sweep::before, .glitch::before, .glitch::after {
+  .caret::after, .scan-sweep::before, .glitch::before, .glitch::after,
+  .resume-book-cover-preview.resume-book-cover-ready, .resume-book-cover-generating {
     animation: none !important;
   }
 }
@@ -473,6 +474,27 @@
   background: linear-gradient(145deg, #0b0b0e 0%, #101015 45%, #1a1a22 100%);
   border: 1px solid var(--color-border);
   min-width: 280px;
+}
+
+.placement-theme .resume-book-cover-preview.resume-book-cover-ready {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--color-primary) 35%, transparent),
+    0 12px 40px color-mix(in srgb, var(--color-primary) 18%, transparent);
+  animation: resume-book-pulse 2.4s ease-in-out infinite;
+}
+
+.placement-theme .resume-book-cover-generating {
+  animation: resume-book-bind 1.2s ease-in-out infinite;
+}
+
+@keyframes resume-book-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+}
+
+@keyframes resume-book-bind {
+  0%, 100% { transform: perspective(900px) rotateY(0deg); }
+  50% { transform: perspective(900px) rotateY(-4deg); }
 }
 
 .placement-theme .resume-book-spread {
