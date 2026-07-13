@@ -136,7 +136,7 @@ export function StudentDetailPage() {
   return (
     <PlacementShell
       title="Student profile"
-      headerShareUrl={publicShareUrl ?? undefined}
+      headerShareUrl={publicShareUrl}
       headerShareTitle={student ? `${student.full_name} — Student Performance` : undefined}
     >
       <PlacementPageStack>
@@ -178,8 +178,7 @@ export function StudentDetailPage() {
                   ) : null}
                   {canShare ? (
                     <StudentPerformanceShare
-                      studentProfileId={student.id}
-                      studentName={student.full_name}
+                      student={student}
                       onShareUrl={setPublicShareUrl}
                     />
                   ) : null}

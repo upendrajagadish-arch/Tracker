@@ -21,7 +21,7 @@ interface PlacementShellProps {
   title?: string
   children: ReactNode
   requireRole?: boolean
-  headerShareUrl?: string
+  headerShareUrl?: string | null
   headerShareTitle?: string
 }
 
@@ -212,7 +212,7 @@ export function PlacementShell({
             <AppHeader
               backTo="/app"
               backLabel="dashboard"
-              shareUrl={headerShareUrl}
+              shareUrl={headerShareUrl ?? null}
               shareTitle={headerShareTitle}
             />
             <WorkspaceTabs active="placement" />

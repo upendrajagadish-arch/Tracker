@@ -14,6 +14,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { AccountPage } from '@/pages/AccountPage'
 import { PublicProfilePage } from '@/pages/PublicProfilePage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { PublicStudentPerformancePage } from '@/pages/public/PublicStudentPerformancePage'
 import { createPlacementRoutes } from '@/router/placementRoutes'
 
 const rootRoute = createRootRoute({
@@ -117,6 +118,12 @@ export const onboardingRoute = createRoute({
   validateSearch: accountSearch,
 })
 
+export const publicStudentPerformanceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/public/student-performance/$token',
+  component: PublicStudentPerformancePage,
+})
+
 export const publicProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/$profileUsername',
@@ -138,6 +145,7 @@ const routeTree = rootRoute.addChildren([
   tufRoute,
   profileRoute,
   ...createPlacementRoutes(rootRoute),
+  publicStudentPerformanceRoute,
   publicProfileRoute,
 ])
 

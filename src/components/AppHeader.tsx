@@ -14,8 +14,8 @@ interface Props {
   backTo?: string
   /** Label for the back action. */
   backLabel?: string
-  /** URL to share; defaults to the current location. */
-  shareUrl?: string
+  /** URL to share; omit to share the current page; pass null to hide share. */
+  shareUrl?: string | null
   /** Title passed to the native share sheet. */
   shareTitle?: string
   className?: string
@@ -37,8 +37,13 @@ export function AppHeader({
     ? placementHomeForRole(placementRole)
     : null
 
+  const resolvedShareUrl =
+    shareUrl === undefined
+      ? (typeof window !== 'undefined' ? window.location.href : '')
+      : shareUrl
+
   const handleShare = async () => {
-    const url = shareUrl ?? (typeof window !== 'undefined' ? window.location.href : '')
+    const url = resolvedShareUrl
     if (!url) return
 
     const copy = async () => {
@@ -85,15 +90,17 @@ export function AppHeader({
                 {backLabel}
               </Link>
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleShare}
-              className="font-mono text-xs text-muted-foreground hover:text-primary"
-            >
-              {copied ? <Check data-icon="inline-start" /> : <Share2 data-icon="inline-start" />}
-              {copied ? 'copied' : 'share'}
-            </Button>
+            {resolvedShareUrl ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleShare}
+                className="font-mono text-xs text-muted-foreground hover:text-primary"
+              >
+                {copied ? <Check data-icon="inline-start" /> : <Share2 data-icon="inline-start" />}
+                {copied ? 'copied' : 'share'}
+              </Button>
+            ) : null}
             {placementHome ? (
               <Button
                 variant="ghost"

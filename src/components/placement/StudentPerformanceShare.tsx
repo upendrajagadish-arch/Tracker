@@ -3,12 +3,12 @@ import { QrCode, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { ensureStudentShareLink, publicStudentPerformanceUrl } from '@/api/placement/studentShare'
+import { prepareStudentShareLink, publicStudentPerformanceUrl } from '@/api/placement/studentShare'
+import type { StudentProfileRow } from '@/api/placement/students'
 import { shareOrCopyUrl } from '@/lib/utils'
 
 interface StudentPerformanceShareProps {
-  studentProfileId: string
-  studentName: string
+  student: Pick<StudentProfileRow, 'id' | 'github_url' | 'platform_handles' | 'full_name'>
   onShareUrl?: (url: string | null) => void
 }
 
@@ -26,8 +26,7 @@ function QrCodeImage({ url, size = 168 }: { url: string; size?: number }) {
 }
 
 export function StudentPerformanceShare({
-  studentProfileId,
-  studentName,
+  student,
   onShareUrl,
 }: StudentPerformanceShareProps) {
   const [shareUrl, setShareUrl] = useState<string | null>(null)
@@ -40,7 +39,7 @@ export function StudentPerformanceShare({
     setLoading(true)
     setError(null)
     try {
-      const token = await ensureStudentShareLink(studentProfileId)
+      const token = await prepareStudentShareLink(student)
       const url = publicStudentPerformanceUrl(token)
       setShareUrl(url)
       onShareUrl?.(url)
@@ -53,7 +52,7 @@ export function StudentPerformanceShare({
     } finally {
       setLoading(false)
     }
-  }, [onShareUrl, studentProfileId])
+  }, [onShareUrl, student])
 
   useEffect(() => {
     void loadShareUrl()
@@ -67,7 +66,7 @@ export function StudentPerformanceShare({
   const handleCopy = async () => {
     const url = shareUrl ?? await loadShareUrl()
     if (!url) return
-    const result = await shareOrCopyUrl(url, `${studentName} — Student Performance`)
+    const result = await shareOrCopyUrl(url, `${student.full_name} — Student Performance`)
     if (result === 'copied' || result === 'shared') {
       setToast('Public link copied')
       setTimeout(() => setToast(null), 2000)
@@ -84,8 +83,12 @@ export function StudentPerformanceShare({
         onClick={() => void handleOpen()}
       >
         <Share2 data-icon="inline-start" className="size-3.5" />
-        {loading ? 'Preparing link…' : 'Share profile'}
+        {loading ? 'Preparing link…' : 'Share performance'}
       </Button>
+
+      {error ? (
+        <span className="font-mono text-[10px] text-destructive">{error}</span>
+      ) : null}
 
       {toast ? (
         <span className="font-mono text-[10px] text-primary">{toast}</span>
@@ -97,7 +100,7 @@ export function StudentPerformanceShare({
             <CardContent className="space-y-4 pt-6">
               <div className="text-center">
                 <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Public student performance</p>
-                <h2 className="mt-2 font-pixel text-xl text-foreground">{studentName}</h2>
+                <h2 className="mt-2 font-pixel text-xl text-foreground">{student.full_name}</h2>
                 <p className="mt-1 text-xs text-muted-foreground">Opens without login — performance card only</p>
               </div>
 
@@ -115,6 +118,14 @@ export function StudentPerformanceShare({
               <div className="flex flex-wrap gap-2">
                 <Button type="button" size="sm" onClick={() => void handleCopy()}>
                   Copy public link
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => shareUrl && window.open(shareUrl, '_blank', 'noopener,noreferrer')}
+                >
+                  Open preview
                 </Button>
                 <Button type="button" size="sm" variant="outline" onClick={() => setOpen(false)}>
                   Close

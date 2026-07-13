@@ -1,5 +1,7 @@
 import { requireSupabase } from '@/lib/supabase'
 import { logPlacementAudit } from '@/lib/placementAudit'
+import { ensureStudentCodingProfile } from '@/api/placement/studentCodingProfile'
+import type { StudentProfileRow } from '@/api/placement/students'
 import type { UnifiedCard } from '@/types/unified'
 import type { PlatformHandles } from '@/lib/studentPlatformHandles'
 
@@ -39,7 +41,12 @@ export async function ensureStudentShareLink(studentProfileId: string): Promise<
     .select('share_token, is_shareable, full_name')
     .eq('id', studentProfileId)
     .single()
-  if (readError) throw readError
+  if (readError) {
+    if (/share_token|column/i.test(readError.message)) {
+      throw new Error('Share links are not enabled in the database. Run scripts/apply-student-share-migration.sql in Supabase.')
+    }
+    throw readError
+  }
 
   if (existing.share_token && existing.is_shareable) {
     return existing.share_token
@@ -52,7 +59,12 @@ export async function ensureStudentShareLink(studentProfileId: string): Promise<
     .eq('id', studentProfileId)
     .select('share_token')
     .single()
-  if (error) throw error
+  if (error) {
+    if (/share_token|column/i.test(error.message)) {
+      throw new Error('Share links are not enabled in the database. Run scripts/apply-student-share-migration.sql in Supabase.')
+    }
+    throw error
+  }
   if (!data.share_token) throw new Error('Failed to create share link')
 
   await logPlacementAudit({
@@ -63,6 +75,18 @@ export async function ensureStudentShareLink(studentProfileId: string): Promise<
   })
 
   return data.share_token
+}
+
+/** Sync coding snapshot, then ensure a public share token exists. */
+export async function prepareStudentShareLink(
+  student: Pick<StudentProfileRow, 'id' | 'github_url' | 'platform_handles' | 'full_name'>,
+): Promise<string> {
+  try {
+    await ensureStudentCodingProfile(student)
+  } catch {
+    // Readiness-only share is still useful if platform fetch fails.
+  }
+  return ensureStudentShareLink(student.id)
 }
 
 export async function getPublicStudentPerformance(token: string): Promise<PublicStudentPerformance | null> {
