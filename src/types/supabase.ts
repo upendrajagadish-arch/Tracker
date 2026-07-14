@@ -143,6 +143,9 @@ export interface Database {
           readiness_status: string
           risk_level: string
           is_placement_eligible: boolean
+          communication_score: number | null
+          communication_grade: string | null
+          last_communication_evaluation_at: string | null
           linkedin_url: string
           github_url: string
           portfolio_url: string
@@ -175,6 +178,9 @@ export interface Database {
           readiness_status?: string
           risk_level?: string
           is_placement_eligible?: boolean
+          communication_score?: number | null
+          communication_grade?: string | null
+          last_communication_evaluation_at?: string | null
           linkedin_url?: string
           github_url?: string
           portfolio_url?: string
@@ -189,6 +195,110 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['student_profiles']['Insert']>
+        Relationships: []
+      }
+      communication_evaluations: {
+        Row: {
+          id: string
+          student_profile_id: string
+          user_id: string | null
+          roll_number: string
+          student_name: string
+          department: string
+          email: string
+          open_body_posture_smile: number
+          gestures_eye_contact: number
+          fluency_in_english: number
+          rate_of_speech: number
+          pronunciation_clarity: number
+          voice_modulation: number
+          listening_skills: number
+          body_language: number
+          communication_proficiency_total: number
+          explanation_skills: number
+          energy_enthusiasm: number
+          content_quality_ideas: number
+          subject_knowledge: number
+          thought_process_creativity: number
+          audience_orientation: number
+          presentation_skills_total: number
+          courtesy_politeness: number
+          grooming: number
+          confidence: number
+          professionalism: number
+          initiative: number
+          leadership_skills: number
+          teamwork: number
+          analytical_critical_thinking: number
+          problem_solving_ability: number
+          persuasiveness: number
+          time_management: number
+          behavioural_skills_total: number
+          total_score: number
+          max_score: number
+          percentage: number
+          grade: string
+          evaluator_id: string | null
+          evaluator_name: string
+          evaluator_role: string
+          evaluation_date: string
+          source: string
+          notes: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          student_profile_id: string
+          user_id?: string | null
+          roll_number?: string
+          student_name?: string
+          department?: string
+          email?: string
+          open_body_posture_smile?: number
+          gestures_eye_contact?: number
+          fluency_in_english?: number
+          rate_of_speech?: number
+          pronunciation_clarity?: number
+          voice_modulation?: number
+          listening_skills?: number
+          body_language?: number
+          communication_proficiency_total?: number
+          explanation_skills?: number
+          energy_enthusiasm?: number
+          content_quality_ideas?: number
+          subject_knowledge?: number
+          thought_process_creativity?: number
+          audience_orientation?: number
+          presentation_skills_total?: number
+          courtesy_politeness?: number
+          grooming?: number
+          confidence?: number
+          professionalism?: number
+          initiative?: number
+          leadership_skills?: number
+          teamwork?: number
+          analytical_critical_thinking?: number
+          problem_solving_ability?: number
+          persuasiveness?: number
+          time_management?: number
+          behavioural_skills_total?: number
+          total_score?: number
+          max_score?: number
+          percentage?: number
+          grade?: string
+          evaluator_id?: string | null
+          evaluator_name?: string
+          evaluator_role?: string
+          evaluation_date?: string
+          source?: string
+          notes?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['communication_evaluations']['Insert']>
         Relationships: []
       }
       student_coding_snapshots: {

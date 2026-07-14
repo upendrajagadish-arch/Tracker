@@ -13,6 +13,7 @@ PlacementIQ-style placement operations live **inside CodeTrace only**, backed by
 | 5 | Resume Books + public share links |
 | 5.1 | Public share hardening (token RPC, sanitization, no-index) |
 | 6 | Reports + Management Summary + CSV export |
+| 6A | Communication Evaluation — 25 criteria × 10 = **250 marks** (proficiency 80 / presentation 60 / behavioural 110), bulk roll-number upload, readiness % integration |
 
 ## Stack
 

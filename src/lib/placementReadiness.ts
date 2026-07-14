@@ -146,7 +146,24 @@ export function calculateReadiness(input: ReadinessInput): ReadinessResult {
   const { student, activeResume, techSkills = [], interviews = [] } = input
 
   const technicalScore = averageInterviewScore(interviews, 'technical_score') || clampScore(student.readiness_score * 0.6)
-  const communicationScore = averageInterviewScore(interviews, 'communication_score')
+
+  // Communication priority:
+  // 1) structured evaluation on student profile
+  // 2) interview communication average
+  // 3) fallback 40
+  let communicationScore = 40
+  let communicationSource: 'evaluation' | 'interview' | 'fallback' = 'fallback'
+  if (student.communication_score != null && !Number.isNaN(Number(student.communication_score))) {
+    communicationScore = clampScore(Number(student.communication_score))
+    communicationSource = 'evaluation'
+  } else {
+    const fromInterviews = averageInterviewScore(interviews, 'communication_score')
+    if (fromInterviews > 0) {
+      communicationScore = fromInterviews
+      communicationSource = 'interview'
+    }
+  }
+
   const resumeScore = scoreResume(activeResume)
   const techStackScore = scoreTechStack(techSkills)
   const profileScore = scoreProfileCompleteness(student)
@@ -183,6 +200,7 @@ export function calculateReadiness(input: ReadinessInput): ReadinessResult {
       hasActiveResume: Boolean(activeResume),
       placementEligible: student.is_placement_eligible,
       activeBacklogs: student.active_backlogs,
+      communicationSource,
     },
   }
 }

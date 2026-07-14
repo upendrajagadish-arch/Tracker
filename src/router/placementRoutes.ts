@@ -16,6 +16,9 @@ import { ResumeBookCreatePage } from '@/pages/placement/ResumeBookCreatePage'
 import { ResumeBookViewPage } from '@/pages/placement/ResumeBookViewPage'
 import { ReportsPage } from '@/pages/placement/ReportsPage'
 import { SharedStudentsPage } from '@/pages/placement/SharedStudentsPage'
+import { CommunicationEvaluationsPage } from '@/pages/placement/CommunicationEvaluationsPage'
+import { CommunicationEvaluationFormPage } from '@/pages/placement/CommunicationEvaluationFormPage'
+import { CommunicationEvaluationImportPage } from '@/pages/placement/CommunicationEvaluationImportPage'
 import { RemovedPlacementRedirectPage } from '@/pages/placement/RemovedPlacementRedirectPage'
 import { PublicResumeBookPage } from '@/pages/public/PublicResumeBookPage'
 
@@ -99,6 +102,26 @@ function createRolePlacementRoutes(parent: AnyRoute, prefix: 'admin' | 'tpo' | '
       getParentRoute: () => parent,
       path: `${prefix}/placement/readiness`,
       component: ReadinessPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/communication`,
+      component: CommunicationEvaluationsPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/communication/new`,
+      component: CommunicationEvaluationFormPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/communication/import`,
+      component: CommunicationEvaluationImportPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/communication/$studentProfileId/edit`,
+      component: CommunicationEvaluationFormPage,
     }),
     createRoute({
       getParentRoute: () => parent,

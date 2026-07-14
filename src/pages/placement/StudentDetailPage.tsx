@@ -27,8 +27,9 @@ import {
   type StudentCodingSnapshotRow,
 } from '@/api/placement/studentCodingProfile'
 import { listStudentSkills, type StudentTechSkillWithMeta } from '@/api/placement/techSkills'
+import { getLatestEvaluationForStudent, type CommunicationEvaluationRow } from '@/api/placement/communicationEvaluations'
 import { StudentPerformanceShare } from '@/components/placement/StudentPerformanceShare'
-import { canManageStudents, canManageResumes } from '@/lib/placementNavigation'
+import { canManageStudents, canManageResumes, canManageReadiness } from '@/lib/placementNavigation'
 import { hasPermission } from '@/lib/placementPermissions'
 import { countLinkedPlatforms, resolvePlatformHandles } from '@/lib/studentPlatformHandles'
 import { ALL_PLATFORMS } from '@/api/unifiedClient'
@@ -65,8 +66,10 @@ export function StudentDetailPage() {
   const { base, role } = usePlacementPaths()
   const canManage = canManageStudents(role)
   const canResumes = canManageResumes(role)
+  const canManageComm = canManageReadiness(role)
   const [student, setStudent] = useState<Awaited<ReturnType<typeof getStudent>>>(null)
   const [techSkills, setTechSkills] = useState<StudentTechSkillWithMeta[]>([])
+  const [commEval, setCommEval] = useState<CommunicationEvaluationRow | null>(null)
   const [snapshot, setSnapshot] = useState<StudentCodingSnapshotRow | null>(null)
   const [syncingProfile, setSyncingProfile] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -82,12 +85,14 @@ export function StudentDetailPage() {
       if (!data) setError('Student not found')
       setStudent(data)
       if (data) {
-        const [skills, existingSnapshot] = await Promise.all([
+        const [skills, existingSnapshot, evaluation] = await Promise.all([
           listStudentSkills(data.id),
           getStudentCodingSnapshot(data.id).catch(() => null),
+          getLatestEvaluationForStudent(data.id).catch(() => null),
         ])
         setTechSkills(skills)
         setSnapshot(existingSnapshot)
+        setCommEval(evaluation)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load student')
@@ -242,9 +247,65 @@ export function StudentDetailPage() {
                     <DetailRow label="Skills summary">{student.skills_summary || '—'}</DetailRow>
                     <DetailRow label="Career interest">{student.career_interest || '—'}</DetailRow>
                     <DetailRow label="Tech skills recorded">{techSkills.length}</DetailRow>
+                    <DetailRow label="Communication source">
+                      {student.communication_score != null || commEval
+                        ? 'Communication Evaluation (structured)'
+                        : 'Interview average / default'}
+                    </DetailRow>
                   </dl>
                 </PlacementSectionCard>
               </div>
+
+              <PlacementSectionCard
+                title="Communication Evaluation"
+                actions={
+                  canManageComm && base ? (
+                    <Button asChild size="sm">
+                      <PlacementLink
+                        href={`${base}/communication/$studentProfileId/edit`}
+                        params={{ studentProfileId: student.id }}
+                      >
+                        {commEval ? 'Edit evaluation' : 'Evaluate'}
+                      </PlacementLink>
+                    </Button>
+                  ) : null
+                }
+              >
+                {commEval || student.communication_score != null ? (
+                  <dl>
+                    <DetailRow label="Total score">
+                      {commEval
+                        ? `${commEval.total_score}/250`
+                        : '—'}
+                    </DetailRow>
+                    <DetailRow label="Percentage">
+                      {commEval?.percentage ?? student.communication_score ?? '—'}%
+                    </DetailRow>
+                    <DetailRow label="Grade">
+                      {commEval?.grade ?? student.communication_grade ?? '—'}
+                    </DetailRow>
+                    <DetailRow label="Section totals">
+                      Proficiency {commEval?.communication_proficiency_total ?? '—'}/80 ·
+                      Presentation {commEval?.presentation_skills_total ?? '—'}/60 ·
+                      Behavioural {commEval?.behavioural_skills_total ?? '—'}/110
+                    </DetailRow>
+                    <DetailRow label="Last evaluated">
+                      {(commEval?.evaluation_date || student.last_communication_evaluation_at)
+                        ? new Date(
+                            commEval?.evaluation_date ||
+                              student.last_communication_evaluation_at ||
+                              '',
+                          ).toLocaleDateString()
+                        : '—'}
+                    </DetailRow>
+                    <DetailRow label="Evaluator">
+                      {commEval?.evaluator_name || commEval?.evaluator_role || '—'}
+                    </DetailRow>
+                  </dl>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No communication evaluation yet.</p>
+                )}
+              </PlacementSectionCard>
 
               <PlacementSectionCard title="Resume">
                 <StudentResumeViewer
