@@ -4,22 +4,67 @@ import { ensureStudentCodingProfile } from '@/api/placement/studentCodingProfile
 import type { StudentProfileRow } from '@/api/placement/students'
 import type { UnifiedCard } from '@/types/unified'
 import type { PlatformHandles } from '@/lib/studentPlatformHandles'
+import type { CriteriaKey } from '@/lib/communicationEvaluation'
+
+export interface PublicShareCommunication {
+  totalScore: number
+  maxScore: number
+  percentage: number
+  grade: string
+  evaluatedAt: string | null
+  proficiencyTotal: number
+  presentationTotal: number
+  behaviouralTotal: number
+  criteria: Partial<Record<CriteriaKey, number>> | null
+}
+
+export interface PublicShareAssessment {
+  score: number | null
+  maxScore: number | null
+  percentage: number | null
+  grade: string | null
+  testName: string | null
+  evaluatedAt: string | null
+  categoryBreakdown: Record<string, number>
+}
+
+export interface PublicShareCodeNow {
+  username: string | null
+  totalScore: number | null
+  maxScore: number | null
+  percentage: number | null
+  grade: string | null
+  rank: number | null
+  totalChallenges: number | null
+  solvedChallenges: number | null
+  lastSyncedAt: string | null
+  categorySummary: Record<string, number>
+}
 
 export interface PublicStudentPerformance {
   fullName: string
   rollNumber: string
   branch: string
   batch: string
+  graduationYear: number | null
+  headline: string | null
   cgpa: number | null
   readinessScore: number
   readinessStatus: string
   placementStatus: string
   skillsSummary: string
   careerInterest: string
+  githubUrl: string | null
   platformHandles: PlatformHandles
   cards: UnifiedCard[]
   linkedCount: number
   totalSolved: number
+  codingSyncedAt: string | null
+  communication: PublicShareCommunication | null
+  aptitude: PublicShareAssessment | null
+  verbal: PublicShareAssessment | null
+  codeNow: PublicShareCodeNow | null
+  generatedAt: string | null
 }
 
 function createShareToken(): string {
@@ -43,7 +88,9 @@ export async function ensureStudentShareLink(studentProfileId: string): Promise<
     .single()
   if (readError) {
     if (/share_token|column/i.test(readError.message)) {
-      throw new Error('Share links are not enabled in the database. Run scripts/apply-student-share-migration.sql in Supabase.')
+      throw new Error(
+        'Share links are not enabled in the database. Run scripts/apply-student-share-migration.sql in Supabase.',
+      )
     }
     throw readError
   }
@@ -61,7 +108,9 @@ export async function ensureStudentShareLink(studentProfileId: string): Promise<
     .single()
   if (error) {
     if (/share_token|column/i.test(error.message)) {
-      throw new Error('Share links are not enabled in the database. Run scripts/apply-student-share-migration.sql in Supabase.')
+      throw new Error(
+        'Share links are not enabled in the database. Run scripts/apply-student-share-migration.sql in Supabase.',
+      )
     }
     throw error
   }
@@ -89,7 +138,69 @@ export async function prepareStudentShareLink(
   return ensureStudentShareLink(student.id)
 }
 
-export async function getPublicStudentPerformance(token: string): Promise<PublicStudentPerformance | null> {
+function parseAssessment(raw: unknown): PublicShareAssessment | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const payload = raw as Record<string, unknown>
+  const breakdown =
+    payload.categoryBreakdown && typeof payload.categoryBreakdown === 'object'
+      ? (payload.categoryBreakdown as Record<string, number>)
+      : {}
+  return {
+    score: payload.score == null ? null : Number(payload.score),
+    maxScore: payload.maxScore == null ? null : Number(payload.maxScore),
+    percentage: payload.percentage == null ? null : Number(payload.percentage),
+    grade: payload.grade == null ? null : String(payload.grade),
+    testName: payload.testName == null ? null : String(payload.testName),
+    evaluatedAt: payload.evaluatedAt == null ? null : String(payload.evaluatedAt),
+    categoryBreakdown: breakdown,
+  }
+}
+
+function parseCodeNow(raw: unknown): PublicShareCodeNow | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const payload = raw as Record<string, unknown>
+  const summary =
+    payload.categorySummary && typeof payload.categorySummary === 'object'
+      ? (payload.categorySummary as Record<string, number>)
+      : {}
+  return {
+    username: payload.username == null ? null : String(payload.username),
+    totalScore: payload.totalScore == null ? null : Number(payload.totalScore),
+    maxScore: payload.maxScore == null ? null : Number(payload.maxScore),
+    percentage: payload.percentage == null ? null : Number(payload.percentage),
+    grade: payload.grade == null ? null : String(payload.grade),
+    rank: payload.rank == null ? null : Number(payload.rank),
+    totalChallenges: payload.totalChallenges == null ? null : Number(payload.totalChallenges),
+    solvedChallenges: payload.solvedChallenges == null ? null : Number(payload.solvedChallenges),
+    lastSyncedAt: payload.lastSyncedAt == null ? null : String(payload.lastSyncedAt),
+    categorySummary: summary,
+  }
+}
+
+function parseCommunication(raw: unknown): PublicShareCommunication | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const payload = raw as Record<string, unknown>
+  const criteriaRaw = payload.criteria
+  const criteria =
+    criteriaRaw && typeof criteriaRaw === 'object' && !Array.isArray(criteriaRaw)
+      ? (criteriaRaw as Partial<Record<CriteriaKey, number>>)
+      : null
+  return {
+    totalScore: Number(payload.totalScore ?? 0),
+    maxScore: Number(payload.maxScore ?? 250),
+    percentage: Number(payload.percentage ?? 0),
+    grade: String(payload.grade ?? 'Not Available'),
+    evaluatedAt: payload.evaluatedAt == null ? null : String(payload.evaluatedAt),
+    proficiencyTotal: Number(payload.proficiencyTotal ?? 0),
+    presentationTotal: Number(payload.presentationTotal ?? 0),
+    behaviouralTotal: Number(payload.behaviouralTotal ?? 0),
+    criteria,
+  }
+}
+
+export async function getPublicStudentPerformance(
+  token: string,
+): Promise<PublicStudentPerformance | null> {
   const client = requireSupabase()
   const { data, error } = await client.rpc('get_public_student_performance', { p_token: token })
   if (error) throw error
@@ -104,15 +215,24 @@ export async function getPublicStudentPerformance(token: string): Promise<Public
     rollNumber: String(payload.rollNumber ?? ''),
     branch: String(payload.branch ?? ''),
     batch: String(payload.batch ?? ''),
+    graduationYear: payload.graduationYear == null ? null : Number(payload.graduationYear),
+    headline: payload.headline == null ? null : String(payload.headline),
     cgpa: payload.cgpa == null ? null : Number(payload.cgpa),
     readinessScore: Number(payload.readinessScore ?? 0),
     readinessStatus: String(payload.readinessStatus ?? ''),
     placementStatus: String(payload.placementStatus ?? ''),
     skillsSummary: String(payload.skillsSummary ?? ''),
     careerInterest: String(payload.careerInterest ?? ''),
+    githubUrl: payload.githubUrl == null ? null : String(payload.githubUrl),
     platformHandles: (payload.platformHandles as PlatformHandles) ?? {},
     cards,
     linkedCount: Number(payload.linkedCount ?? 0),
     totalSolved: Number(payload.totalSolved ?? 0),
+    codingSyncedAt: payload.codingSyncedAt == null ? null : String(payload.codingSyncedAt),
+    communication: parseCommunication(payload.communication),
+    aptitude: parseAssessment(payload.aptitude),
+    verbal: parseAssessment(payload.verbal),
+    codeNow: parseCodeNow(payload.codeNow),
+    generatedAt: payload.generatedAt == null ? null : String(payload.generatedAt),
   }
 }

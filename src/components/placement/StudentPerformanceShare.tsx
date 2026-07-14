@@ -101,7 +101,9 @@ export function StudentPerformanceShare({
               <div className="text-center">
                 <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary">Public student performance</p>
                 <h2 className="mt-2 font-pixel text-xl text-foreground">{student.full_name}</h2>
-                <p className="mt-1 text-xs text-muted-foreground">Opens without login — performance card only</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Opens without login — full performance profile (#01–#07)
+                </p>
               </div>
 
               <div className="flex justify-center">
@@ -110,7 +112,7 @@ export function StudentPerformanceShare({
 
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
                 <QrCode className="size-3.5 shrink-0" />
-                <span>Scan or copy the link to open this student&apos;s performance card</span>
+                <span>Scan or copy the link to open this student&apos;s shared performance profile</span>
               </div>
 
               <Input readOnly value={shareUrl} className="border-border bg-background font-mono text-xs" />

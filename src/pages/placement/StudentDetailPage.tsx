@@ -28,11 +28,32 @@ import {
 } from '@/api/placement/studentCodingProfile'
 import { listStudentSkills, type StudentTechSkillWithMeta } from '@/api/placement/techSkills'
 import { getLatestEvaluationForStudent, type CommunicationEvaluationRow } from '@/api/placement/communicationEvaluations'
+import {
+  getLatestAptitudeScore,
+  getLatestVerbalScore,
+  type AptitudeScoreRow,
+  type VerbalScoreRow,
+} from '@/api/placement/assessmentScores'
+import {
+  categorySummaryFromChallenges,
+  getCodeNowProfile,
+  listCodeNowChallenges,
+  type CodeNowChallengeRow,
+  type CodeNowProfileRow,
+} from '@/api/placement/codeNow'
 import { StudentPerformanceShare } from '@/components/placement/StudentPerformanceShare'
 import { canManageStudents, canManageResumes, canManageReadiness } from '@/lib/placementNavigation'
 import { hasPermission } from '@/lib/placementPermissions'
 import { countLinkedPlatforms, resolvePlatformHandles } from '@/lib/studentPlatformHandles'
 import { ALL_PLATFORMS } from '@/api/unifiedClient'
+import {
+  blendCodingPercent,
+  buildOverallPerformanceSummary,
+  codingPercentFromSolved,
+  githubPercentFromActivity,
+} from '@/lib/overallPerformance'
+import { CODENOW_CATEGORY_LABELS, type CodeNowCategory } from '@/lib/codeNowCategories'
+import type { UnifiedCard } from '@/types/unified'
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -70,6 +91,10 @@ export function StudentDetailPage() {
   const [student, setStudent] = useState<Awaited<ReturnType<typeof getStudent>>>(null)
   const [techSkills, setTechSkills] = useState<StudentTechSkillWithMeta[]>([])
   const [commEval, setCommEval] = useState<CommunicationEvaluationRow | null>(null)
+  const [aptitude, setAptitude] = useState<AptitudeScoreRow | null>(null)
+  const [verbal, setVerbal] = useState<VerbalScoreRow | null>(null)
+  const [codeNow, setCodeNow] = useState<CodeNowProfileRow | null>(null)
+  const [codeNowChallenges, setCodeNowChallenges] = useState<CodeNowChallengeRow[]>([])
   const [snapshot, setSnapshot] = useState<StudentCodingSnapshotRow | null>(null)
   const [syncingProfile, setSyncingProfile] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -85,14 +110,23 @@ export function StudentDetailPage() {
       if (!data) setError('Student not found')
       setStudent(data)
       if (data) {
-        const [skills, existingSnapshot, evaluation] = await Promise.all([
-          listStudentSkills(data.id),
-          getStudentCodingSnapshot(data.id).catch(() => null),
-          getLatestEvaluationForStudent(data.id).catch(() => null),
-        ])
+        const [skills, existingSnapshot, evaluation, apt, verb, cn, cnChallenges] =
+          await Promise.all([
+            listStudentSkills(data.id),
+            getStudentCodingSnapshot(data.id).catch(() => null),
+            getLatestEvaluationForStudent(data.id).catch(() => null),
+            getLatestAptitudeScore(data.id).catch(() => null),
+            getLatestVerbalScore(data.id).catch(() => null),
+            getCodeNowProfile(data.id).catch(() => null),
+            listCodeNowChallenges(data.id).catch(() => []),
+          ])
         setTechSkills(skills)
         setSnapshot(existingSnapshot)
         setCommEval(evaluation)
+        setAptitude(apt)
+        setVerbal(verb)
+        setCodeNow(cn)
+        setCodeNowChallenges(cnChallenges)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load student')
@@ -135,6 +169,30 @@ export function StudentDetailPage() {
   const linkedPlatforms = student ? countLinkedPlatforms(resolvePlatformHandles(student)) : 0
   const resumeUploadHref = base && canResumes ? `${base}/resumes` : undefined
   const platformHandles = student ? resolvePlatformHandles(student) : {}
+  const snapshotCards = (snapshot?.cards as UnifiedCard[] | undefined) ?? []
+  const githubCard = snapshotCards.find((c) => c.platform === 'github')
+  const overall = student
+    ? buildOverallPerformanceSummary({
+        codingPercent: blendCodingPercent(
+          codingPercentFromSolved(snapshot?.total_solved ?? null),
+          codeNow?.percentage ??
+            (student.codenow_score != null ? Number(student.codenow_score) : null),
+        ),
+        githubPercent: githubPercentFromActivity({
+          commits: githubCard?.stats.totalSolved ?? null,
+          stars: githubCard?.rating?.current ?? githubCard?.contests?.rating ?? null,
+        }),
+        communicationPercent:
+          commEval?.percentage ??
+          (student.communication_score != null ? Number(student.communication_score) : null),
+        aptitudePercent:
+          aptitude?.percentage ??
+          (student.aptitude_score != null ? Number(student.aptitude_score) : null),
+        verbalPercent:
+          verbal?.percentage ?? (student.verbal_score != null ? Number(student.verbal_score) : null),
+      })
+    : null
+  const codeNowCategories = categorySummaryFromChallenges(codeNowChallenges)
   const hasPlatformHandles = ALL_PLATFORMS.some((platform) => platformHandles[platform]?.trim())
   const profileUsernames = student ? studentUsernamesFromProfile(student) : null
 
@@ -304,6 +362,134 @@ export function StudentDetailPage() {
                   </dl>
                 ) : (
                   <p className="text-sm text-muted-foreground">No communication evaluation yet.</p>
+                )}
+              </PlacementSectionCard>
+
+              <div className="grid gap-4 lg:grid-cols-3">
+                <PlacementSectionCard title="Aptitude Score">
+                  {aptitude || student.aptitude_score != null ? (
+                    <dl>
+                      <DetailRow label="Score">
+                        {aptitude ? `${aptitude.score}/${aptitude.max_score}` : '—'}
+                      </DetailRow>
+                      <DetailRow label="Percentage">
+                        {aptitude?.percentage ?? student.aptitude_score ?? '—'}%
+                      </DetailRow>
+                      <DetailRow label="Grade">
+                        {aptitude?.grade ?? student.aptitude_grade ?? '—'}
+                      </DetailRow>
+                      <DetailRow label="Test">{aptitude?.test_name || '—'}</DetailRow>
+                      <DetailRow label="Updated">
+                        {(aptitude?.evaluated_at || student.last_aptitude_at)
+                          ? new Date(
+                              aptitude?.evaluated_at || student.last_aptitude_at || '',
+                            ).toLocaleDateString()
+                          : '—'}
+                      </DetailRow>
+                    </dl>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Not Available</p>
+                  )}
+                </PlacementSectionCard>
+
+                <PlacementSectionCard title="Verbal Score">
+                  {verbal || student.verbal_score != null ? (
+                    <dl>
+                      <DetailRow label="Score">
+                        {verbal ? `${verbal.score}/${verbal.max_score}` : '—'}
+                      </DetailRow>
+                      <DetailRow label="Percentage">
+                        {verbal?.percentage ?? student.verbal_score ?? '—'}%
+                      </DetailRow>
+                      <DetailRow label="Grade">
+                        {verbal?.grade ?? student.verbal_grade ?? '—'}
+                      </DetailRow>
+                      <DetailRow label="Test">{verbal?.test_name || '—'}</DetailRow>
+                      <DetailRow label="Updated">
+                        {(verbal?.evaluated_at || student.last_verbal_at)
+                          ? new Date(
+                              verbal?.evaluated_at || student.last_verbal_at || '',
+                            ).toLocaleDateString()
+                          : '—'}
+                      </DetailRow>
+                    </dl>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Not Available</p>
+                  )}
+                </PlacementSectionCard>
+
+                <PlacementSectionCard title="Overall Performance">
+                  {overall ? (
+                    <dl>
+                      <DetailRow label="Overall">
+                        {overall.overallPercent != null
+                          ? `${overall.overallPercent}% · ${overall.overallStatus}`
+                          : 'Not Available'}
+                      </DetailRow>
+                      <DetailRow label="Coding">{overall.codingPercent ?? 'Not Available'}
+                        {overall.codingPercent != null ? '%' : ''}
+                      </DetailRow>
+                      <DetailRow label="GitHub">{overall.githubPercent ?? 'Not Available'}
+                        {overall.githubPercent != null ? '%' : ''}
+                      </DetailRow>
+                      <DetailRow label="Communication">
+                        {overall.communicationPercent ?? 'Not Available'}
+                        {overall.communicationPercent != null ? '%' : ''}
+                      </DetailRow>
+                      <DetailRow label="Aptitude">
+                        {overall.aptitudePercent ?? 'Not Available'}
+                        {overall.aptitudePercent != null ? '%' : ''}
+                      </DetailRow>
+                      <DetailRow label="Verbal">
+                        {overall.verbalPercent ?? 'Not Available'}
+                        {overall.verbalPercent != null ? '%' : ''}
+                      </DetailRow>
+                    </dl>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Not Available</p>
+                  )}
+                </PlacementSectionCard>
+              </div>
+
+              <PlacementSectionCard title="CodeNow">
+                {codeNow || student.codenow_score != null ? (
+                  <dl>
+                    <DetailRow label="Username">{codeNow?.codenow_username || '—'}</DetailRow>
+                    <DetailRow label="Total score">
+                      {codeNow
+                        ? `${codeNow.total_score}/${codeNow.max_score}`
+                        : '—'}
+                    </DetailRow>
+                    <DetailRow label="Percentage">
+                      {codeNow?.percentage ?? student.codenow_score ?? '—'}%
+                    </DetailRow>
+                    <DetailRow label="Grade">{codeNow?.grade ?? student.codenow_grade ?? '—'}</DetailRow>
+                    <DetailRow label="Rank">{codeNow?.rank ?? '—'}</DetailRow>
+                    <DetailRow label="Challenges">
+                      {codeNow
+                        ? `${codeNow.solved_challenges}/${codeNow.total_challenges}`
+                        : '—'}
+                    </DetailRow>
+                    <DetailRow label="Last synced">
+                      {(codeNow?.last_synced_at || student.last_codenow_at)
+                        ? new Date(
+                            codeNow?.last_synced_at || student.last_codenow_at || '',
+                          ).toLocaleDateString()
+                        : '—'}
+                    </DetailRow>
+                    <DetailRow label="Categories">
+                      {Object.keys(codeNowCategories).length
+                        ? Object.entries(codeNowCategories)
+                            .map(
+                              ([k, v]) =>
+                                `${CODENOW_CATEGORY_LABELS[k as CodeNowCategory] || k} ${v}%`,
+                            )
+                            .join(' · ')
+                        : '—'}
+                    </DetailRow>
+                  </dl>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Not Available</p>
                 )}
               </PlacementSectionCard>
 

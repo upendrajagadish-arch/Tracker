@@ -14,6 +14,25 @@ PlacementIQ-style placement operations live **inside CodeTrace only**, backed by
 | 5.1 | Public share hardening (token RPC, sanitization, no-index) |
 | 6 | Reports + Management Summary + CSV export |
 | 6A | Communication Evaluation — 25 criteria × 10 = **250 marks** (proficiency 80 / presentation 60 / behavioural 110), bulk roll-number upload, readiness % integration |
+| 6B | Enhanced student share profile (#01–#07) + aptitude/verbal scores + overall display composite |
+| 6C | CodeNow scores + challenge categories (API abstraction + CSV/XLSX import fallback) |
+
+## Shared student performance
+
+- Staff: **Share performance** on student detail → token URL + QR
+- Public route: `/public/student-performance/$token`
+- RPC: `get_public_student_performance` (allowlisted JSON only — no email, notes, IDs, or staff controls)
+- Sections: Identity, Coding platforms (+ CodeNow when present), GitHub, Communication (250), Aptitude, Verbal, Overall summary
+- Hosted SQL (if not linked): run `scripts/apply-aptitude-verbal-enhanced-share-migration.sql` and `scripts/apply-codenow-scores-migration.sql` after communication + share migrations
+
+## CodeNow Integration
+
+- **Config:** `VITE_CODENOW_API_ENABLED`, `VITE_CODENOW_API_BASE_URL`, `VITE_CODENOW_API_KEY`, `VITE_CODENOW_REQUEST_TIMEOUT_MS`
+- **Provider:** `src/lib/codeNowProvider.ts` — returns `CODENOW_NOT_CONFIGURED` when disabled; no scraping
+- **Manual fallback:** Admin/TPO CSV/XLSX import at `/{role}/placement/codenow/import` matched by roll number
+- **Categories:** programming, debugging, aptitude, verbal, logic, data_structures, algorithms, sql, web_development, communication, other
+- **Public share:** allowlisted CodeNow summary under #02 Coding (score, %, grade, challenge counts, category averages) — no API keys/raw payloads
+- **Limitation:** Until a real CodeNow API contract is provided, keep API disabled and use import
 
 ## Stack
 

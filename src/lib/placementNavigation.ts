@@ -76,6 +76,12 @@ export function getPlacementNavLinks(role: PlacementRole | null | undefined): Pl
     links.push({ to: `${base}/communication`, label: 'Communication Evaluation' })
   }
 
+  if (hasPermission(role, 'readiness:view') || role === 'admin' || role === 'tpo' || role === 'faculty') {
+    links.push({ to: `${base}/aptitude`, label: 'Aptitude' })
+    links.push({ to: `${base}/verbal`, label: 'Verbal' })
+    links.push({ to: `${base}/codenow`, label: 'CodeNow' })
+  }
+
   if (role === 'admin' || role === 'tpo') {
     links.push({ to: `${base}/requirements`, label: 'Requirements' })
   }

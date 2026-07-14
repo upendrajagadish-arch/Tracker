@@ -146,6 +146,15 @@ export interface Database {
           communication_score: number | null
           communication_grade: string | null
           last_communication_evaluation_at: string | null
+          aptitude_score: number | null
+          aptitude_grade: string | null
+          last_aptitude_at: string | null
+          verbal_score: number | null
+          verbal_grade: string | null
+          last_verbal_at: string | null
+          codenow_score: number | null
+          codenow_grade: string | null
+          last_codenow_at: string | null
           linkedin_url: string
           github_url: string
           portfolio_url: string
@@ -181,6 +190,15 @@ export interface Database {
           communication_score?: number | null
           communication_grade?: string | null
           last_communication_evaluation_at?: string | null
+          aptitude_score?: number | null
+          aptitude_grade?: string | null
+          last_aptitude_at?: string | null
+          verbal_score?: number | null
+          verbal_grade?: string | null
+          last_verbal_at?: string | null
+          codenow_score?: number | null
+          codenow_grade?: string | null
+          last_codenow_at?: string | null
           linkedin_url?: string
           github_url?: string
           portfolio_url?: string
@@ -299,6 +317,162 @@ export interface Database {
           updated_at?: string
         }
         Update: Partial<Database['public']['Tables']['communication_evaluations']['Insert']>
+        Relationships: []
+      }
+      aptitude_scores: {
+        Row: {
+          id: string
+          student_profile_id: string
+          roll_number: string
+          score: number
+          max_score: number
+          percentage: number
+          grade: string
+          source: string
+          test_name: string
+          evaluated_at: string
+          category_breakdown: Json
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          student_profile_id: string
+          roll_number?: string
+          score?: number
+          max_score?: number
+          percentage?: number
+          grade?: string
+          source?: string
+          test_name?: string
+          evaluated_at?: string
+          category_breakdown?: Json
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['aptitude_scores']['Insert']>
+        Relationships: []
+      }
+      verbal_scores: {
+        Row: {
+          id: string
+          student_profile_id: string
+          roll_number: string
+          score: number
+          max_score: number
+          percentage: number
+          grade: string
+          source: string
+          test_name: string
+          evaluated_at: string
+          category_breakdown: Json
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          student_profile_id: string
+          roll_number?: string
+          score?: number
+          max_score?: number
+          percentage?: number
+          grade?: string
+          source?: string
+          test_name?: string
+          evaluated_at?: string
+          category_breakdown?: Json
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['verbal_scores']['Insert']>
+        Relationships: []
+      }
+      codenow_profiles: {
+        Row: {
+          id: string
+          student_profile_id: string
+          roll_number: string
+          email: string
+          codenow_username: string
+          total_score: number
+          max_score: number
+          percentage: number
+          grade: string
+          rank: number | null
+          total_challenges: number
+          solved_challenges: number
+          last_synced_at: string
+          source: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          student_profile_id: string
+          roll_number?: string
+          email?: string
+          codenow_username?: string
+          total_score?: number
+          max_score?: number
+          percentage?: number
+          grade?: string
+          rank?: number | null
+          total_challenges?: number
+          solved_challenges?: number
+          last_synced_at?: string
+          source?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['codenow_profiles']['Insert']>
+        Relationships: []
+      }
+      codenow_challenge_scores: {
+        Row: {
+          id: string
+          student_profile_id: string
+          roll_number: string
+          challenge_id: string
+          challenge_name: string
+          category: string
+          score: number
+          max_score: number
+          percentage: number
+          status: string
+          attempted_at: string | null
+          source: string
+          raw_reference_id: string
+          synced_at: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          student_profile_id: string
+          roll_number?: string
+          challenge_id?: string
+          challenge_name?: string
+          category?: string
+          score?: number
+          max_score?: number
+          percentage?: number
+          status?: string
+          attempted_at?: string | null
+          source?: string
+          raw_reference_id?: string
+          synced_at?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['codenow_challenge_scores']['Insert']>
         Relationships: []
       }
       student_coding_snapshots: {

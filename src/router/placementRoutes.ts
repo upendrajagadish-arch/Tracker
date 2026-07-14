@@ -19,6 +19,16 @@ import { SharedStudentsPage } from '@/pages/placement/SharedStudentsPage'
 import { CommunicationEvaluationsPage } from '@/pages/placement/CommunicationEvaluationsPage'
 import { CommunicationEvaluationFormPage } from '@/pages/placement/CommunicationEvaluationFormPage'
 import { CommunicationEvaluationImportPage } from '@/pages/placement/CommunicationEvaluationImportPage'
+import {
+  AptitudeScoresPage,
+  VerbalScoresPage,
+} from '@/pages/placement/AssessmentScoresPage'
+import {
+  AptitudeImportPage,
+  VerbalImportPage,
+} from '@/pages/placement/AssessmentImportPage'
+import { CodeNowScoresPage } from '@/pages/placement/CodeNowScoresPage'
+import { CodeNowImportPage } from '@/pages/placement/CodeNowImportPage'
 import { RemovedPlacementRedirectPage } from '@/pages/placement/RemovedPlacementRedirectPage'
 import { PublicResumeBookPage } from '@/pages/public/PublicResumeBookPage'
 
@@ -122,6 +132,36 @@ function createRolePlacementRoutes(parent: AnyRoute, prefix: 'admin' | 'tpo' | '
       getParentRoute: () => parent,
       path: `${prefix}/placement/communication/$studentProfileId/edit`,
       component: CommunicationEvaluationFormPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/aptitude`,
+      component: AptitudeScoresPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/aptitude/import`,
+      component: AptitudeImportPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/verbal`,
+      component: VerbalScoresPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/verbal/import`,
+      component: VerbalImportPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/codenow`,
+      component: CodeNowScoresPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/codenow/import`,
+      component: CodeNowImportPage,
     }),
     createRoute({
       getParentRoute: () => parent,

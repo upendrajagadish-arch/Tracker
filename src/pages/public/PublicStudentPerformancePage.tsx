@@ -34,7 +34,9 @@ export function PublicStudentPerformancePage() {
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Failed to load student profile'
         if (/get_public_student_performance|schema cache|function/i.test(message)) {
-          setError('Share links are not enabled on the server yet. Ask your admin to run scripts/apply-student-share-migration.sql in Supabase.')
+          setError(
+            'Share links need a database update. Ask your admin to run scripts/apply-aptitude-verbal-enhanced-share-migration.sql (and the student share migration if never applied) in Supabase.',
+          )
         } else {
           setError(message)
         }
