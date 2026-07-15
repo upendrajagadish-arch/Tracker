@@ -17,7 +17,7 @@ interface Props {
   className?: string
 }
 
-/** Console title-bar header with modular panel chrome. */
+/** Sticky dark header — Binance-style product chrome. */
 export function AppHeader({
   backTo = '/app',
   backLabel = 'dashboard',
@@ -59,17 +59,16 @@ export function AppHeader({
   }
 
   return (
-    <header className={cn('mb-8', className)}>
-      <div className="app-nav-glass px-4 py-3 md:px-5">
+    <header className={cn('mb-6', className)}>
+      <div className="app-nav-glass px-4 py-3">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <Link
             to="/"
-            className="font-heading text-lg tracking-tight text-foreground transition-transform duration-150 hover:scale-[1.02]"
+            className="font-heading text-[18px] font-bold tracking-tight text-foreground transition-colors hover:text-binance"
           >
             {BRAND_NAME}
           </Link>
-          <span className="xp-chip hidden sm:inline-flex">Console</span>
-          <div className="ml-auto flex flex-wrap items-center gap-1.5">
+          <div className="ml-auto flex flex-wrap items-center gap-1">
             <Button variant="ghost" size="sm" asChild>
               <Link to={backTo}>
                 <ArrowLeft data-icon="inline-start" strokeWidth={2} />

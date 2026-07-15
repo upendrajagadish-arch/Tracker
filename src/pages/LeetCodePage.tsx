@@ -58,7 +58,7 @@ export function LeetCodePage() {
   if (isLoading) return (
     <>
       <SeoHead title={`${username} | LeetCode Profile`} url={`https://codetrace.xyz/leetcode/${username}`} />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
         <AppHeader />
         <div className="mt-6"><DetailSkeleton /></div>
       </div>
@@ -68,7 +68,7 @@ export function LeetCodePage() {
   if (error || !data) return (
     <>
       <SeoHead title={`${username} | LeetCode Profile`} url={`https://codetrace.xyz/leetcode/${username}`} />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
         <AppHeader />
         <ErrorBadge message={(error as Error)?.message ?? 'Failed to load LeetCode stats'} />
       </div>
@@ -127,7 +127,7 @@ export function LeetCodePage() {
         description={`LeetCode stats for ${username}: problems solved, contest rating, and submission activity.`}
         url={`https://codetrace.xyz/leetcode/${username}`}
       />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
       <AppHeader />
 
       <PageHero

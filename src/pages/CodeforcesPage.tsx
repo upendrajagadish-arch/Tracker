@@ -72,7 +72,7 @@ export function CodeforcesPage() {
   if (isLoading) return (
     <>
       <SeoHead title={`${username} | Codeforces Profile`} url={`https://codetrace.xyz/codeforces/${username}`} />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
         <AppHeader />
         <div className="mt-6"><DetailSkeleton /></div>
       </div>
@@ -82,7 +82,7 @@ export function CodeforcesPage() {
   if (error || !data) return (
     <>
       <SeoHead title={`${username} | Codeforces Profile`} url={`https://codetrace.xyz/codeforces/${username}`} />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
         <AppHeader />
         <ErrorBadge message={(error as Error)?.message ?? 'Failed to load Codeforces stats'} />
       </div>
@@ -109,7 +109,7 @@ export function CodeforcesPage() {
         description={`Codeforces stats for ${data.handle}: contest rating, rank, and performance history.`}
         url={`https://codetrace.xyz/codeforces/${data.handle}`}
       />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
       <AppHeader />
 
       <PageHero

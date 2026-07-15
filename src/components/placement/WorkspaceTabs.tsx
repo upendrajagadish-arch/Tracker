@@ -1,5 +1,4 @@
 import { Link } from '@tanstack/react-router'
-import { Gamepad2, LayoutGrid } from 'lucide-react'
 import { asPlacementPath } from '@/components/placement/PlacementLink'
 import { placementHomeForRole } from '@/lib/placementAuth'
 import { useAuth } from '@/hooks/useAuth'
@@ -17,30 +16,26 @@ export function WorkspaceTabs({ active }: WorkspaceTabsProps) {
   const placementHome = placementHomeForRole(placementRole)
 
   return (
-    <div className="mb-5 inline-flex gap-1 rounded-console border border-console bg-panel-dark p-1 shadow-console">
+    <div className="flex w-full overflow-x-auto rounded-card border border-soft bg-[#181A20]">
       <Link
         to={asPlacementPath(placementHome)}
         className={cn(
-          'inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.5px] transition-all duration-200',
-          active === 'placement'
-            ? 'bg-primary text-primary-foreground shadow-[0_2px_0_#9a000c]'
-            : 'text-secondary hover:text-foreground',
+          'relative shrink-0 px-4 py-2.5 text-[14px] font-semibold transition-colors',
+          active === 'placement' ? 'text-binance' : 'text-secondary hover:text-foreground',
         )}
       >
-        <LayoutGrid className="size-3.5" strokeWidth={2} />
         Placement office
+        {active === 'placement' ? <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" /> : null}
       </Link>
       <Link
         to="/app"
         className={cn(
-          'inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.5px] transition-all duration-200',
-          active === 'coding'
-            ? 'bg-primary text-primary-foreground shadow-[0_2px_0_#9a000c]'
-            : 'text-secondary hover:text-foreground',
+          'relative shrink-0 border-l border-soft px-4 py-2.5 text-[14px] font-semibold transition-colors',
+          active === 'coding' ? 'text-binance' : 'text-secondary hover:text-foreground',
         )}
       >
-        <Gamepad2 className="size-3.5" strokeWidth={2} />
         Coding platform
+        {active === 'coding' ? <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" /> : null}
       </Link>
     </div>
   )

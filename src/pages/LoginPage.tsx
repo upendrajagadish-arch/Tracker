@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useRouter, useSearch } from '@tanstack/react-router'
 import { motion } from 'framer-motion'
 import { SeoHead } from '@/components/SeoHead'
-import { ArrowLeft, LogIn, Link2, UserCircle2, Share2, Sparkles } from 'lucide-react'
+import { ArrowLeft, LogIn, Link2, UserCircle2, Share2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { AppFooter } from '@/components/AppFooter'
@@ -27,7 +27,7 @@ const PLATFORM_NAMES: Record<string, string> = {
 }
 
 const PERKS = [
-  { icon: UserCircle2, title: 'Student dossiers', text: 'Profiles, resumes, coding traces, and readiness in one console panel.' },
+  { icon: UserCircle2, title: 'Student dossiers', text: 'Profiles, resumes, coding traces, and readiness in one place.' },
   { icon: Link2, title: 'Platform handles', text: 'Track LeetCode, Codeforces, GitHub, and more per student.' },
   { icon: Share2, title: 'Resume books', text: 'Generate shareable resume books with PDF download for recruiters.' },
 ]
@@ -99,12 +99,12 @@ export function LoginPage() {
   return (
     <>
       <SeoHead title="Login" description="Sign in to the placement office portal." url="https://codetrace.xyz/login" />
-      <div className="flex min-h-screen flex-col px-4 py-10 md:px-8">
-        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center">
+      <div className="flex flex-1 flex-col px-4 py-8 sm:px-6 md:px-8">
+        <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center">
           <nav className="mb-6">
             <Link
               to="/app"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-secondary transition-colors hover:text-foreground"
+              className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-binance transition-opacity hover:opacity-80"
             >
               <ArrowLeft className="size-4" strokeWidth={2} />
               Back to dashboard
@@ -112,41 +112,37 @@ export function LoginPage() {
           </nav>
 
           <motion.div
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="panel-bevel overflow-hidden rounded-dialog"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden rounded-card border border-soft bg-card"
           >
-            <div className="flex items-center justify-between border-b border-console bg-panel-dark/60 px-6 py-4 md:px-8">
-              <p className="text-[11px] font-bold uppercase tracking-[0.5px] text-secondary">{BRAND_NAME}</p>
-              <span className="xp-chip">
-                <Sparkles className="size-3" strokeWidth={2} />
-                Staff access
-              </span>
+            <div className="border-b border-soft px-6 py-4 md:px-8">
+              <p className="text-[12px] font-semibold text-muted">{BRAND_NAME}</p>
             </div>
 
-            <div className="px-6 py-9 md:px-8 md:py-10">
-              <h1 className="font-heading text-3xl text-foreground md:text-4xl">
+            <div className="px-6 py-8 md:px-8 md:py-10">
+              <h1 className="font-heading text-[40px] font-bold tracking-tight text-foreground">
                 Placement office
               </h1>
-              <p className="mt-3 max-w-md text-base leading-relaxed text-secondary">
+              <p className="mt-3 max-w-md text-[14px] leading-relaxed text-secondary">
                 Sign in with your dedicated RCEE staff account to manage student placement records,
                 resumes, readiness, and resume books.
               </p>
 
               <div className="mt-8 grid gap-4 sm:grid-cols-3">
                 {PERKS.map((perk) => (
-                  <div key={perk.title} className="rounded-console border border-console bg-console p-4 shadow-[0_2px_0_#4D5C9A]">
-                    <perk.icon className="size-5 text-primary" strokeWidth={2} />
-                    <p className="mt-3 font-heading text-sm text-foreground">{perk.title}</p>
-                    <p className="mt-1.5 text-xs leading-relaxed text-secondary">{perk.text}</p>
+                  <div key={perk.title} className="rounded-card border border-soft bg-[#181A20] p-4">
+                    <perk.icon className="size-4 text-binance" strokeWidth={2} />
+                    <p className="mt-3 text-[14px] font-bold text-foreground">{perk.title}</p>
+                    <p className="mt-1.5 text-[12px] leading-relaxed text-secondary">{perk.text}</p>
                   </div>
                 ))}
               </div>
 
-              <form onSubmit={handleLogin} className="mt-9 space-y-5">
+              <form onSubmit={handleLogin} className="mt-8 space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="login-email" className="text-sm font-semibold text-foreground">
+                  <label htmlFor="login-email" className="text-[14px] font-semibold text-foreground">
                     Email
                   </label>
                   <Input
@@ -160,7 +156,7 @@ export function LoginPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label htmlFor="login-password" className="text-sm font-semibold text-foreground">
+                  <label htmlFor="login-password" className="text-[14px] font-semibold text-foreground">
                     Password
                   </label>
                   <Input
@@ -183,22 +179,22 @@ export function LoginPage() {
                   {isSigningIn ? 'Signing in…' : 'Sign in'}
                 </Button>
                 {!isConfigured && (
-                  <p className="rounded-console border border-primary/40 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">
+                  <p className="rounded-button border border-[#F6465D]/35 bg-[#F6465D]/10 px-3 py-2 text-[12px] font-semibold text-[#F6465D]">
                     Supabase env vars are missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
                   </p>
                 )}
-                {error && <p className="text-sm font-semibold text-primary">{error}</p>}
+                {error && <p className="text-[14px] font-semibold text-[#F6465D]">{error}</p>}
               </form>
 
-              <div className="mt-10 border-t border-console pt-6">
-                <p className="mb-3 text-[11px] font-bold uppercase tracking-[0.5px] text-secondary">
+              <div className="mt-10 border-t border-soft pt-6">
+                <p className="mb-3 text-[12px] font-semibold text-muted">
                   Tracks all seven platforms
                 </p>
                 <div className="flex flex-wrap gap-x-5 gap-y-2">
                   {ALL_PLATFORMS.map((platform) => (
                     <span
                       key={platform}
-                      className="inline-flex items-center gap-1.5 text-sm text-secondary"
+                      className="inline-flex items-center gap-1.5 text-[13px] text-secondary"
                     >
                       <PlatformIcon platform={platform} className="size-3.5" />
                       {PLATFORM_NAMES[platform]}

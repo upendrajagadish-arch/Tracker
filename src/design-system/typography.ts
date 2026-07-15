@@ -1,24 +1,25 @@
-/** Inter body + Archivo Black for game-title headings. */
+/** BinanceNova / BinancePlex → Inter / IBM Plex Sans. */
 export const typography = {
   display: {
-    family: "'Archivo Black', Inter, system-ui, sans-serif",
-    weight: 400,
-    letterSpacing: '-0.01em',
+    family: "'BinanceNova', Inter, system-ui, sans-serif",
+    weights: [600, 700],
   },
   body: {
-    family: 'Inter, system-ui, sans-serif',
-    size: '16px',
-    weight: 400,
-    lineHeight: 1.55,
+    family: "'BinanceNova', Inter, system-ui, sans-serif",
+    size: '14px',
+    weight: 500,
+    lineHeight: 1.5,
   },
-  nav: {
-    family: 'Inter, system-ui, sans-serif',
-    weight: 600,
-    letterSpacing: '0.5px',
-    textTransform: 'uppercase' as const,
+  numbers: {
+    family: "'BinancePlex', 'IBM Plex Sans', Inter, system-ui, sans-serif",
   },
-  button: {
-    size: '15px',
-    weight: 600,
+  scale: {
+    hero: '64px',
+    section: '40px',
+    sub: '24px',
+    cardTitle: '20px',
+    body: '14px',
+    caption: '12px',
+    button: '14px',
   },
 } as const

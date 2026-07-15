@@ -652,11 +652,11 @@ export function ProfilePage({
         url="https://codetrace.xyz/profile"
         type="profile"
       />
-      <div className="fade-in px-5 py-10 md:px-8 md:py-14">
-      <div className="mx-auto max-w-4xl">
+      <div className="fade-in px-4 py-8 sm:px-6 md:px-8">
+      <div className="app-stack mx-auto max-w-4xl">
 
         {/* ── Top bar ───────────────────────────────────────── */}
-        <nav className="mb-10 flex items-center justify-between font-mono text-[11px]">
+        <nav className="flex items-center justify-between font-mono text-[11px]">
           {navBack ? (
             <Link
               to={navBack.to}

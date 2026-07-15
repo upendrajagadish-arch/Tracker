@@ -118,8 +118,8 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
     )
 
   return (
-    <div className="fade-in mx-auto max-w-5xl overflow-x-hidden px-4 py-8 md:px-8 md:py-12">
-      <header className="mb-8 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-card to-background">
+    <div className="fade-in mx-auto max-w-5xl overflow-x-hidden px-4 py-8 sm:px-6 md:px-8">
+      <header className="mb-6 overflow-hidden rounded-card border border-soft bg-card">
         <div className="flex flex-col gap-5 px-5 py-7 sm:flex-row sm:items-center sm:px-8">
           <div className="flex size-16 shrink-0 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/15 font-pixel text-xl text-primary">
             {initials(profile.fullName)}

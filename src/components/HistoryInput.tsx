@@ -45,7 +45,7 @@ export function HistoryInput({ platform, value, onChange, placeholder, accent }:
               <History className="size-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 rounded-dialog border-console bg-console p-2 text-xs shadow-menu animate-in fade-in zoom-in-95">
+          <DropdownMenuContent align="end" className="w-56 rounded-card border-soft bg-card p-1 text-[12px] shadow-[0_8px_24px_rgba(0,0,0,0.45)] animate-in fade-in zoom-in-95">
             <div className="px-3 pb-1.5 pt-1 text-[9px] uppercase tracking-[0.2em] text-muted-foreground/50">
               Recent {platform}
             </div>

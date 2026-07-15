@@ -65,7 +65,7 @@ export function PublicResumeBookPage() {
 
   if (loading) {
     return (
-      <div className="placement-theme flex min-h-screen items-center justify-center bg-background">
+      <div className="placement-theme flex flex-1 items-center justify-center py-16">
         <PlacementLoadingBlock />
       </div>
     )
@@ -75,7 +75,7 @@ export function PublicResumeBookPage() {
     return (
       <>
         <SeoHead title="Resume book unavailable" />
-        <div className="placement-theme flex min-h-screen items-center justify-center bg-background p-6">
+        <div className="placement-theme flex flex-1 items-center justify-center p-6">
           <Card className="max-w-md term-window border-border bg-card/80">
             <CardContent className="py-8 text-center">
               <h1 className="font-pixel text-lg text-foreground">Resume book unavailable</h1>
@@ -90,8 +90,8 @@ export function PublicResumeBookPage() {
   return (
     <>
       <SeoHead title={`${book.title} — Shared Resume Book`} />
-      <div className="placement-theme min-h-screen bg-background px-4 py-8">
-        <div className="mx-auto max-w-5xl">
+      <div className="placement-theme flex-1 px-4 py-8 sm:px-6 md:px-8">
+        <div className="mx-auto max-w-5xl rounded-card border border-soft bg-card p-4 sm:p-6">
           <p className="mb-2 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
             Shared placement resume book
           </p>

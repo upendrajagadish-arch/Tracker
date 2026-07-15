@@ -70,7 +70,7 @@ export function HackerRankPage() {
   if (isLoading) return (
     <>
       <SeoHead title={`${username} | HackerRank Profile`} url={`https://codetrace.xyz/hackerrank/${username}`} />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
         <AppHeader />
         <div className="mt-6"><DetailSkeleton /></div>
       </div>
@@ -80,7 +80,7 @@ export function HackerRankPage() {
   if (error || !data) return (
     <>
       <SeoHead title={`${username} | HackerRank Profile`} url={`https://codetrace.xyz/hackerrank/${username}`} />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
         <AppHeader />
         <ErrorBadge message={(error as Error)?.message ?? 'Failed to load HackerRank stats'} />
       </div>
@@ -135,7 +135,7 @@ export function HackerRankPage() {
         description={`HackerRank stats for ${username}: badges, certifications, and solved problems.`}
         url={`https://codetrace.xyz/hackerrank/${username}`}
       />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
       <AppHeader />
 
       <PageHero

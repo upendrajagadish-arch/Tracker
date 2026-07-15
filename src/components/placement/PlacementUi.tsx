@@ -11,7 +11,7 @@ export function formatEnumLabel(value: string | null | undefined) {
 }
 
 export function PlacementPageStack({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('space-y-6', className)}>{children}</div>
+  return <div className={cn('flex flex-col gap-6', className)}>{children}</div>
 }
 
 export function PlacementAlerts({
@@ -28,7 +28,7 @@ export function PlacementAlerts({
     <div className={cn('space-y-3', className)}>
       {error ? <PlacementErrorAlert message={error} /> : null}
       {success ? (
-        <div className="rounded-console border border-[#1f9b55]/40 bg-success/15 px-4 py-3 text-sm font-semibold text-[#1a7a45]">
+        <div className="rounded-button border border-[#0ECB81]/30 bg-[#0ECB81]/10 px-4 py-3 text-[14px] font-semibold text-[#0ECB81]">
           {success}
         </div>
       ) : null}
@@ -49,9 +49,9 @@ export function PlacementFilterCard({
 }) {
   return (
     <Card className={cn(className)}>
-      <CardHeader className="border-b border-console pb-3">
+      <CardHeader className="border-b border-soft pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <CardTitle className="text-sm">{title}</CardTitle>
+          <CardTitle className="text-[14px] font-bold">{title}</CardTitle>
           {actions}
         </div>
       </CardHeader>
@@ -75,11 +75,11 @@ export function PlacementSectionCard({
 }) {
   return (
     <Card className={cn(className)}>
-      <CardHeader className="border-b border-console">
+      <CardHeader className="border-b border-soft">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <CardTitle>{title}</CardTitle>
-            {description ? <p className="mt-1.5 text-sm leading-relaxed text-secondary">{description}</p> : null}
+            {description ? <p className="mt-1.5 text-[14px] leading-relaxed text-secondary">{description}</p> : null}
           </div>
           {actions}
         </div>
@@ -105,10 +105,10 @@ export function PlacementTableCard({
   return (
     <Card className={cn('overflow-hidden', className)}>
       {title ? (
-        <CardHeader className="border-b border-console py-3">
-          <CardTitle className="text-sm">
+        <CardHeader className="border-b border-soft py-3">
+          <CardTitle className="text-[14px] font-bold">
             {title}
-            {count != null ? <span className="ml-2 font-sans text-xs font-normal text-secondary">({count})</span> : null}
+            {count != null ? <span className="ml-2 text-[12px] font-medium text-muted">({count})</span> : null}
           </CardTitle>
         </CardHeader>
       ) : null}
@@ -130,16 +130,16 @@ export function PlacementField({
   className?: string
 }) {
   return (
-    <label className={cn('block text-sm', className)}>
+    <label className={cn('block text-[14px]', className)}>
       <span className="font-semibold text-foreground">{label}</span>
-      {hint ? <span className="mt-1 block text-xs text-secondary">{hint}</span> : null}
+      {hint ? <span className="mt-1 block text-[12px] text-muted">{hint}</span> : null}
       <div className="mt-2">{children}</div>
     </label>
   )
 }
 
 export const placementControlClass =
-  'h-11 w-full rounded-input border border-console bg-console px-4 text-sm shadow-[inset_0_1px_2px_rgba(33,36,46,0.08)] outline-none transition-all duration-150 focus-visible:border-primary focus-visible:shadow-[0_0_0_3px_rgba(230,0,18,0.2)]'
+  'h-10 w-full rounded-input border border-soft bg-[#0B0E11] px-3 text-[14px] font-medium outline-none transition-colors duration-150 focus-visible:border-[#3B82F6] focus-visible:ring-2 focus-visible:ring-[#3B82F6]/35'
 
 export function PlacementSelect({
   value,
@@ -178,21 +178,21 @@ export function PlacementPaginationBar({
   onNext: () => void
 }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-console px-5 py-4">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-soft px-6 py-3">
       <button
         type="button"
-        className="rounded-console border border-console bg-console px-4 py-2 text-[11px] font-bold uppercase tracking-[0.5px] text-secondary shadow-[0_2px_0_#4D5C9A] transition-transform duration-150 hover:-translate-y-0.5 disabled:opacity-40"
+        className="rounded-button border border-soft bg-elevated px-3 py-1.5 text-[12px] font-semibold text-secondary transition-colors hover:text-foreground disabled:opacity-35"
         disabled={page <= 1}
         onClick={onPrevious}
       >
         Previous
       </button>
-      <span className="text-xs font-semibold text-secondary">
+      <span className="tnum text-[12px] text-muted">
         Page {page} of {pages || 1}
       </span>
       <button
         type="button"
-        className="rounded-console border border-console bg-console px-4 py-2 text-[11px] font-bold uppercase tracking-[0.5px] text-secondary shadow-[0_2px_0_#4D5C9A] transition-transform duration-150 hover:-translate-y-0.5 disabled:opacity-40"
+        className="rounded-button border border-soft bg-elevated px-3 py-1.5 text-[12px] font-semibold text-secondary transition-colors hover:text-foreground disabled:opacity-35"
         disabled={page >= pages}
         onClick={onNext}
       >
@@ -213,10 +213,10 @@ export function PlacementComingSoon({
 }) {
   return (
     <Card>
-      <CardContent className="py-14 text-center">
-        <p className="text-[11px] font-bold uppercase tracking-[0.5px] text-secondary">Coming soon</p>
-        <h3 className="mt-3 font-heading text-xl text-foreground">{title}</h3>
-        <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-secondary">{description}</p>
+      <CardContent className="py-16 text-center">
+        <p className="text-[12px] font-semibold uppercase tracking-wide text-muted">Coming soon</p>
+        <h3 className="mt-2 font-heading text-[24px] font-bold text-foreground">{title}</h3>
+        <p className="mx-auto mt-2 max-w-lg text-[14px] leading-relaxed text-secondary">{description}</p>
         {action ? <div className="mt-5">{action}</div> : null}
       </CardContent>
     </Card>

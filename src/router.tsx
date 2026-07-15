@@ -1,5 +1,6 @@
 import { createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router'
 import { NuqsAdapter } from 'nuqs/adapters/tanstack-router'
+import { AppFrame } from '@/components/AppFrame'
 import { HomePage } from '@/pages/HomePage'
 import { GitHubPage } from '@/pages/GitHubPage'
 import { LeetCodePage } from '@/pages/LeetCodePage'
@@ -20,7 +21,9 @@ import { createPlacementRoutes } from '@/router/placementRoutes'
 const rootRoute = createRootRoute({
   component: () => (
     <NuqsAdapter>
-      <Outlet />
+      <AppFrame>
+        <Outlet />
+      </AppFrame>
     </NuqsAdapter>
   ),
 })

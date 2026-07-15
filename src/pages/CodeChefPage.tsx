@@ -55,7 +55,7 @@ export function CodeChefPage() {
   if (isLoading) return (
     <>
       <SeoHead title={`${username} | CodeChef Profile`} url={`https://codetrace.xyz/codechef/${username}`} />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
         <AppHeader />
         <div className="mt-6"><DetailSkeleton /></div>
       </div>
@@ -67,7 +67,7 @@ export function CodeChefPage() {
   if (allErrors || !profileData || !ratingData || !heatmapData) return (
     <>
       <SeoHead title={`${username} | CodeChef Profile`} url={`https://codetrace.xyz/codechef/${username}`} />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
         <AppHeader />
         <ErrorBadge message={(allErrors as Error)?.message ?? 'Failed to load CodeChef stats'} />
       </div>
@@ -147,7 +147,7 @@ export function CodeChefPage() {
         description={`CodeChef stats for ${profileData.handle}: rating, contests, and performance.`}
         url={`https://codetrace.xyz/codechef/${profileData.handle}`}
       />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
       <AppHeader />
 
       <PageHero

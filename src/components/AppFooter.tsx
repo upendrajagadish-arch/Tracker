@@ -3,9 +3,9 @@ import { BRAND_NAME } from '@/lib/brand'
 
 export function AppFooter({ className }: { className?: string }) {
   return (
-    <footer className={cn('mt-16 border-t-2 border-console pt-6 text-center text-xs font-semibold uppercase tracking-[0.5px] text-secondary', className)}>
+    <footer className={cn('mt-10 border-t border-soft pt-6 text-center text-[12px] text-muted', className)}>
       <p>
-        &copy; {new Date().getFullYear()} {BRAND_NAME} · all stats compiled dynamically
+        &copy; {new Date().getFullYear()} {BRAND_NAME}. All stats compiled dynamically.
       </p>
     </footer>
   )

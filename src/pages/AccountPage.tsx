@@ -160,9 +160,9 @@ export function AccountPage() {
     return (
       <>
         <SeoHead title="Account" />
-        <div className="px-4 py-12 md:px-8">
+        <div className="px-4 py-8 sm:px-6 md:px-8">
           <div className="mx-auto max-w-3xl">
-            <Skeleton className="h-72 w-full" />
+            <Skeleton className="h-72 w-full rounded-card" />
           </div>
         </div>
       </>
@@ -172,9 +172,9 @@ export function AccountPage() {
   return (
     <>
       <SeoHead title="Account" description="Manage your userid and platform accounts." url="https://codetrace.xyz/account" />
-      <div className="px-4 py-12 md:px-8">
-      <div className="mx-auto max-w-3xl">
-        <AppHeader backTo="/app" backLabel="dashboard" shareUrl={publicUrl ?? undefined} shareTitle={`${BRAND_NAME} profile`} />
+      <div className="px-4 py-8 sm:px-6 md:px-8">
+      <div className="app-stack mx-auto max-w-3xl">
+        <AppHeader backTo="/app" backLabel="dashboard" shareUrl={publicUrl ?? undefined} shareTitle={`${BRAND_NAME} profile`} className="mb-0" />
 
         {loadError && <p className="mb-6 font-mono text-xs text-destructive">{loadError}</p>}
 

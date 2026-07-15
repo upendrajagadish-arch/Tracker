@@ -249,7 +249,7 @@ export function StudentDetailPage() {
               </div>
 
               {hasPlatformHandles && profileUsernames ? (
-                <div className="-mx-4 md:-mx-0">
+                <div className="overflow-x-auto rounded-card border border-soft">
                   <ProfilePage
                     usernames={profileUsernames}
                     owner={{

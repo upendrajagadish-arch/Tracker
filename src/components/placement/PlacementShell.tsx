@@ -2,16 +2,7 @@ import type { ReactNode } from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { motion } from 'framer-motion'
 import { asPlacementPath } from '@/components/placement/PlacementLink'
-import {
-  LayoutDashboard,
-  LogOut,
-  Users,
-  Building2,
-  FileText,
-  BarChart3,
-  Settings,
-  Trophy,
-} from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -35,8 +26,6 @@ interface PlacementShellProps {
   headerShareTitle?: string
 }
 
-const NAV_ICONS = [LayoutDashboard, Users, Building2, FileText, BarChart3, Trophy, Settings]
-
 function PlacementMessageCard({
   title,
   description,
@@ -47,16 +36,16 @@ function PlacementMessageCard({
   action: ReactNode
 }) {
   return (
-    <div className="flex min-h-screen flex-col px-4 py-10 md:px-8">
+    <div className="flex flex-1 flex-col px-4 py-8 sm:px-6 md:px-8">
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center">
         <motion.div
-          initial={{ opacity: 0, y: 10, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          className="panel-bevel rounded-dialog p-8 text-center md:p-10"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="rounded-card border border-soft bg-card p-8 text-center"
         >
-          <h1 className="font-heading text-2xl text-foreground md:text-3xl">{title}</h1>
-          <p className="mt-3 text-sm leading-relaxed text-secondary">{description}</p>
+          <h1 className="font-heading text-[24px] font-bold text-foreground">{title}</h1>
+          <p className="mt-3 text-[14px] leading-relaxed text-secondary">{description}</p>
           <div className="mt-6">{action}</div>
         </motion.div>
       </div>
@@ -99,11 +88,11 @@ export function PlacementShell({
 
   if (isLoading || placementLoading) {
     return (
-      <div className="px-4 py-10 md:px-8">
-        <div className="mx-auto max-w-6xl space-y-4">
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-10 w-full max-w-3xl" />
-          <Skeleton className="h-64 w-full" />
+      <div className="flex flex-1 flex-col px-4 py-6 sm:px-6 md:px-8">
+        <div className="mx-auto w-full max-w-[1280px] space-y-4">
+          <Skeleton className="h-12 w-full rounded-card" />
+          <Skeleton className="h-10 w-full max-w-3xl rounded-card" />
+          <Skeleton className="h-64 w-full rounded-card" />
         </div>
       </div>
     )
@@ -153,86 +142,83 @@ export function PlacementShell({
   }
 
   return (
-    <div className="placement-theme flex min-h-screen flex-col">
-      <div className="flex flex-1 px-4 py-8 md:px-8">
-        <div className="mx-auto flex w-full max-w-6xl gap-6">
-          <aside className="sticky top-4 hidden w-56 shrink-0 flex-col self-start overflow-hidden rounded-dialog border border-console bg-navigation shadow-console sm:flex lg:w-64">
-            <div className="border-b border-white/10 px-4 py-4">
-              <Link
-                to={asPlacementPath(homePath)}
-                className="font-heading text-base text-white transition-opacity hover:opacity-80"
-              >
-                Placement
-              </Link>
-              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.5px] text-white/45">
-                Switch menu
-              </p>
-            </div>
+    <div className="placement-theme flex flex-1 flex-col">
+      <div className="flex flex-1 px-4 py-5 sm:px-6 sm:py-6 md:px-8">
+        <div className="mx-auto flex w-full max-w-[1280px] gap-5 lg:gap-6">
+          <aside className="sticky top-5 hidden w-56 shrink-0 self-start rounded-card border border-soft bg-card p-3 sm:flex sm:flex-col lg:top-6 lg:w-60">
+            <Link
+              to={asPlacementPath(homePath)}
+              className="mb-4 px-2 font-heading text-[16px] font-bold text-foreground transition-colors hover:text-binance"
+            >
+              Placement
+            </Link>
 
-            <div className="flex flex-1 flex-col px-2 py-3">
-              <nav className="flex-1 space-y-1 overflow-y-auto">
-                {navLinks.map((link, index) => {
-                  const active = isPlacementNavActive(pathname, link)
-                  const Icon = NAV_ICONS[index % NAV_ICONS.length]
-                  return (
-                    <Link
-                      key={link.to}
-                      to={asPlacementPath(link.to)}
-                      className={cn('placement-nav-link flex items-center gap-2.5', active && 'is-active')}
-                    >
-                      <Icon className="size-4 shrink-0" strokeWidth={2} />
-                      <span className="truncate">{link.label}</span>
-                    </Link>
-                  )
-                })}
-              </nav>
+            <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
+              Modules
+            </p>
 
-              <div className="mt-4 border-t border-white/10 px-2 pt-4">
-                <p className="truncate px-2 text-sm font-semibold text-white">
-                  {placementProfile?.full_name || user.email}
-                </p>
-                {placementRole ? (
-                  <Badge className="mt-2 ml-2 border-white/20 bg-white/10 text-white capitalize">
-                    {placementRole}
-                  </Badge>
-                ) : null}
-                <div className="mt-3 flex flex-col gap-1.5 px-1">
-                  <Button asChild variant="ghost" size="sm" className="justify-start text-white/80 hover:bg-white/10 hover:text-white">
-                    <Link to="/app">{BRAND_NAME} home</Link>
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="justify-start"
-                    onClick={() => void handleSignOut()}
+            <nav className="flex-1 space-y-0.5 overflow-y-auto">
+              {navLinks.map((link) => {
+                const active = isPlacementNavActive(pathname, link)
+                return (
+                  <Link
+                    key={link.to}
+                    to={asPlacementPath(link.to)}
+                    className={cn('placement-nav-link', active && 'is-active')}
                   >
-                    <LogOut className="size-3.5" strokeWidth={2} />
-                    Sign out
-                  </Button>
-                </div>
+                    {link.label}
+                  </Link>
+                )
+              })}
+            </nav>
+
+            <div className="mt-4 border-t border-soft px-2 pt-4">
+              <p className="truncate text-[13px] font-semibold text-foreground">
+                {placementProfile?.full_name || user.email}
+              </p>
+              {placementRole ? (
+                <Badge variant="secondary" className="mt-2 capitalize">
+                  {placementRole}
+                </Badge>
+              ) : null}
+              <div className="mt-3 flex flex-col gap-1">
+                <Button asChild variant="ghost" size="sm" className="justify-start">
+                  <Link to="/app">{BRAND_NAME} home</Link>
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="justify-start"
+                  onClick={() => void handleSignOut()}
+                >
+                  <LogOut className="size-3.5" strokeWidth={2} />
+                  Sign out
+                </Button>
               </div>
             </div>
           </aside>
 
-          <div className="min-w-0 flex-1">
+          <div className="app-stack min-w-0 flex-1">
             <AppHeader
               backTo="/app"
               backLabel="dashboard"
               shareUrl={headerShareUrl ?? null}
               shareTitle={headerShareTitle}
+              className="mb-0"
             />
+
             <WorkspaceTabs active="placement" />
 
-            <div className="mb-4 flex gap-2 overflow-x-auto pb-1 sm:hidden">
+            <div className="flex gap-2 overflow-x-auto rounded-card border border-soft bg-card p-2 sm:hidden">
               {navLinks.map((link) => (
                 <Link
                   key={link.to}
                   to={asPlacementPath(link.to)}
                   className={cn(
-                    'shrink-0 rounded-console border px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.5px]',
+                    'shrink-0 rounded-button border px-3 py-1.5 text-[12px] font-semibold',
                     isPlacementNavActive(pathname, link)
-                      ? 'border-primary bg-primary text-white'
-                      : 'border-console bg-panel text-secondary',
+                      ? 'border-primary/40 bg-primary/10 text-binance'
+                      : 'border-soft text-secondary',
                   )}
                 >
                   {link.label}
@@ -241,22 +227,25 @@ export function PlacementShell({
             </div>
 
             {title ? (
-              <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.5px] text-secondary">
+              <p className="text-[12px] font-semibold uppercase tracking-wide text-muted">
                 {title}
               </p>
             ) : null}
 
             <motion.div
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.18 }}
+              className="app-stack"
             >
               {children}
             </motion.div>
           </div>
         </div>
       </div>
-      <AppFooter />
+      <div className="border-t border-soft px-4 py-6 sm:px-6 md:px-8">
+        <AppFooter className="mt-0 border-0 pt-0" />
+      </div>
     </div>
   )
 }

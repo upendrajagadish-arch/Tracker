@@ -55,26 +55,26 @@ export function MarketPage() {
         description="Stop pasting six different profile URLs. Aggregate your coding footprints, contest ratings, solved problems, and commit histories from 7 platforms into one sleek dashboard."
         url="https://codetrace.xyz"
       />
-      <div className="relative min-h-screen overflow-x-hidden font-sans text-foreground antialiased">
+      <div className="relative flex flex-1 flex-col overflow-x-hidden font-sans text-foreground antialiased">
 
-      <nav className="sticky top-0 z-50 border-b-2 border-console bg-console/95 px-4 py-3 shadow-console backdrop-blur-sm md:px-8">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
+      <nav className="sticky top-3 z-40 mx-4 mt-4 rounded-card border border-soft bg-card sm:top-4 sm:mx-6 md:top-5 md:mx-8">
+        <div className="flex items-center justify-between px-4 py-3">
           <Link to="/" aria-label={`${BRAND_NAME} home`} className="group flex items-center gap-2">
-            <span className="font-heading text-lg text-foreground transition-transform group-hover:scale-[1.02]">
+            <span className="font-heading text-[18px] font-bold tracking-tight text-foreground transition-colors group-hover:text-binance">
               {BRAND_NAME}
             </span>
           </Link>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1">
             <Link
               to="/app"
-              className="rounded-console px-3 py-2 text-[11px] font-bold uppercase tracking-[0.5px] text-secondary transition-colors hover:text-foreground"
+              className="rounded-button px-3 py-2 text-[14px] font-semibold text-secondary transition-colors hover:text-foreground"
             >
               Dashboard
             </Link>
             <Link
               to="/login"
-              className="rounded-console px-3 py-2 text-[11px] font-bold uppercase tracking-[0.5px] text-secondary transition-colors hover:text-foreground"
+              className="rounded-button px-3 py-2 text-[14px] font-semibold text-secondary transition-colors hover:text-foreground"
             >
               Login
             </Link>
@@ -96,19 +96,19 @@ export function MarketPage() {
             Unified developer profiler
           </Badge>
 
-          <h1 className="rise-in font-heading text-5xl leading-[1.05] text-foreground md:text-6xl" style={{ animationDelay: '0.12s' }}>
+          <h1 className="rise-in font-heading text-[48px] font-bold leading-[1.05] tracking-tight text-foreground md:text-[64px]" style={{ animationDelay: '0.12s' }}>
             Every footprint.<br />
             <span className="text-secondary">One single</span><br />
-            <span className="text-primary">dashboard.</span>
+            <span className="text-binance">dashboard.</span>
           </h1>
 
-          <p className="rise-in max-w-lg text-base leading-relaxed text-secondary" style={{ animationDelay: '0.19s' }}>
+          <p className="rise-in max-w-lg text-[14px] leading-relaxed text-secondary" style={{ animationDelay: '0.19s' }}>
             Placement office tools for TPO and faculty — student dossiers, resumes, readiness, and resume books — plus the {BRAND_NAME} coding platform dashboard for live platform stats.
           </p>
 
           {/* Platform Icon Ribbon */}
           <div className="rise-in flex flex-wrap items-center gap-3 pt-2" style={{ animationDelay: '0.26s' }}>
-            <span className="mr-2 text-[11px] font-bold uppercase tracking-[0.5px] text-secondary">Integrates with:</span>
+            <span className="mr-2 text-[12px] font-semibold text-muted">Integrates with:</span>
             {[
               { icon: SiGithub, color: 'var(--platform-github)', label: 'GitHub' },
               { icon: SiLeetcode, color: 'var(--platform-leetcode)', label: 'LeetCode' },
@@ -121,7 +121,7 @@ export function MarketPage() {
               <span
                 key={p.label}
                 aria-label={p.label}
-                className="flex items-center justify-center rounded-console border border-console bg-console p-2 shadow-[0_2px_0_#4D5C9A] transition-transform duration-150 hover:-translate-y-0.5"
+                className="flex items-center justify-center rounded-button border border-soft bg-card p-2 transition-colors hover:bg-elevated"
                 style={{ color: p.color }}
                 title={p.label}
               >

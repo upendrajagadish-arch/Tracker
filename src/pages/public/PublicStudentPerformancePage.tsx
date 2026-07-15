@@ -48,7 +48,7 @@ export function PublicStudentPerformancePage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+      <div className="flex flex-1 items-center justify-center px-4 py-16">
         <PlacementLoadingBlock label="Loading student performance…" />
       </div>
     )
@@ -58,7 +58,7 @@ export function PublicStudentPerformancePage() {
     return (
       <>
         <SeoHead title="Student profile unavailable" />
-        <div className="flex min-h-screen items-center justify-center bg-background p-6">
+        <div className="flex flex-1 items-center justify-center p-6">
           <Card className="max-w-md term-window border-border bg-card/80">
             <CardContent className="py-8 text-center">
               <h1 className="font-pixel text-lg text-foreground">Student profile unavailable</h1>
@@ -76,7 +76,7 @@ export function PublicStudentPerformancePage() {
         title={`${profile.fullName} — Student Performance`}
         description={`Placement performance profile for ${profile.fullName}`}
       />
-      <div className="min-h-screen bg-background">
+      <div className="flex-1 py-2">
         <PublicStudentPerformanceCard profile={profile} />
       </div>
     </>

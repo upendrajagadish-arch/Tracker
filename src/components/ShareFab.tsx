@@ -122,11 +122,11 @@ export function ShareFab({ onClick, actions, label, busy = false, toast, onToast
         onFocus={() => setHovered(true)}
         onBlur={() => setHovered(false)}
         className={cn(
-          'group relative grid size-14 place-items-center rounded-console bg-primary text-primary-foreground',
-          'border border-[#9a000c] shadow-[0_3px_0_#9a000c] outline-none transition-all duration-200',
-          'hover:-translate-y-0.5 hover:shadow-[0_5px_0_#9a000c]',
-          'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
-          'active:translate-y-0 active:scale-[0.96] disabled:opacity-70 disabled:hover:translate-y-0',
+          'group relative grid size-12 place-items-center rounded-button bg-primary text-primary-foreground',
+          'outline-none transition-colors duration-150',
+          'hover:bg-[#F0B90B]',
+          'focus-visible:ring-2 focus-visible:ring-[#3B82F6]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0E11]',
+          'disabled:opacity-40',
         )}
       >
         <span className="relative grid place-items-center">

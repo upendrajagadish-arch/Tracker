@@ -136,69 +136,61 @@ export function HomePage() {
         description="Track your coding footprint across GitHub, LeetCode, Codeforces, GFG, CodeChef, HackerRank &amp; takeUforward."
         url="https://codetrace.xyz/app"
       />
-      <div className="px-4 py-12 md:px-8">
-      <div className="mx-auto max-w-5xl">
+      <div className="flex flex-1 flex-col px-4 py-8 sm:px-6 md:px-8">
+      <div className="app-stack mx-auto w-full max-w-5xl">
         <WorkspaceTabs active="coding" />
 
         {/* Header — a boot-sequence terminal on the landing view, a compact
             window titlebar once results load */}
         {!usernames ? (
           <header className="rise-in relative mb-12">
-            <nav className="mx-auto mb-5 flex max-w-2xl items-center justify-end gap-4 text-sm font-semibold">
+            <nav className="mx-auto mb-4 flex max-w-2xl items-center justify-end gap-4 text-[14px] font-semibold">
               {user ? (
-                <Link to="/account" className="inline-flex items-center gap-1.5 text-secondary transition-colors hover:text-foreground">
+                <Link to="/account" className="inline-flex items-center gap-1.5 text-binance transition-opacity hover:opacity-80">
                   <UserCircle2 className="size-4" strokeWidth={2} /> Account
                 </Link>
               ) : (
-                <Link to="/login" className="inline-flex items-center gap-1.5 text-secondary transition-colors hover:text-foreground">
+                <Link to="/login" className="inline-flex items-center gap-1.5 text-binance transition-opacity hover:opacity-80">
                   <LogIn className="size-4" strokeWidth={2} /> Login
                 </Link>
               )}
             </nav>
-            <div className="panel-bevel mx-auto max-w-2xl overflow-hidden rounded-dialog">
-              <div className="flex items-center justify-between border-b border-console bg-panel-dark/50 px-6 py-3">
-                <span className="text-[11px] font-bold uppercase tracking-[0.5px] text-secondary">
-                  Coding analytics
-                </span>
-                <span className="xp-chip">Online</span>
-              </div>
-
-              <div className="px-6 py-10 md:px-10 md:py-12">
-                <h1 className="font-heading text-[2.5rem] leading-none text-foreground md:text-5xl">
+            <div className="mx-auto max-w-2xl overflow-hidden rounded-card border border-soft bg-card">
+              <div className="px-6 py-10 md:px-8 md:py-12">
+                <p className="text-[12px] font-semibold text-muted">Coding analytics</p>
+                <h1 className="mt-2 font-heading text-[40px] font-bold leading-none tracking-tight text-foreground md:text-[48px]">
                   {BRAND_NAME}
                 </h1>
-                <p className="mt-5 max-w-lg text-base leading-relaxed text-secondary">
+                <p className="mt-4 max-w-lg text-[14px] leading-relaxed text-secondary">
                   Track your coding footprint across GitHub, LeetCode, Codeforces, GFG, CodeChef, HackerRank &amp; takeUforward — DSA sheet progress with topic-level breakdown, submission heatmaps, and streak tracking
                 </p>
               </div>
             </div>
           </header>
         ) : (
-          <header className="rise-in relative mb-10">
-            <div className="app-nav-glass px-4 py-3 md:px-5">
-              <div className="flex flex-wrap items-center gap-y-2">
-                <Link
-                  to="/"
-                  className="font-heading text-lg text-foreground transition-transform hover:scale-[1.02]"
+          <header className="rise-in relative mb-8">
+            <div className="flex flex-wrap items-center gap-y-2 border-b border-soft pb-3">
+              <Link
+                to="/"
+                className="font-heading text-[18px] font-bold tracking-tight text-foreground transition-colors hover:text-binance"
+              >
+                {BRAND_NAME}
+              </Link>
+              <div className="ml-auto flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleSearchAgain}
                 >
-                  {BRAND_NAME}
-                </Link>
-                <div className="ml-auto flex items-center gap-1.5">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleSearchAgain}
-                  >
-                    <ArrowLeft data-icon="inline-start" strokeWidth={2} />
-                    Search again
-                  </Button>
-                  <Button asChild className="group gap-2">
-                    <Link to="/profile" search={(prev) => prev}>
-                      Student profile
-                      <ArrowRight data-icon="inline-end" className="transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
-                    </Link>
-                  </Button>
-                </div>
+                  <ArrowLeft data-icon="inline-start" strokeWidth={2} />
+                  Search again
+                </Button>
+                <Button asChild className="group gap-2">
+                  <Link to="/profile" search={(prev) => prev}>
+                    Student profile
+                    <ArrowRight data-icon="inline-end" className="transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
+                  </Link>
+                </Button>
               </div>
             </div>
           </header>
@@ -213,20 +205,20 @@ export function HomePage() {
         ) : (
           <div className="fade-in flex flex-col gap-8">
             {/* Active handles being tracked */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
-              <span className="xp-chip">Tracking</span>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[14px]">
+              <span className="text-secondary">Tracking</span>
               <div className="flex flex-wrap gap-2">
                 {(Object.entries(usernames) as [keyof Usernames, string][])
                   .flatMap(([k, v]) => splitAccounts(v).map((u) => [k, u] as const))
                   .map(([k, u]) => (
                     <Badge key={`${k}-${u}`} variant="outline">
-                      <span className="text-secondary">{k}/</span>{u}
+                      <span className="text-muted">{k}/</span>{u}
                     </Badge>
                   ))}
               </div>
             </div>
             {(saveState.message || saveState.error) && (
-              <p className={`text-sm font-semibold ${saveState.error ? 'text-primary' : 'text-foreground'}`}>
+              <p className={`text-[14px] font-semibold ${saveState.error ? 'text-[#F6465D]' : 'text-binance'}`}>
                 {saveState.error ?? saveState.message}
               </p>
             )}

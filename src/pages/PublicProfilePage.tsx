@@ -42,7 +42,7 @@ function ProfileState({
         : 'text-muted-foreground'
 
   return (
-    <div className="flex min-h-screen flex-col px-4 py-10 md:px-8">
+    <div className="flex flex-1 flex-col px-4 py-8 sm:px-6 md:px-8">
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center">
         <div className="term-window scanlines rise-in">
           <div className="term-bar">
@@ -66,7 +66,7 @@ function EmptyProfileState({ username, isOwner }: { username: string; isOwner: b
   return (
     <>
       <SeoHead title={`@${username}`} url={`https://codetrace.xyz/${username}`} />
-      <div className="flex min-h-screen flex-col px-4 py-10 md:px-8">
+      <div className="flex flex-1 flex-col px-4 py-8 sm:px-6 md:px-8">
         <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center">
           <div className="term-window scanlines rise-in">
             <div className="term-bar">

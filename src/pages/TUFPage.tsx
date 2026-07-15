@@ -56,7 +56,7 @@ export function TUFPage() {
   if (isLoading) return (
     <>
       <SeoHead title={`${username} | takeUforward Profile`} url={`https://codetrace.xyz/tuf/${username}`} />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
         <AppHeader />
         <div className="mt-6"><DetailSkeleton /></div>
       </div>
@@ -66,7 +66,7 @@ export function TUFPage() {
   if (error || !card) return (
     <>
       <SeoHead title={`${username} | takeUforward Profile`} url={`https://codetrace.xyz/tuf/${username}`} />
-      <div className="mx-auto max-w-5xl px-4 py-8 flex flex-col gap-6">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8 flex flex-col gap-6">
         <AppHeader />
         <Card>
           <CardContent>
@@ -126,7 +126,7 @@ export function TUFPage() {
         description={`takeUforward DSA progress for ${username}: sheet completion, topic breakdown, and streak tracking.`}
         url={`https://codetrace.xyz/tuf/${username}`}
       />
-      <div className="mx-auto max-w-5xl px-4 py-8">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 md:px-8">
       <AppHeader />
 
       <PageHero
