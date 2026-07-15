@@ -122,28 +122,22 @@ export function ShareFab({ onClick, actions, label, busy = false, toast, onToast
         onFocus={() => setHovered(true)}
         onBlur={() => setHovered(false)}
         className={cn(
-          'group relative grid size-14 place-items-center rounded-full bg-primary text-primary-foreground',
-          'shadow-lg shadow-primary/25 outline-none transition-all duration-200',
-          'hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/40',
-          'focus-visible:ring-4 focus-visible:ring-primary/40',
-          'active:translate-y-0 disabled:opacity-70 disabled:hover:translate-y-0',
+          'group relative grid size-14 place-items-center rounded-console bg-primary text-primary-foreground',
+          'border border-[#9a000c] shadow-[0_3px_0_#9a000c] outline-none transition-all duration-200',
+          'hover:-translate-y-0.5 hover:shadow-[0_5px_0_#9a000c]',
+          'focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2',
+          'active:translate-y-0 active:scale-[0.96] disabled:opacity-70 disabled:hover:translate-y-0',
         )}
       >
-        {/* soft aura */}
-        <span
-          className="pointer-events-none absolute inset-0 rounded-full opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-60"
-          style={{ background: 'radial-gradient(closest-side, var(--color-primary), transparent)' }}
-          aria-hidden
-        />
         <span className="relative grid place-items-center">
           {busy ? (
-            <Loader2 className="size-5 animate-spin" />
+            <Loader2 className="size-5 animate-spin" strokeWidth={2} />
           ) : activeToast?.tone === 'success' ? (
-            <Check className="size-5" />
+            <Check className="size-5" strokeWidth={2} />
           ) : open ? (
-            <X className="size-5" />
+            <X className="size-5" strokeWidth={2} />
           ) : (
-            <Share2 className="size-5" />
+            <Share2 className="size-5" strokeWidth={2} />
           )}
         </span>
       </button>

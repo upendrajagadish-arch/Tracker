@@ -59,7 +59,7 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
   return (
     <div className="grid grid-cols-1 gap-1 border-b border-border py-2 text-sm last:border-0 sm:grid-cols-3 sm:gap-2">
       <dt className="font-medium text-muted-foreground">{label}</dt>
-      <dd className="text-foreground sm:col-span-2">{children ?? '—'}</dd>
+      <dd className="min-w-0 break-words text-foreground sm:col-span-2">{children ?? '—'}</dd>
     </div>
   )
 }
@@ -218,10 +218,10 @@ export function StudentDetailPage() {
           {student ? (
             <>
               <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-4">
-                <div>
-                  <h1 className="font-pixel text-2xl text-foreground">{student.full_name}</h1>
-                  <p className="mt-1 text-sm text-primary">{student.email || 'No email recorded'}</p>
-                  <p className="mt-2 font-mono text-xs text-muted-foreground">
+                <div className="min-w-0 flex-1">
+                  <h1 className="break-words font-pixel text-2xl text-foreground">{student.full_name}</h1>
+                  <p className="mt-1 break-all text-sm text-primary">{student.email || 'No email recorded'}</p>
+                  <p className="mt-2 break-words font-mono text-xs text-muted-foreground">
                     {student.roll_number} · {student.branch || 'Branch not set'} · {student.batch || 'Year not set'}
                   </p>
                   <p className="mt-1 font-mono text-xs text-muted-foreground">
@@ -361,7 +361,7 @@ export function StudentDetailPage() {
                     </DetailRow>
                   </dl>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No communication evaluation yet.</p>
+                  <p className="text-sm text-muted-foreground">Not Available</p>
                 )}
               </PlacementSectionCard>
 
@@ -478,14 +478,20 @@ export function StudentDetailPage() {
                         : '—'}
                     </DetailRow>
                     <DetailRow label="Categories">
-                      {Object.keys(codeNowCategories).length
-                        ? Object.entries(codeNowCategories)
-                            .map(
-                              ([k, v]) =>
-                                `${CODENOW_CATEGORY_LABELS[k as CodeNowCategory] || k} ${v}%`,
-                            )
-                            .join(' · ')
-                        : '—'}
+                      {Object.keys(codeNowCategories).length ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {Object.entries(codeNowCategories).map(([k, v]) => (
+                            <span
+                              key={k}
+                              className="rounded-md border border-border bg-background/50 px-2 py-0.5 text-xs"
+                            >
+                              {CODENOW_CATEGORY_LABELS[k as CodeNowCategory] || k}: {v}%
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        '—'
+                      )}
                     </DetailRow>
                   </dl>
                 ) : (
@@ -529,9 +535,14 @@ export function StudentDetailPage() {
                 </dl>
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   {Object.entries(platformHandles).map(([platform, handle]) => (
-                    <div key={platform} className="flex justify-between rounded-md border border-border bg-background/30 px-3 py-2 text-sm">
-                      <span className="capitalize text-muted-foreground">{platform}</span>
-                      <span className="font-mono text-foreground">@{handle}</span>
+                    <div
+                      key={platform}
+                      className="flex min-w-0 items-center justify-between gap-2 rounded-md border border-border bg-background/30 px-3 py-2 text-sm"
+                    >
+                      <span className="shrink-0 capitalize text-muted-foreground">{platform}</span>
+                      <span className="min-w-0 truncate font-mono text-foreground" title={`@${handle}`}>
+                        @{handle}
+                      </span>
                     </div>
                   ))}
                 </div>

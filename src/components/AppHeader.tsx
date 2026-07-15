@@ -10,20 +10,14 @@ import { cn } from '@/lib/utils'
 import { BRAND_NAME } from '@/lib/brand'
 
 interface Props {
-  /** Where the back action points. Defaults to the dashboard. */
   backTo?: string
-  /** Label for the back action. */
   backLabel?: string
-  /** URL to share; omit to share the current page; pass null to hide share. */
   shareUrl?: string | null
-  /** Title passed to the native share sheet. */
   shareTitle?: string
   className?: string
 }
 
-/** Shared terminal-titlebar header used across the app: traffic lights, the
- *  pixel CodeTrace wordmark, a back link and a share button (native share sheet
- *  where available, clipboard copy otherwise). */
+/** Console title-bar header with modular panel chrome. */
 export function AppHeader({
   backTo = '/app',
   backLabel = 'dashboard',
@@ -59,80 +53,51 @@ export function AppHeader({
       }
       await copy()
     } catch (err) {
-      // Cancelling the native share sheet throws AbortError — not a failure.
       if (err instanceof Error && err.name === 'AbortError') return
-      try { await copy() } catch { /* clipboard blocked — nothing more to do */ }
+      try { await copy() } catch { /* clipboard blocked */ }
     }
   }
 
   return (
     <header className={cn('mb-8', className)}>
-      <div className="term-window">
-        <div className="term-bar flex-wrap gap-y-2">
-          <span className="term-dot" style={{ background: 'var(--term-red)' }} />
-          <span className="term-dot" style={{ background: 'var(--term-amber)' }} />
-          <span className="term-dot" style={{ background: 'var(--term-green)' }} />
+      <div className="app-nav-glass px-4 py-3 md:px-5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <Link
             to="/"
-            className="glow-text ml-2 font-pixel text-base text-foreground transition-opacity hover:opacity-80"
+            className="font-heading text-lg tracking-tight text-foreground transition-transform duration-150 hover:scale-[1.02]"
           >
             {BRAND_NAME}
           </Link>
-          <div className="ml-auto flex items-center gap-1.5">
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="font-mono text-xs text-muted-foreground hover:text-primary"
-            >
+          <span className="xp-chip hidden sm:inline-flex">Console</span>
+          <div className="ml-auto flex flex-wrap items-center gap-1.5">
+            <Button variant="ghost" size="sm" asChild>
               <Link to={backTo}>
-                <ArrowLeft data-icon="inline-start" />
+                <ArrowLeft data-icon="inline-start" strokeWidth={2} />
                 {backLabel}
               </Link>
             </Button>
             {resolvedShareUrl ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleShare}
-                className="font-mono text-xs text-muted-foreground hover:text-primary"
-              >
-                {copied ? <Check data-icon="inline-start" /> : <Share2 data-icon="inline-start" />}
+              <Button variant="ghost" size="sm" onClick={handleShare}>
+                {copied ? <Check data-icon="inline-start" strokeWidth={2} /> : <Share2 data-icon="inline-start" strokeWidth={2} />}
                 {copied ? 'copied' : 'share'}
               </Button>
             ) : null}
             {placementHome ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className="font-mono text-xs text-muted-foreground hover:text-primary"
-              >
+              <Button variant="secondary" size="sm" asChild>
                 <Link to={asPlacementPath(placementHome)}>placement</Link>
               </Button>
             ) : null}
-            {/* Auth entry point: account (userid + platform ids) when signed in, login otherwise */}
             {user ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className="font-mono text-xs text-muted-foreground hover:text-primary"
-              >
+              <Button variant="outline" size="sm" asChild>
                 <Link to="/account">
-                  <UserCircle2 data-icon="inline-start" />
+                  <UserCircle2 data-icon="inline-start" strokeWidth={2} />
                   account
                 </Link>
               </Button>
             ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                asChild
-                className="font-mono text-xs text-muted-foreground hover:text-primary"
-              >
+              <Button size="sm" asChild>
                 <Link to="/login">
-                  <LogIn data-icon="inline-start" />
+                  <LogIn data-icon="inline-start" strokeWidth={2} />
                   login
                 </Link>
               </Button>

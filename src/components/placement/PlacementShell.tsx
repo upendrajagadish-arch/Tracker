@@ -1,7 +1,17 @@
 import type { ReactNode } from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
+import { motion } from 'framer-motion'
 import { asPlacementPath } from '@/components/placement/PlacementLink'
-import { LogOut } from 'lucide-react'
+import {
+  LayoutDashboard,
+  LogOut,
+  Users,
+  Building2,
+  FileText,
+  BarChart3,
+  Settings,
+  Trophy,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -25,6 +35,8 @@ interface PlacementShellProps {
   headerShareTitle?: string
 }
 
+const NAV_ICONS = [LayoutDashboard, Users, Building2, FileText, BarChart3, Trophy, Settings]
+
 function PlacementMessageCard({
   title,
   description,
@@ -37,19 +49,16 @@ function PlacementMessageCard({
   return (
     <div className="flex min-h-screen flex-col px-4 py-10 md:px-8">
       <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center">
-        <div className="term-window scanlines rise-in">
-          <div className="term-bar">
-            <span className="term-dot" style={{ background: 'var(--term-red)' }} />
-            <span className="term-dot" style={{ background: 'var(--term-amber)' }} />
-            <span className="term-dot" style={{ background: 'var(--term-green)' }} />
-            <span className="ml-2 font-mono text-[11px] text-muted-foreground/80">~/placement — access</span>
-          </div>
-          <div className="crt-grid px-6 py-8 text-center md:px-9">
-            <h1 className="glow-text font-pixel text-2xl text-foreground">{title}</h1>
-            <p className="mt-3 font-mono text-sm leading-relaxed text-muted-foreground">{description}</p>
-            <div className="mt-6">{action}</div>
-          </div>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: 10, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          className="panel-bevel rounded-dialog p-8 text-center md:p-10"
+        >
+          <h1 className="font-heading text-2xl text-foreground md:text-3xl">{title}</h1>
+          <p className="mt-3 text-sm leading-relaxed text-secondary">{description}</p>
+          <div className="mt-6">{action}</div>
+        </motion.div>
       </div>
     </div>
   )
@@ -80,7 +89,7 @@ export function PlacementShell({
         title="Placement unavailable"
         description="Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY."
         action={
-          <Button asChild variant="outline" className="font-mono text-xs">
+          <Button asChild variant="outline">
             <Link to="/app">Back to dashboard</Link>
           </Button>
         }
@@ -92,7 +101,7 @@ export function PlacementShell({
     return (
       <div className="px-4 py-10 md:px-8">
         <div className="mx-auto max-w-6xl space-y-4">
-          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-14 w-full" />
           <Skeleton className="h-10 w-full max-w-3xl" />
           <Skeleton className="h-64 w-full" />
         </div>
@@ -106,7 +115,7 @@ export function PlacementShell({
         title="Sign in required"
         description="Placement office tools require an authenticated account."
         action={
-          <Button asChild className="font-mono text-xs">
+          <Button asChild>
             <Link to="/login" search={{ next: pathname }}>Sign in</Link>
           </Button>
         }
@@ -120,7 +129,7 @@ export function PlacementShell({
         title="No placement access"
         description="Your account does not have a placement role assigned yet."
         action={
-          <Button asChild variant="outline" className="font-mono text-xs">
+          <Button asChild variant="outline">
             <Link to="/app">Back to dashboard</Link>
           </Button>
         }
@@ -135,7 +144,7 @@ export function PlacementShell({
         title="Unauthorized account"
         description="Only dedicated RCEE staff accounts can access the placement office."
         action={
-          <Button variant="outline" className="font-mono text-xs" onClick={() => void handleSignOut()}>
+          <Button variant="outline" onClick={() => void handleSignOut()}>
             Sign out
           </Button>
         }
@@ -147,61 +156,58 @@ export function PlacementShell({
     <div className="placement-theme flex min-h-screen flex-col">
       <div className="flex flex-1 px-4 py-8 md:px-8">
         <div className="mx-auto flex w-full max-w-6xl gap-6">
-          <aside className="term-window scanlines hidden w-56 shrink-0 flex-col sm:flex lg:w-64">
-            <div className="term-bar">
-              <span className="term-dot" style={{ background: 'var(--term-red)' }} />
-              <span className="term-dot" style={{ background: 'var(--term-amber)' }} />
-              <span className="term-dot" style={{ background: 'var(--term-green)' }} />
-              <Link to={asPlacementPath(homePath)} className="ml-1 truncate font-mono text-[10px] text-muted-foreground hover:text-primary">
-                ~/placement
+          <aside className="sticky top-4 hidden w-56 shrink-0 flex-col self-start overflow-hidden rounded-dialog border border-console bg-navigation shadow-console sm:flex lg:w-64">
+            <div className="border-b border-white/10 px-4 py-4">
+              <Link
+                to={asPlacementPath(homePath)}
+                className="font-heading text-base text-white transition-opacity hover:opacity-80"
+              >
+                Placement
               </Link>
+              <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.5px] text-white/45">
+                Switch menu
+              </p>
             </div>
 
-            <div className="crt-grid flex flex-1 flex-col px-3 py-4">
-              <p className="mb-1 font-pixel text-lg leading-none text-foreground">Placement</p>
-              <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">office modules</p>
-
-              <nav className="flex-1 space-y-0.5 overflow-y-auto">
-                {navLinks.map((link) => {
+            <div className="flex flex-1 flex-col px-2 py-3">
+              <nav className="flex-1 space-y-1 overflow-y-auto">
+                {navLinks.map((link, index) => {
                   const active = isPlacementNavActive(pathname, link)
+                  const Icon = NAV_ICONS[index % NAV_ICONS.length]
                   return (
                     <Link
                       key={link.to}
                       to={asPlacementPath(link.to)}
-                      className={cn(
-                        'block rounded-md px-2.5 py-2 font-mono text-[11px] transition-colors',
-                        active
-                          ? 'bg-primary/15 text-primary shadow-[inset_2px_0_0_0_var(--color-primary)]'
-                          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
-                      )}
+                      className={cn('placement-nav-link flex items-center gap-2.5', active && 'is-active')}
                     >
-                      {link.label.toLowerCase()}
+                      <Icon className="size-4 shrink-0" strokeWidth={2} />
+                      <span className="truncate">{link.label}</span>
                     </Link>
                   )
                 })}
               </nav>
 
-              <div className="mt-4 border-t border-border pt-4">
-                <p className="truncate font-mono text-[11px] text-foreground">
+              <div className="mt-4 border-t border-white/10 px-2 pt-4">
+                <p className="truncate px-2 text-sm font-semibold text-white">
                   {placementProfile?.full_name || user.email}
                 </p>
                 {placementRole ? (
-                  <Badge variant="secondary" className="mt-1 font-mono text-[10px] capitalize">
+                  <Badge className="mt-2 ml-2 border-white/20 bg-white/10 text-white capitalize">
                     {placementRole}
                   </Badge>
                 ) : null}
-                <div className="mt-3 flex flex-col gap-1.5">
-                  <Button asChild variant="ghost" size="sm" className="h-7 justify-start px-2 font-mono text-[10px]">
-                    <Link to="/app">{BRAND_NAME.toLowerCase()} home</Link>
+                <div className="mt-3 flex flex-col gap-1.5 px-1">
+                  <Button asChild variant="ghost" size="sm" className="justify-start text-white/80 hover:bg-white/10 hover:text-white">
+                    <Link to="/app">{BRAND_NAME} home</Link>
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="sm"
-                    className="h-7 justify-start px-2 font-mono text-[10px]"
+                    className="justify-start"
                     onClick={() => void handleSignOut()}
                   >
-                    <LogOut className="size-3" />
-                    sign out
+                    <LogOut className="size-3.5" strokeWidth={2} />
+                    Sign out
                   </Button>
                 </div>
               </div>
@@ -223,10 +229,10 @@ export function PlacementShell({
                   key={link.to}
                   to={asPlacementPath(link.to)}
                   className={cn(
-                    'shrink-0 rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-wide',
+                    'shrink-0 rounded-console border px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.5px]',
                     isPlacementNavActive(pathname, link)
-                      ? 'border-primary/40 bg-primary/15 text-primary'
-                      : 'border-border text-muted-foreground',
+                      ? 'border-primary bg-primary text-white'
+                      : 'border-console bg-panel text-secondary',
                   )}
                 >
                   {link.label}
@@ -235,12 +241,18 @@ export function PlacementShell({
             </div>
 
             {title ? (
-              <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-                <span className="text-[var(--term-green)]">$</span> {title.toLowerCase()}
+              <p className="mb-4 text-[11px] font-bold uppercase tracking-[0.5px] text-secondary">
+                {title}
               </p>
             ) : null}
 
-            <div className="rise-in">{children}</div>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {children}
+            </motion.div>
           </div>
         </div>
       </div>

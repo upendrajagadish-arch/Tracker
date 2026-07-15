@@ -55,43 +55,33 @@ export function MarketPage() {
         description="Stop pasting six different profile URLs. Aggregate your coding footprints, contest ratings, solved problems, and commit histories from 7 platforms into one sleek dashboard."
         url="https://codetrace.xyz"
       />
-      <div className="relative min-h-screen bg-background text-foreground selection:bg-primary selection:text-background font-sans antialiased overflow-x-hidden">
+      <div className="relative min-h-screen overflow-x-hidden font-sans text-foreground antialiased">
 
-      {/* Dynamic Grid Background Overlay */}
-      <div aria-hidden className="absolute inset-0 bg-[linear-gradient(to_right,color-mix(in_srgb,var(--color-primary)_11%,transparent)_1px,transparent_1px),linear-gradient(to_bottom,color-mix(in_srgb,var(--color-primary)_11%,transparent)_1px,transparent_1px)] bg-[size:34px_34px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none opacity-50" />
-
-      {/* Navbar / Top Bar */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md px-4 md:px-8 py-3">
-        <div className="max-w-6xl mx-auto flex items-center justify-between">
-          <Link to="/" aria-label={`${BRAND_NAME} home`} className="flex items-center gap-2 group">
-            <span className="font-mono text-[var(--term-green)] font-bold text-sm select-none">&gt;_</span>
-            <span className="glow-text font-pixel text-base tracking-tight text-foreground transition-opacity group-hover:opacity-80">
+      <nav className="sticky top-0 z-50 border-b-2 border-console bg-console/95 px-4 py-3 shadow-console backdrop-blur-sm md:px-8">
+        <div className="mx-auto flex max-w-6xl items-center justify-between">
+          <Link to="/" aria-label={`${BRAND_NAME} home`} className="group flex items-center gap-2">
+            <span className="font-heading text-lg text-foreground transition-transform group-hover:scale-[1.02]">
               {BRAND_NAME}
             </span>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5">
             <Link
               to="/app"
-              className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+              className="rounded-console px-3 py-2 text-[11px] font-bold uppercase tracking-[0.5px] text-secondary transition-colors hover:text-foreground"
             >
-              <span className="text-[var(--term-green)]">$</span> dashboard
+              Dashboard
             </Link>
             <Link
               to="/login"
-              className="text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+              className="rounded-console px-3 py-2 text-[11px] font-bold uppercase tracking-[0.5px] text-secondary transition-colors hover:text-foreground"
             >
-              <span className="text-[var(--term-green)]">$</span> login
+              Login
             </Link>
-            <Button
-              variant="outline"
-              size="sm"
-              className="font-mono text-xs rounded-md border-primary/20 text-primary hover:bg-primary/10 gap-1"
-              asChild
-            >
+            <Button size="sm" asChild>
               <Link to="/app">
-                ./launch
-                <ArrowRight className="size-3" />
+                Launch
+                <ArrowRight className="size-3.5" strokeWidth={2} />
               </Link>
             </Button>
           </div>
@@ -102,23 +92,23 @@ export function MarketPage() {
       <section className="px-4 py-16 md:py-24 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative">
         {/* Left Col - Copy & Pitch */}
         <div className="lg:col-span-7 flex flex-col items-start text-left space-y-6 z-10">
-          <Badge variant="outline" className="rise-in rounded-md font-mono text-[10px] uppercase tracking-wider py-1 border-[var(--term-green)]/30 text-[var(--term-green)] bg-[var(--term-green)]/5" style={{ animationDelay: '0.05s' }}>
-            {'// unified_developer_profiler'}
+          <Badge variant="outline" className="rise-in" style={{ animationDelay: '0.05s' }}>
+            Unified developer profiler
           </Badge>
 
-          <h1 className="rise-in text-5xl md:text-7xl font-display font-bold tracking-tight leading-[0.95] text-foreground" style={{ animationDelay: '0.12s' }}>
+          <h1 className="rise-in font-heading text-5xl leading-[1.05] text-foreground md:text-6xl" style={{ animationDelay: '0.12s' }}>
             Every footprint.<br />
-            <span className="text-muted-foreground">One single</span><br />
-            <span className="glitch glow-text font-pixel text-primary" data-text="terminal.">terminal.</span>
+            <span className="text-secondary">One single</span><br />
+            <span className="text-primary">dashboard.</span>
           </h1>
 
-          <p className="rise-in text-base text-muted-foreground max-w-lg leading-relaxed" style={{ animationDelay: '0.19s' }}>
+          <p className="rise-in max-w-lg text-base leading-relaxed text-secondary" style={{ animationDelay: '0.19s' }}>
             Placement office tools for TPO and faculty — student dossiers, resumes, readiness, and resume books — plus the {BRAND_NAME} coding platform dashboard for live platform stats.
           </p>
 
           {/* Platform Icon Ribbon */}
           <div className="rise-in flex flex-wrap items-center gap-3 pt-2" style={{ animationDelay: '0.26s' }}>
-            <span className="text-xs font-mono text-muted-foreground/60 mr-2">Integrates with:</span>
+            <span className="mr-2 text-[11px] font-bold uppercase tracking-[0.5px] text-secondary">Integrates with:</span>
             {[
               { icon: SiGithub, color: 'var(--platform-github)', label: 'GitHub' },
               { icon: SiLeetcode, color: 'var(--platform-leetcode)', label: 'LeetCode' },
@@ -131,7 +121,7 @@ export function MarketPage() {
               <span
                 key={p.label}
                 aria-label={p.label}
-                className="p-1.5 rounded bg-card border border-border/50 flex items-center justify-center transition-all hover:scale-110 hover:border-primary/30"
+                className="flex items-center justify-center rounded-console border border-console bg-console p-2 shadow-[0_2px_0_#4D5C9A] transition-transform duration-150 hover:-translate-y-0.5"
                 style={{ color: p.color }}
                 title={p.label}
               >
@@ -145,7 +135,7 @@ export function MarketPage() {
           </div>
 
           <div className="rise-in flex flex-col sm:flex-row gap-3 w-full sm:w-auto pt-4" style={{ animationDelay: '0.33s' }}>
-            <Button size="lg" className="font-mono bg-primary text-primary-foreground font-semibold hover:bg-primary/90 flex items-center justify-center gap-2" asChild>
+            <Button size="lg" className="flex items-center justify-center gap-2 font-semibold" asChild>
               <Link to="/login">
                 Placement office sign in
                 <ArrowRight className="size-4" />

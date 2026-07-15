@@ -24,7 +24,7 @@ import { SummaryStrip } from '../components/SummaryStrip'
 import { PlatformLegend } from '../components/PlatformLegend'
 import { ShareFab } from '../components/ShareFab'
 import { WorkspaceTabs } from '@/components/placement/WorkspaceTabs'
-import { BRAND_NAME, BRAND_SLUG } from '@/lib/brand'
+import { BRAND_NAME } from '@/lib/brand'
 
 const CARD_RENDERERS: Record<Platform, (username: string) => ReactNode> = {
   github:     (u) => <GitHubCard username={u} />,
@@ -144,46 +144,30 @@ export function HomePage() {
             window titlebar once results load */}
         {!usernames ? (
           <header className="rise-in relative mb-12">
-            {/* Quiet auth nav above the boot terminal */}
-            <nav className="mx-auto mb-4 flex max-w-2xl items-center justify-end gap-4 font-mono text-[11px]">
+            <nav className="mx-auto mb-5 flex max-w-2xl items-center justify-end gap-4 text-sm font-semibold">
               {user ? (
-                <Link to="/account" className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-primary">
-                  <UserCircle2 className="size-3" />account
+                <Link to="/account" className="inline-flex items-center gap-1.5 text-secondary transition-colors hover:text-foreground">
+                  <UserCircle2 className="size-4" strokeWidth={2} /> Account
                 </Link>
               ) : (
-                <Link to="/login" className="inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-primary">
-                  <LogIn className="size-3" />
-                  <span className="text-[var(--term-green)]">$</span> login
+                <Link to="/login" className="inline-flex items-center gap-1.5 text-secondary transition-colors hover:text-foreground">
+                  <LogIn className="size-4" strokeWidth={2} /> Login
                 </Link>
               )}
             </nav>
-            <div className="term-window scanlines mx-auto max-w-2xl">
-              <div className="term-bar">
-                <span className="term-dot" style={{ background: 'var(--term-red)' }} />
-                <span className="term-dot" style={{ background: 'var(--term-amber)' }} />
-                <span className="term-dot" style={{ background: 'var(--term-green)' }} />
-                <span className="ml-2 truncate font-mono text-[11px] text-muted-foreground/80">
-                  ~/{BRAND_SLUG} — zsh — 80×24
+            <div className="panel-bevel mx-auto max-w-2xl overflow-hidden rounded-dialog">
+              <div className="flex items-center justify-between border-b border-console bg-panel-dark/50 px-6 py-3">
+                <span className="text-[11px] font-bold uppercase tracking-[0.5px] text-secondary">
+                  Coding analytics
                 </span>
-                <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.18em] text-[var(--term-green)]">
-                  <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--term-green)] opacity-75" />
-                    <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[var(--term-green)]" />
-                  </span>
-                  online
-                </span>
+                <span className="xp-chip">Online</span>
               </div>
 
-              <div className="scan-sweep crt-grid px-6 py-9 md:px-10 md:py-11">
-                {/* glitching pixel wordmark */}
-                <h1
-                  className="glitch glow-text font-pixel text-[2.75rem] leading-none text-foreground md:text-6xl"
-                  data-text={BRAND_NAME}
-                >
+              <div className="px-6 py-10 md:px-10 md:py-12">
+                <h1 className="font-heading text-[2.5rem] leading-none text-foreground md:text-5xl">
                   {BRAND_NAME}
                 </h1>
-
-                <p className="caret mt-5 max-w-lg font-mono text-sm leading-relaxed text-muted-foreground">
+                <p className="mt-5 max-w-lg text-base leading-relaxed text-secondary">
                   Track your coding footprint across GitHub, LeetCode, Codeforces, GFG, CodeChef, HackerRank &amp; takeUforward — DSA sheet progress with topic-level breakdown, submission heatmaps, and streak tracking
                 </p>
               </div>
@@ -191,14 +175,11 @@ export function HomePage() {
           </header>
         ) : (
           <header className="rise-in relative mb-10">
-            <div className="term-window">
-              <div className="term-bar flex-wrap gap-y-2">
-                <span className="term-dot" style={{ background: 'var(--term-red)' }} />
-                <span className="term-dot" style={{ background: 'var(--term-amber)' }} />
-                <span className="term-dot" style={{ background: 'var(--term-green)' }} />
+            <div className="app-nav-glass px-4 py-3 md:px-5">
+              <div className="flex flex-wrap items-center gap-y-2">
                 <Link
                   to="/"
-                  className="glow-text ml-2 font-pixel text-base text-foreground transition-opacity hover:opacity-80"
+                  className="font-heading text-lg text-foreground transition-transform hover:scale-[1.02]"
                 >
                   {BRAND_NAME}
                 </Link>
@@ -207,19 +188,14 @@ export function HomePage() {
                     variant="ghost"
                     size="sm"
                     onClick={handleSearchAgain}
-                    className="font-mono text-xs text-muted-foreground hover:text-primary"
                   >
-                    <ArrowLeft data-icon="inline-start" />
-                    [esc] search
+                    <ArrowLeft data-icon="inline-start" strokeWidth={2} />
+                    Search again
                   </Button>
-                  {/* Primary CTA — the unified profile is the point of the app */}
-                  <Button
-                    asChild
-                    className="group h-8 gap-2 rounded-md px-4 font-mono text-xs shadow-lg shadow-primary/20 transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/40"
-                  >
+                  <Button asChild className="group gap-2">
                     <Link to="/profile" search={(prev) => prev}>
-                      ./student_profile
-                      <ArrowRight data-icon="inline-end" className="transition-transform group-hover:translate-x-0.5" />
+                      Student profile
+                      <ArrowRight data-icon="inline-end" className="transition-transform group-hover:translate-x-0.5" strokeWidth={2} />
                     </Link>
                   </Button>
                 </div>
@@ -237,20 +213,20 @@ export function HomePage() {
         ) : (
           <div className="fade-in flex flex-col gap-8">
             {/* Active handles being tracked */}
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[11px]">
-              <span className="text-[var(--term-green)]">$ tracking --live</span>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-sm">
+              <span className="xp-chip">Tracking</span>
               <div className="flex flex-wrap gap-2">
                 {(Object.entries(usernames) as [keyof Usernames, string][])
                   .flatMap(([k, v]) => splitAccounts(v).map((u) => [k, u] as const))
                   .map(([k, u]) => (
-                    <Badge key={`${k}-${u}`} variant="outline" className="rounded-md font-mono text-[10px]">
-                      <span className="text-muted-foreground/50">{k}/</span>{u}
+                    <Badge key={`${k}-${u}`} variant="outline">
+                      <span className="text-secondary">{k}/</span>{u}
                     </Badge>
                   ))}
               </div>
             </div>
             {(saveState.message || saveState.error) && (
-              <p className={`font-mono text-xs ${saveState.error ? 'text-destructive' : 'text-primary'}`}>
+              <p className={`text-sm font-semibold ${saveState.error ? 'text-primary' : 'text-foreground'}`}>
                 {saveState.error ?? saveState.message}
               </p>
             )}

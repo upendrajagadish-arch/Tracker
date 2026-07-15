@@ -76,15 +76,13 @@ function initials(name: string) {
 export function PublicStudentPerformanceCard({ profile }: { profile: PublicStudentPerformance }) {
   const [criteriaOpen, setCriteriaOpen] = useState(false)
 
-  const pseudoStudent = {
-    github_url: profile.githubUrl || '',
-    platform_handles: profile.platformHandles,
-  } as Pick<StudentProfileRow, 'github_url' | 'platform_handles'>
-
-  const usernames = useMemo(
-    () => platformHandlesToUsernames(resolvePlatformHandles(pseudoStudent)),
-    [profile.platformHandles, profile.githubUrl],
-  )
+  const usernames = useMemo(() => {
+    const pseudoStudent = {
+      github_url: profile.githubUrl || '',
+      platform_handles: profile.platformHandles,
+    } as Pick<StudentProfileRow, 'github_url' | 'platform_handles'>
+    return platformHandlesToUsernames(resolvePlatformHandles(pseudoStudent))
+  }, [profile.platformHandles, profile.githubUrl])
 
   const { loaded, isLoading, activeCount } = useProfileCards(usernames)
   const showCoding = hasAnyUsername(usernames)
@@ -99,23 +97,19 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
     : profile.totalSolved
 
   const githubCard = loaded.find((c) => c.platform === 'github')
-  const overall = useMemo(
-    () =>
-      buildOverallPerformanceSummary({
-        codingPercent: blendCodingPercent(
-          codingPercentFromSolved(liveSolved),
-          profile.codeNow?.percentage ?? null,
-        ),
-        githubPercent: githubPercentFromActivity({
-          commits: githubCard?.stats.totalSolved ?? null,
-          stars: githubCard?.rating?.current ?? githubCard?.contests?.rating ?? null,
-        }),
-        communicationPercent: profile.communication?.percentage ?? null,
-        aptitudePercent: profile.aptitude?.percentage ?? null,
-        verbalPercent: profile.verbal?.percentage ?? null,
-      }),
-    [liveSolved, githubCard, profile.communication, profile.aptitude, profile.verbal, profile.codeNow],
-  )
+  const overall = buildOverallPerformanceSummary({
+    codingPercent: blendCodingPercent(
+      codingPercentFromSolved(liveSolved),
+      profile.codeNow?.percentage ?? null,
+    ),
+    githubPercent: githubPercentFromActivity({
+      commits: githubCard?.stats.totalSolved ?? null,
+      stars: githubCard?.rating?.current ?? githubCard?.contests?.rating ?? null,
+    }),
+    communicationPercent: profile.communication?.percentage ?? null,
+    aptitudePercent: profile.aptitude?.percentage ?? null,
+    verbalPercent: profile.verbal?.percentage ?? null,
+  })
 
   const codingAccounts = (Object.entries(usernames) as [Platform, string][])
     .filter(([platform]) => platform !== 'github')
@@ -124,7 +118,7 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
     )
 
   return (
-    <div className="fade-in mx-auto max-w-5xl px-4 py-8 md:px-8 md:py-12">
+    <div className="fade-in mx-auto max-w-5xl overflow-x-hidden px-4 py-8 md:px-8 md:py-12">
       <header className="mb-8 overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-card to-background">
         <div className="flex flex-col gap-5 px-5 py-7 sm:flex-row sm:items-center sm:px-8">
           <div className="flex size-16 shrink-0 items-center justify-center rounded-full border-2 border-primary/30 bg-primary/15 font-pixel text-xl text-primary">
@@ -137,15 +131,15 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
             <h1 className="mt-2 break-words font-pixel text-3xl text-foreground md:text-4xl">
               {profile.fullName}
             </h1>
-            <p className="mt-2 font-mono text-sm text-muted-foreground">
+            <p className="mt-2 break-words font-mono text-sm text-muted-foreground">
               {profile.rollNumber} · {profile.branch || '—'} ·{' '}
               {profile.batch || profile.graduationYear || '—'}
             </p>
             {profile.headline ? (
-              <p className="mt-2 text-sm text-foreground/80">{profile.headline}</p>
+              <p className="mt-2 break-words text-sm text-foreground/80">{profile.headline}</p>
             ) : null}
           </div>
-          <div className="rounded-xl border border-border bg-card/90 px-4 py-3 text-center">
+          <div className="w-full shrink-0 rounded-xl border border-border bg-card/90 px-4 py-3 text-center sm:w-auto">
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
               Overall
             </p>
@@ -366,9 +360,9 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
                             {section.fields.map((field, idx) => (
                               <div
                                 key={field.key}
-                                className="flex items-center justify-between gap-2 rounded border border-border/70 px-2.5 py-1.5 text-xs"
+                                className="flex min-w-0 items-start justify-between gap-2 rounded border border-border/70 px-2.5 py-1.5 text-xs"
                               >
-                                <span className="min-w-0 text-muted-foreground">
+                                <span className="min-w-0 break-words text-muted-foreground">
                                   {idx + 1 + (section.id === 'presentation' ? 8 : section.id === 'behavioural' ? 14 : 0)}.{' '}
                                   {field.label}
                                 </span>
