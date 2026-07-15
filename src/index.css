@@ -35,8 +35,10 @@
   --color-warning: var(--warning);
   --color-canvas: var(--canvas);
   --color-elevated: var(--elevated);
-  --color-binance-yellow: var(--binance-yellow);
-  --color-binance-yellow-hover: var(--binance-yellow-hover);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-binance-yellow: var(--brand);
+  --color-binance-yellow-hover: var(--brand-hover);
 
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -54,16 +56,21 @@
 .dark {
   --canvas: #0B0E11;
   --elevated: #2B3139;
-  --binance-yellow: #FCD535;
-  --binance-yellow-hover: #F0B90B;
+  /* Ramachandra Burnt Orange */
+  --brand: #D27918;
+  --brand-hover: #B56614;
+  --brand-active: #9A5810;
+  --brand-soft: #E08A2A;
+  --binance-yellow: var(--brand);
+  --binance-yellow-hover: var(--brand-hover);
   --background: #0B0E11;
   --foreground: #EAECEF;
   --card: #1E2329;
   --card-foreground: #EAECEF;
   --popover: #1E2329;
   --popover-foreground: #EAECEF;
-  --primary: #FCD535;
-  --primary-foreground: #181A20;
+  --primary: #D27918;
+  --primary-foreground: #FFFFFF;
   --secondary: #2B3139;
   --secondary-foreground: #EAECEF;
   --muted: #2B3139;
@@ -76,11 +83,11 @@
   --ring: #3B82F6;
   --success: #0ECB81;
   --success-foreground: #0B0E11;
-  --warning: #F0B90B;
+  --warning: #E08A2A;
   --radius: 8px;
   --term-green: #0ECB81;
   --term-red: #F6465D;
-  --term-amber: #FCD535;
+  --term-amber: #D27918;
 }
 
 :root {
@@ -116,8 +123,8 @@
     color: #EAECEF;
   }
   ::selection {
-    background: rgba(252, 213, 53, 0.35);
-    color: #181A20;
+    background: rgba(210, 121, 24, 0.35);
+    color: #FFFFFF;
   }
 }
 
@@ -128,7 +135,8 @@
   .text-body { color: #EAECEF; }
   .text-secondary { color: #929AA5; }
   .text-muted { color: #707A8A; }
-  .text-binance { color: #FCD535; }
+  .text-binance,
+  .text-brand { color: #D27918; }
   .border-soft { border-color: #2B3139; }
   .rounded-button { border-radius: 6px; }
   .rounded-input { border-radius: 8px; }
@@ -257,7 +265,7 @@
 .link-quiet { transition: color 0.15s ease; }
 
 .search-row {
-  --row-accent: #FCD535;
+  --row-accent: #D27918;
   position: relative;
   transition: background 0.15s ease;
 }
@@ -368,8 +376,8 @@
   color: #EAECEF;
 }
 .placement-nav-link.is-active {
-  background: rgba(252, 213, 53, 0.12);
-  color: #FCD535;
+  background: rgba(210, 121, 24, 0.12);
+  color: #D27918;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -387,7 +395,7 @@
 }
 
 .placement-theme .resume-book-cover-preview.resume-book-cover-ready {
-  border-color: #FCD535;
+  border-color: #D27918;
   animation: resume-book-pulse 2.4s ease-in-out infinite;
 }
 
@@ -421,9 +429,9 @@
   align-items: center;
   gap: 0.35rem;
   border-radius: 999px;
-  border: 1px solid rgba(252, 213, 53, 0.35);
-  background: rgba(252, 213, 53, 0.12);
-  color: #FCD535;
+  border: 1px solid rgba(210, 121, 24, 0.35);
+  background: rgba(210, 121, 24, 0.12);
+  color: #D27918;
   padding: 0.15rem 0.55rem;
   font-size: 11px;
   font-weight: 700;

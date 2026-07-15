@@ -156,7 +156,7 @@ export function CommunicationEvaluationImportPage() {
               Failed: {result.failed}
             </p>
             {result.warnings.length > 0 ? (
-              <p className="mt-2 text-xs text-amber-700">
+              <p className="mt-2 text-xs text-[#E08A2A]">
                 Readiness warnings: {result.warnings.length}
               </p>
             ) : null}
@@ -180,7 +180,7 @@ export function CommunicationEvaluationImportPage() {
             </div>
 
             {preview.duplicateRollNumbers.length > 0 ? (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="rounded-lg border border-[#D27918]/35 bg-[#D27918]/10 px-4 py-3 text-sm text-[#E08A2A]">
                 Duplicate roll numbers: {preview.duplicateRollNumbers.join(', ')}
               </div>
             ) : null}
@@ -207,7 +207,7 @@ export function CommunicationEvaluationImportPage() {
                       <TableCell>{row.totals?.percentage}%</TableCell>
                       <TableCell>{row.totals?.grade}</TableCell>
                       <TableCell>{row.status}</TableCell>
-                      <TableCell className="text-amber-700">
+                      <TableCell className="text-[#E08A2A]">
                         {row.warnings.join('; ') || '—'}
                       </TableCell>
                     </TableRow>

@@ -49,7 +49,7 @@ function BadgeTone({ children, tone = 'muted' }: { children: React.ReactNode; to
         'font-mono text-[10px]',
         tone === 'green' && 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300',
         tone === 'blue' && 'border-blue-500/30 bg-blue-500/10 text-blue-300',
-        tone === 'amber' && 'border-amber-500/30 bg-amber-500/10 text-amber-300',
+        tone === 'amber' && 'border-[#D27918]/35 bg-[#D27918]/10 text-[#E08A2A]',
         tone === 'muted' && 'border-border text-muted-foreground',
       )}
     >

@@ -124,7 +124,7 @@ export function ShareFab({ onClick, actions, label, busy = false, toast, onToast
         className={cn(
           'group relative grid size-12 place-items-center rounded-button bg-primary text-primary-foreground',
           'outline-none transition-colors duration-150',
-          'hover:bg-[#F0B90B]',
+          'hover:bg-[#B56614] active:bg-[#9A5810]',
           'focus-visible:ring-2 focus-visible:ring-[#3B82F6]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0B0E11]',
           'disabled:opacity-40',
         )}

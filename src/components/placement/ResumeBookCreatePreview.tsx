@@ -37,7 +37,7 @@ export function ResumeBookCreatePreview({
             <p className="mt-5 text-sm text-primary">Ready to generate</p>
           ) : null}
           {!loading && !generating && !hasStudents ? (
-            <p className="mt-5 text-sm text-amber-400">Adjust filters to include students</p>
+            <p className="mt-5 text-sm text-[#E08A2A]">Adjust filters to include students</p>
           ) : null}
         </div>
 

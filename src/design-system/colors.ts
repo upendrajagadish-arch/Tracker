@@ -1,12 +1,15 @@
-/** Binance-inspired fintech color tokens. */
+/** Ramachandra brand color tokens. */
 export const colors = {
   dark: {
     background: '#0B0E11',
     card: '#1E2329',
     elevated: '#2B3139',
-    primary: '#FCD535',
-    primaryHover: '#F0B90B',
-    primaryText: '#181A20',
+    /** Ramachandra Burnt Orange */
+    primary: '#D27918',
+    primaryHover: '#B56614',
+    primaryActive: '#9A5810',
+    primarySoft: '#E08A2A',
+    primaryText: '#FFFFFF',
     body: '#EAECEF',
     secondary: '#929AA5',
     muted: '#707A8A',
