@@ -1,5 +1,6 @@
 import { requireSupabase } from '@/lib/supabase'
 import { logPlacementAudit } from '@/lib/placementAudit'
+import { deriveAcademicBatchFields } from '@/lib/academicBatch'
 import {
   parseCsvText,
   previewStudentImport,
@@ -17,9 +18,19 @@ export interface StudentListFilters {
   q?: string
   branch?: string
   batch?: string
+  academicBatch?: string
+  section?: string
   placementStatus?: string
   readinessStatus?: string
   isPlacementEligible?: boolean
+  resumeMissing?: boolean
+  resumePendingApproval?: boolean
+  codingConnected?: boolean
+  codingMissing?: boolean
+  communicationPending?: boolean
+  aptitudePending?: boolean
+  verbalPending?: boolean
+  studentIds?: string[]
   page?: number
   limit?: number
 }
@@ -41,10 +52,16 @@ export interface CreateStudentInput {
   phone?: string
   branch?: string
   batch?: string
+  academicBatch?: string
+  admissionYear?: number | null
+  graduationYear?: number | null
+  section?: string
+  address?: string
+  certificationsSummary?: string
+  internshipSummary?: string
   dateOfBirth?: string | null
   cgpa?: number | null
   activeBacklogs?: number
-  graduationYear?: number | null
   placementStatus?: string
   linkedinUrl?: string
   githubUrl?: string
@@ -67,6 +84,9 @@ export interface BulkAssignInput {
   branch: string
   batch: string
   graduationYear?: number | null
+  admissionYear?: number | null
+  academicBatch?: string
+  section?: string
 }
 
 const DEFAULT_LIMIT = 20
@@ -79,17 +99,29 @@ function normalizePagination(page = 1, limit = DEFAULT_LIMIT) {
 }
 
 function toInsert(input: CreateStudentInput): StudentProfileInsert {
+  const academic = deriveAcademicBatchFields({
+    academicBatch: input.academicBatch,
+    batch: input.batch,
+    admissionYear: input.admissionYear,
+    graduationYear: input.graduationYear,
+  })
   return {
     roll_number: input.rollNumber.trim(),
     full_name: input.fullName.trim(),
     email: input.email?.trim() ?? '',
     phone: input.phone?.trim() ?? '',
     branch: input.branch?.trim() ?? '',
-    batch: input.batch?.trim() ?? '',
+    batch: academic.batch,
+    academic_batch: academic.academicBatch || null,
+    admission_year: academic.admissionYear,
+    graduation_year: academic.graduationYear,
+    section: input.section?.trim() ?? '',
+    address: input.address?.trim() ?? '',
+    certifications_summary: input.certificationsSummary?.trim() ?? '',
+    internship_summary: input.internshipSummary?.trim() ?? '',
     date_of_birth: input.dateOfBirth ?? null,
     cgpa: input.cgpa ?? null,
     active_backlogs: input.activeBacklogs ?? 0,
-    graduation_year: input.graduationYear ?? null,
     placement_status: input.placementStatus ?? 'NOT_STARTED',
     linkedin_url: input.linkedinUrl ?? '',
     github_url: input.githubUrl ?? '',
@@ -109,11 +141,30 @@ function toUpdate(input: UpdateStudentInput): StudentProfileUpdate {
   if (input.email !== undefined) update.email = input.email.trim()
   if (input.phone !== undefined) update.phone = input.phone.trim()
   if (input.branch !== undefined) update.branch = input.branch.trim()
-  if (input.batch !== undefined) update.batch = input.batch.trim()
+  if (input.section !== undefined) update.section = input.section.trim()
+  if (input.address !== undefined) update.address = input.address.trim()
+  if (input.certificationsSummary !== undefined) update.certifications_summary = input.certificationsSummary.trim()
+  if (input.internshipSummary !== undefined) update.internship_summary = input.internshipSummary.trim()
+  if (
+    input.batch !== undefined
+    || input.academicBatch !== undefined
+    || input.admissionYear !== undefined
+    || input.graduationYear !== undefined
+  ) {
+    const academic = deriveAcademicBatchFields({
+      academicBatch: input.academicBatch,
+      batch: input.batch,
+      admissionYear: input.admissionYear,
+      graduationYear: input.graduationYear,
+    })
+    update.batch = academic.batch
+    update.academic_batch = academic.academicBatch || null
+    update.admission_year = academic.admissionYear
+    update.graduation_year = academic.graduationYear
+  }
   if (input.dateOfBirth !== undefined) update.date_of_birth = input.dateOfBirth
   if (input.cgpa !== undefined) update.cgpa = input.cgpa
   if (input.activeBacklogs !== undefined) update.active_backlogs = input.activeBacklogs
-  if (input.graduationYear !== undefined) update.graduation_year = input.graduationYear
   if (input.placementStatus !== undefined) update.placement_status = input.placementStatus
   if (input.linkedinUrl !== undefined) update.linkedin_url = input.linkedinUrl
   if (input.githubUrl !== undefined) update.github_url = input.githubUrl
@@ -137,10 +188,18 @@ export async function listStudents(filters: StudentListFilters = {}): Promise<Pa
     .order('updated_at', { ascending: false })
 
   if (filters.branch) query = query.eq('branch', filters.branch)
-  if (filters.batch) query = query.eq('batch', filters.batch)
+  const batchValue = filters.academicBatch || filters.batch
+  if (batchValue) {
+    query = query.or(`academic_batch.eq.${batchValue},batch.eq.${batchValue}`)
+  }
+  if (filters.section) query = query.eq('section', filters.section)
   if (filters.placementStatus) query = query.eq('placement_status', filters.placementStatus)
   if (filters.readinessStatus) query = query.eq('readiness_status', filters.readinessStatus)
   if (filters.isPlacementEligible !== undefined) query = query.eq('is_placement_eligible', filters.isPlacementEligible)
+  if (filters.communicationPending) query = query.is('communication_score', null)
+  if (filters.aptitudePending) query = query.is('aptitude_score', null)
+  if (filters.verbalPending) query = query.is('verbal_score', null)
+  if (filters.studentIds?.length) query = query.in('id', filters.studentIds)
   if (filters.q?.trim()) {
     const term = `%${filters.q.trim()}%`
     query = query.or(`full_name.ilike.${term},roll_number.ilike.${term},email.ilike.${term}`)
@@ -148,9 +207,40 @@ export async function listStudents(filters: StudentListFilters = {}): Promise<Pa
 
   const { data, error, count } = await query.range(from, to)
   if (error) throw error
+
+  let rows = data ?? []
+
+  // Post-filter resume / coding flags (keeps query simple and compatible)
+  if (filters.resumeMissing || filters.resumePendingApproval || filters.codingConnected || filters.codingMissing) {
+    const ids = rows.map((r) => r.id)
+    const resumeMap = new Map<string, { review_status: string }>()
+    if (ids.length && (filters.resumeMissing || filters.resumePendingApproval)) {
+      const { data: resumes } = await client
+        .from('student_resumes')
+        .select('student_profile_id, review_status')
+        .eq('is_active', true)
+        .in('student_profile_id', ids)
+      for (const resume of resumes ?? []) {
+        resumeMap.set(resume.student_profile_id, { review_status: resume.review_status })
+      }
+    }
+    rows = rows.filter((row) => {
+      if (filters.resumeMissing && resumeMap.has(row.id)) return false
+      if (filters.resumePendingApproval) {
+        const resume = resumeMap.get(row.id)
+        if (!resume || resume.review_status !== 'pending') return false
+      }
+      const handles = (row.platform_handles ?? {}) as Record<string, unknown>
+      const hasCoding = Boolean(row.github_url?.trim()) || Object.values(handles).some((v) => String(v ?? '').trim())
+      if (filters.codingConnected && !hasCoding) return false
+      if (filters.codingMissing && hasCoding) return false
+      return true
+    })
+  }
+
   const total = count ?? 0
   return {
-    data: data ?? [],
+    data: rows,
     pagination: {
       page,
       limit,
@@ -299,7 +389,10 @@ export async function bulkAssignStudents(assignments: BulkAssignInput[]): Promis
       await updateStudent(assignment.studentId, {
         branch: assignment.branch.trim(),
         batch: assignment.batch.trim(),
+        academicBatch: assignment.academicBatch ?? assignment.batch.trim(),
+        admissionYear: assignment.admissionYear,
         graduationYear: assignment.graduationYear ?? (Number(assignment.batch) || null),
+        section: assignment.section,
       })
       updated += 1
     } catch (error) {
@@ -311,7 +404,7 @@ export async function bulkAssignStudents(assignments: BulkAssignInput[]): Promis
     await logPlacementAudit({
       action: 'student.bulk_assign',
       entityType: 'student_profile',
-      description: `Assigned branch/year for ${updated} students`,
+      description: `Assigned branch/academic batch for ${updated} students`,
       metadata: { updated, errorCount: errors.length },
     })
   }

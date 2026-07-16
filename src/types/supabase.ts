@@ -133,6 +133,12 @@ export interface Database {
           phone: string
           branch: string
           batch: string
+          admission_year: number | null
+          academic_batch: string | null
+          section: string
+          address: string
+          certifications_summary: string
+          internship_summary: string
           date_of_birth: string | null
           cgpa: number | null
           active_backlogs: number
@@ -177,6 +183,12 @@ export interface Database {
           phone?: string
           branch?: string
           batch?: string
+          admission_year?: number | null
+          academic_batch?: string | null
+          section?: string
+          address?: string
+          certifications_summary?: string
+          internship_summary?: string
           date_of_birth?: string | null
           cgpa?: number | null
           active_backlogs?: number
@@ -821,6 +833,66 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['resume_book_student_snapshots']['Insert']>
         Relationships: []
       }
+      student_update_campaigns: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          status: string
+          filters: Json
+          allowlisted_fields: Json
+          expires_at: string | null
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string
+          status?: string
+          filters?: Json
+          allowlisted_fields?: Json
+          expires_at?: string | null
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['student_update_campaigns']['Insert']>
+        Relationships: []
+      }
+      student_update_tokens: {
+        Row: {
+          id: string
+          campaign_id: string
+          student_profile_id: string
+          token: string
+          is_active: boolean
+          opened_at: string | null
+          submitted_at: string | null
+          last_activity_at: string | null
+          expires_at: string
+          revoked_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          campaign_id: string
+          student_profile_id: string
+          token: string
+          is_active?: boolean
+          opened_at?: string | null
+          submitted_at?: string | null
+          last_activity_at?: string | null
+          expires_at: string
+          revoked_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['student_update_tokens']['Insert']>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: {
@@ -830,6 +902,18 @@ export interface Database {
         Returns: Json
       }
       get_public_student_performance: { Args: { p_token: string }; Returns: Json }
+      get_public_student_update_form: { Args: { p_token: string }; Returns: Json }
+      submit_public_student_update: { Args: { p_token: string; p_payload: Json }; Returns: Json }
+      register_public_campaign_resume: {
+        Args: {
+          p_token: string
+          p_file_name: string
+          p_storage_path: string
+          p_mime_type: string
+          p_file_size: number
+        }
+        Returns: Json
+      }
     }
     Enums: {
       placement_role: PlacementRole

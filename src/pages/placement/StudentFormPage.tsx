@@ -205,7 +205,7 @@ export function StudentFormPage() {
                 <Input className="mt-1 border-border bg-card" value={form.branch} onChange={(e) => set('branch', e.target.value)} />
               </label>
               <label className="text-sm">
-                <span className="text-muted-foreground">Batch / year</span>
+                <span className="text-muted-foreground">Academic Batch</span>
                 <Input className="mt-1 border-border bg-card" value={form.batch} onChange={(e) => set('batch', e.target.value)} />
               </label>
               <label className="text-sm">

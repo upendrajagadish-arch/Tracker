@@ -46,8 +46,18 @@ const HEADER_ALIASES: Record<string, string> = {
   department: 'branch',
   batch: 'batch',
   year: 'batch',
+  academic_batch: 'academic_batch',
+  academicbatch: 'academic_batch',
+  admission_year: 'admission_year',
+  admissionyear: 'admission_year',
   graduation_year: 'graduation_year',
   graduationyear: 'graduation_year',
+  section: 'section',
+  address: 'address',
+  certifications_summary: 'certifications_summary',
+  certifications: 'certifications_summary',
+  internship_summary: 'internship_summary',
+  internship: 'internship_summary',
   date_of_birth: 'date_of_birth',
   dob: 'date_of_birth',
   birth_date: 'date_of_birth',
@@ -172,11 +182,17 @@ function recordToStudentInput(raw: Record<string, string>): CreateStudentInput |
     email: raw.email,
     phone: raw.phone,
     branch: raw.branch,
-    batch: raw.batch,
+    batch: raw.academic_batch || raw.batch,
+    academicBatch: raw.academic_batch || raw.batch,
+    admissionYear: raw.admission_year ? Number(raw.admission_year) : null,
+    graduationYear: graduationRaw ? Number(graduationRaw) : null,
+    section: raw.section,
+    address: raw.address,
+    certificationsSummary: raw.certifications_summary,
+    internshipSummary: raw.internship_summary,
     dateOfBirth: dobRaw ? parseDateOfBirth(dobRaw) : null,
     cgpa: cgpaRaw ? Number(cgpaRaw) : null,
     activeBacklogs: backlogsRaw ? Number(backlogsRaw) : 0,
-    graduationYear: graduationRaw ? Number(graduationRaw) : null,
     placementStatus: raw.placement_status,
     linkedinUrl: raw.linkedin_url,
     githubUrl: raw.github_url,
@@ -208,8 +224,8 @@ function validateRow(raw: Record<string, string>, mode: StudentImportMode): stri
     else if (!EMAIL_RE.test(email)) errors.push('Email format is invalid.')
     if (!phone) errors.push('Mobile number is required.')
     else if (!PHONE_RE.test(phone)) errors.push('Mobile number format is invalid.')
-    if (!branch) errors.push('Branch is required.')
-    if (!batch) errors.push('Year / batch is required.')
+    if (!branch) errors.push('Branch / department is required.')
+    if (!batch) errors.push('Academic batch is required.')
     if (!dob) errors.push('Date of birth is required.')
     else if (!parseDateOfBirth(dob)) errors.push('Date of birth format is invalid.')
   } else {

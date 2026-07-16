@@ -16,6 +16,7 @@ import { AccountPage } from '@/pages/AccountPage'
 import { PublicProfilePage } from '@/pages/PublicProfilePage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PublicStudentPerformancePage } from '@/pages/public/PublicStudentPerformancePage'
+import { StudentUpdatePortalPage } from '@/pages/student/StudentUpdatePortalPage'
 import { createPlacementRoutes } from '@/router/placementRoutes'
 
 const rootRoute = createRootRoute({
@@ -127,6 +128,12 @@ export const publicStudentPerformanceRoute = createRoute({
   component: PublicStudentPerformancePage,
 })
 
+export const studentUpdatePortalRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/student/update/$token',
+  component: StudentUpdatePortalPage,
+})
+
 export const publicProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/$profileUsername',
@@ -149,6 +156,7 @@ const routeTree = rootRoute.addChildren([
   profileRoute,
   ...createPlacementRoutes(rootRoute),
   publicStudentPerformanceRoute,
+  studentUpdatePortalRoute,
   publicProfileRoute,
 ])
 

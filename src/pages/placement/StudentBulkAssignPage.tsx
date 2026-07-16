@@ -153,7 +153,7 @@ export function StudentBulkAssignPage() {
             <PlacementField label="Branch for selected">
               <Input placeholder="e.g. CSE" value={bulkBranch} onChange={(e) => setBulkBranch(e.target.value)} className="border-border bg-card" />
             </PlacementField>
-            <PlacementField label="Year / batch for selected">
+            <PlacementField label="Academic Batch for selected">
               <Input placeholder="e.g. 2026" value={bulkBatch} onChange={(e) => setBulkBatch(e.target.value)} className="border-border bg-card" />
             </PlacementField>
             <div className="flex items-end gap-2 sm:col-span-2">

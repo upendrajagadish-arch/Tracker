@@ -181,8 +181,8 @@ export function StudentsPage() {
             <PlacementField label="Branch">
               <Input placeholder="e.g. CSE" value={draft.branch} onChange={(e) => setDraft((d) => ({ ...d, branch: e.target.value }))} className="border-border bg-card" />
             </PlacementField>
-            <PlacementField label="Year / batch">
-              <Input placeholder="e.g. 2026" value={draft.batch} onChange={(e) => setDraft((d) => ({ ...d, batch: e.target.value }))} className="border-border bg-card" />
+            <PlacementField label="Academic Batch">
+              <Input placeholder="e.g. 2023-2027" value={draft.batch} onChange={(e) => setDraft((d) => ({ ...d, batch: e.target.value }))} className="border-border bg-card" />
             </PlacementField>
             <PlacementField label="Placement status">
               <PlacementSelect value={draft.placementStatus} onChange={(value) => setDraft((d) => ({ ...d, placementStatus: value }))}>
@@ -236,7 +236,7 @@ export function StudentsPage() {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Branch</TableHead>
-                    <TableHead>Year</TableHead>
+                    <TableHead>Academic Batch</TableHead>
                     <TableHead>CGPA</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Readiness</TableHead>
@@ -257,7 +257,7 @@ export function StudentsPage() {
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{student.email || '—'}</TableCell>
                       <TableCell>{student.branch || '—'}</TableCell>
-                      <TableCell>{student.batch || '—'}</TableCell>
+                      <TableCell>{student.academic_batch || student.batch || '—'}</TableCell>
                       <TableCell>{student.cgpa ?? '—'}</TableCell>
                       <TableCell><PlacementStatusBadge status={student.placement_status} /></TableCell>
                       <TableCell>

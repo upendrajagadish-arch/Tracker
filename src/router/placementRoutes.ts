@@ -31,6 +31,9 @@ import { CodeNowScoresPage } from '@/pages/placement/CodeNowScoresPage'
 import { CodeNowImportPage } from '@/pages/placement/CodeNowImportPage'
 import { RemovedPlacementRedirectPage } from '@/pages/placement/RemovedPlacementRedirectPage'
 import { PublicResumeBookPage } from '@/pages/public/PublicResumeBookPage'
+import { StudentUpdateCampaignsPage } from '@/pages/placement/StudentUpdateCampaignsPage'
+import { StudentUpdateCampaignCreatePage } from '@/pages/placement/StudentUpdateCampaignCreatePage'
+import { StudentUpdateCampaignDetailPage } from '@/pages/placement/StudentUpdateCampaignDetailPage'
 
 const REMOVED_PLACEMENT_PATHS = [
   'companies',
@@ -72,6 +75,21 @@ function createRolePlacementRoutes(parent: AnyRoute, prefix: 'admin' | 'tpo' | '
       getParentRoute: () => parent,
       path: `${prefix}/placement/students`,
       component: StudentsPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/student-update-campaigns`,
+      component: StudentUpdateCampaignsPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/student-update-campaigns/new`,
+      component: StudentUpdateCampaignCreatePage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/student-update-campaigns/$id`,
+      component: StudentUpdateCampaignDetailPage,
     }),
     createRoute({
       getParentRoute: () => parent,

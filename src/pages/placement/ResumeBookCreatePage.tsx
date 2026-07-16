@@ -143,7 +143,7 @@ export function ResumeBookCreatePage() {
                   </select>
                 </label>
                 <label className="text-sm">
-                  <span className="text-muted-foreground">Batch / year</span>
+                  <span className="text-muted-foreground">Academic Batch</span>
                   <select
                     className="mt-1 flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm"
                     value={batch}

@@ -60,6 +60,10 @@ export function getPlacementNavLinks(role: PlacementRole | null | undefined): Pl
     })
   }
 
+  if (hasPermission(role, 'campaigns:view') || role === 'admin' || role === 'tpo') {
+    links.push({ to: `${base}/student-update-campaigns`, label: 'Student Update Campaigns' })
+  }
+
   if (role === 'admin' || role === 'tpo') {
     links.push({ to: `${base}/resumes`, label: 'Resumes' })
   }
