@@ -56,25 +56,37 @@ export function MarketPage() {
       <div className="relative flex flex-1 flex-col overflow-x-hidden font-sans text-foreground antialiased">
 
       <nav className="sticky top-3 z-40 mx-4 mt-4 rounded-card border border-soft bg-card sm:top-4 sm:mx-6 md:top-5 md:mx-8">
-        <div className="flex items-center justify-end gap-1 px-4 py-3">
+        <div className="flex items-center justify-between gap-3 px-4 py-3">
           <Link
-            to="/app"
-            className="rounded-button px-3 py-2 text-[14px] font-semibold text-secondary transition-colors hover:text-foreground"
+            to="/"
+            aria-label={`${BRAND_NAME} home`}
+            className="group min-w-0 shrink"
           >
-            Dashboard
+            <span className="font-heading text-[18px] font-bold tracking-tight text-foreground transition-colors group-hover:text-binance">
+              {BRAND_NAME}
+            </span>
           </Link>
-          <Link
-            to="/login"
-            className="rounded-button px-3 py-2 text-[14px] font-semibold text-secondary transition-colors hover:text-foreground"
-          >
-            Login
-          </Link>
-          <Button size="sm" asChild>
-            <Link to="/app">
-              Launch
-              <ArrowRight className="size-3.5" strokeWidth={2} />
+
+          <div className="flex shrink-0 items-center gap-1">
+            <Link
+              to="/app"
+              className="rounded-button px-3 py-2 text-[14px] font-semibold text-secondary transition-colors hover:text-foreground"
+            >
+              Dashboard
             </Link>
-          </Button>
+            <Link
+              to="/login"
+              className="rounded-button px-3 py-2 text-[14px] font-semibold text-secondary transition-colors hover:text-foreground"
+            >
+              Login
+            </Link>
+            <Button size="sm" asChild>
+              <Link to="/app">
+                Launch
+                <ArrowRight className="size-3.5" strokeWidth={2} />
+              </Link>
+            </Button>
+          </div>
         </div>
       </nav>
 

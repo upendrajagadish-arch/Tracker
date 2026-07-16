@@ -14,8 +14,8 @@ import { isStaffPlacementRole } from '@/lib/placementStaff'
 import { isAllowedStaffLogin } from '@/lib/placementStaffLogins'
 import { requireSupabase } from '@/lib/supabase'
 import { ALL_PLATFORMS } from '@/api/unifiedClient'
-import { CollegeLogo } from '@/components/CollegeBrand'
-import { BRAND_NAME, COLLEGE_NAME, TNP_CELL } from '@/lib/brand'
+import { CollegeBrandMark } from '@/components/CollegeBrand'
+import { BRAND_NAME } from '@/lib/brand'
 
 const PLATFORM_NAMES: Record<string, string> = {
   github: 'GitHub',
@@ -119,15 +119,9 @@ export function LoginPage() {
             className="overflow-hidden rounded-card border border-soft bg-card"
           >
             <div className="border-b border-soft px-6 py-4 md:px-8">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-binance">
-                    {TNP_CELL}
-                  </p>
-                  <p className="mt-1 text-[13px] font-semibold text-foreground">{COLLEGE_NAME}</p>
-                  <p className="mt-0.5 text-[12px] text-muted">{BRAND_NAME}</p>
-                </div>
-                <CollegeLogo height={40} linkToHome={false} />
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <CollegeBrandMark size="md" linkToHome={false} />
+                <p className="text-[12px] font-heading font-semibold text-muted">{BRAND_NAME}</p>
               </div>
             </div>
 

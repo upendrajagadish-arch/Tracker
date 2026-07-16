@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
-import { CollegeLogo } from '@/components/CollegeBrand'
-import { TNP_CELL } from '@/lib/brand'
+import { CollegeBrandMark } from '@/components/CollegeBrand'
 
 interface AppFrameProps {
   children: ReactNode
@@ -10,7 +9,7 @@ interface AppFrameProps {
 
 /**
  * Global page outline — every route sits inside a bordered workspace
- * with college mark + Training & Placement Cell at the top-left.
+ * with the shared college brand lockup (logo + T&P) top-left.
  */
 export function AppFrame({ children, className }: AppFrameProps) {
   return (
@@ -21,13 +20,8 @@ export function AppFrame({ children, className }: AppFrameProps) {
           className,
         )}
       >
-        <div className="flex shrink-0 items-center gap-3 border-b border-soft/70 bg-card/40 px-3 py-2 sm:gap-4 sm:px-4">
-          <CollegeLogo height={36} />
-          <div className="min-w-0">
-            <p className="truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-binance sm:text-[12px]">
-              {TNP_CELL}
-            </p>
-          </div>
+        <div className="flex shrink-0 items-center border-b border-soft/70 bg-card/40 px-3 py-2.5 sm:px-4 sm:py-3">
+          <CollegeBrandMark size="md" />
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
