@@ -68,6 +68,7 @@ export function AppHeader({
           >
             {BRAND_NAME}
           </Link>
+          {/* College logo lives in AppFrame top-right chrome on every page. */}
           <div className="ml-auto flex flex-wrap items-center gap-1">
             <Button variant="ghost" size="sm" asChild>
               <Link to={backTo}>

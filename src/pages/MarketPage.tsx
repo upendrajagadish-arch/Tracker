@@ -12,9 +12,8 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PlatformIcon } from '@/components/PlatformIcon'
-import { BRAND_NAME, BRAND_SLUG } from '@/lib/brand'
+import { BRAND_NAME } from '@/lib/brand'
 
-type TabType = 'npx' | 'curl' | 'api.json'
 type DemoHeatmapCell = { type: 'github' | 'leetcode' | 'codechef' | 'empty'; intensity: number }
 
 const heatmapCells: DemoHeatmapCell[] = []
@@ -28,7 +27,6 @@ for (let index = 0; index < 98; index += 1) {
 }
 
 export function MarketPage() {
-  const [activeTab, setActiveTab] = useState<TabType>('npx')
   const [githubUser, setGithubUser] = useState('')
   const [leetcodeUser, setLeetcodeUser] = useState('')
   const [codeforcesUser, setCodeforcesUser] = useState('tourist')
@@ -58,45 +56,37 @@ export function MarketPage() {
       <div className="relative flex flex-1 flex-col overflow-x-hidden font-sans text-foreground antialiased">
 
       <nav className="sticky top-3 z-40 mx-4 mt-4 rounded-card border border-soft bg-card sm:top-4 sm:mx-6 md:top-5 md:mx-8">
-        <div className="flex items-center justify-between px-4 py-3">
-          <Link to="/" aria-label={`${BRAND_NAME} home`} className="group flex items-center gap-2">
-            <span className="font-heading text-[18px] font-bold tracking-tight text-foreground transition-colors group-hover:text-binance">
-              {BRAND_NAME}
-            </span>
+        <div className="flex items-center justify-end gap-1 px-4 py-3">
+          <Link
+            to="/app"
+            className="rounded-button px-3 py-2 text-[14px] font-semibold text-secondary transition-colors hover:text-foreground"
+          >
+            Dashboard
           </Link>
-
-          <div className="flex items-center gap-1">
-            <Link
-              to="/app"
-              className="rounded-button px-3 py-2 text-[14px] font-semibold text-secondary transition-colors hover:text-foreground"
-            >
-              Dashboard
+          <Link
+            to="/login"
+            className="rounded-button px-3 py-2 text-[14px] font-semibold text-secondary transition-colors hover:text-foreground"
+          >
+            Login
+          </Link>
+          <Button size="sm" asChild>
+            <Link to="/app">
+              Launch
+              <ArrowRight className="size-3.5" strokeWidth={2} />
             </Link>
-            <Link
-              to="/login"
-              className="rounded-button px-3 py-2 text-[14px] font-semibold text-secondary transition-colors hover:text-foreground"
-            >
-              Login
-            </Link>
-            <Button size="sm" asChild>
-              <Link to="/app">
-                Launch
-                <ArrowRight className="size-3.5" strokeWidth={2} />
-              </Link>
-            </Button>
-          </div>
+          </Button>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="px-4 py-16 md:py-24 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative">
-        {/* Left Col - Copy & Pitch */}
-        <div className="lg:col-span-7 flex flex-col items-start text-left space-y-6 z-10">
+      <section className="px-4 py-16 md:py-24 max-w-6xl mx-auto relative">
+        {/* Hero copy */}
+        <div className="flex max-w-3xl flex-col items-start space-y-6 text-left z-10">
           <Badge variant="outline" className="rise-in" style={{ animationDelay: '0.05s' }}>
             Unified developer profiler
           </Badge>
 
-          <h1 className="rise-in font-heading text-[48px] font-bold leading-[1.05] tracking-tight text-foreground md:text-[64px]" style={{ animationDelay: '0.12s' }}>
+          <h1 className="rise-in font-heading text-[40px] font-bold leading-[1.05] tracking-tight text-foreground md:text-[56px]" style={{ animationDelay: '0.12s' }}>
             Every footprint.<br />
             <span className="text-secondary">One single</span><br />
             <span className="text-binance">dashboard.</span>
@@ -146,100 +136,6 @@ export function MarketPage() {
                 Coding platform
               </Link>
             </Button>
-          </div>
-        </div>
-
-        {/* Right Col - Simulated Terminal Window */}
-        <div className="rise-in lg:col-span-5 w-full z-10" style={{ animationDelay: '0.15s' }}>
-          <div className="term-window scanlines shadow-2xl">
-            {/* Terminal Header */}
-            <div className="term-bar justify-between">
-              <div className="flex items-center gap-1.5">
-                <span className="term-dot" style={{ background: 'var(--term-red)' }} />
-                <span className="term-dot" style={{ background: 'var(--term-amber)' }} />
-                <span className="term-dot" style={{ background: 'var(--term-green)' }} />
-              </div>
-              <span className="text-[10px] font-mono text-muted-foreground">sh — npx {BRAND_SLUG}</span>
-              <div className="w-8" />
-            </div>
-
-            {/* Terminal Tabs */}
-            <div className="flex border-b border-border bg-secondary/20">
-              {(['npx', 'curl', 'api.json'] as TabType[]).map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 text-[11px] font-mono border-r border-border transition-colors ${
-                    activeTab === tab
-                      ? 'bg-card text-primary border-t-2 border-t-primary'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-card/30'
-                  }`}
-                >
-                  {tab === 'api.json' ? 'api.json' : tab === 'curl' ? 'curl dev.json' : 'npx output'}
-                </button>
-              ))}
-            </div>
-
-            {/* Terminal Content */}
-            <div className="p-4 font-mono text-[11px] leading-relaxed text-left min-h-[220px] bg-black/40 overflow-y-auto">
-              {activeTab === 'npx' && (
-                <div className="space-y-1 fade-in">
-                  <p className="text-muted-foreground"><span className="text-[var(--term-green)]">$</span> npx {BRAND_SLUG} --profile=alex_dev</p>
-                  <p className="text-[var(--term-amber)]">⚡ Initializing aggregate index...</p>
-                  <p className="text-[var(--term-green)]">✔ GitHub loaded (142 repos, 2,410 commits)</p>
-                  <p className="text-[var(--term-green)]">✔ LeetCode loaded (480 solved, 2,150 rating)</p>
-                  <p className="text-[var(--term-green)]">✔ Codeforces loaded (Specialist @ 1580)</p>
-                  <p className="text-muted-foreground">--------------------------------------</p>
-                  <p className="text-primary font-bold">{BRAND_NAME} profile resolved in 42ms:</p>
-                  <div className="pl-2 border-l border-primary/20 space-y-0.5 text-muted-foreground">
-                    <p>Total Solved DSA  : <span className="text-foreground font-bold">792 Problems</span></p>
-                    <p>Contest Rating    : <span className="text-foreground font-bold">2150 (Top 2.5%)</span></p>
-                    <p>Annual Activity   : <span className="text-foreground font-bold">2,410 contribution points</span></p>
-                    <p>Rank Tier         : <span className="text-primary font-bold">Elite Developer</span></p>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'curl' && (
-                <div className="space-y-1 fade-in text-muted-foreground">
-                  <p>$ curl -s https://api.student-performance.link/v1/alex_dev</p>
-                  <p className="text-primary">{`{`}</p>
-                  <p className="pl-4">"status": "success",</p>
-                  <p className="pl-4">"latency": "42ms",</p>
-                  <p className="pl-4">"profile": {`{`}</p>
-                  <p className="pl-8">"developer": "alex_dev",</p>
-                  <p className="pl-8">"rank": 0.042,</p>
-                  <p className="pl-8">"active_platforms": ["github", "leetcode", "codeforces"]</p>
-                  <p className="pl-4">{`}`}</p>
-                  <p className="text-primary">{`}`}</p>
-                </div>
-              )}
-
-              {activeTab === 'api.json' && (
-                <pre className="text-muted-foreground whitespace-pre-wrap fade-in">
-{`{
-  "github": {
-    "username": "alex_dev",
-    "commits": 2410,
-    "stars": 820
-  },
-  "leetcode": {
-    "username": "alex_dev",
-    "solved": 480,
-    "ranking": "Knight @ 2150"
-  },
-  "codeforces": {
-    "username": "alex_cf",
-    "rating": 1580,
-    "rank": "specialist"
-  }
-}`}
-                </pre>
-              )}
-
-              {/* Blinking prompt cursor */}
-              <p className="caret mt-1 text-[var(--term-green)]" aria-hidden>$</p>
-            </div>
           </div>
         </div>
       </section>
@@ -548,14 +444,11 @@ export function MarketPage() {
         </div>
       </section>
 
-      {/* Terminal Footer */}
-      <footer className="border-t border-border px-4 py-8 bg-black/60 font-mono text-[10px] text-muted-foreground">
-        <div className="max-w-6xl mx-auto flex items-center justify-center">
-          <div className="flex items-center gap-2">
-            <span className="text-[var(--term-green)]">$</span>
-            <span>&copy; {new Date().getFullYear()} {BRAND_NAME}.</span>
-            <span>all stats compiled dynamically<span className="caret" /></span>
-          </div>
+      <footer className="border-t border-border px-4 py-6 bg-black/60">
+        <div className="mx-auto flex max-w-6xl items-center justify-center text-center">
+          <p className="font-mono text-[10px] text-muted-foreground">
+            &copy; {new Date().getFullYear()} {BRAND_NAME}. All stats compiled dynamically.
+          </p>
         </div>
       </footer>
     </div>
