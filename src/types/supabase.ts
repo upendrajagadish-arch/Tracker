@@ -903,6 +903,7 @@ export interface Database {
       }
       get_public_student_performance: { Args: { p_token: string }; Returns: Json }
       get_public_student_update_form: { Args: { p_token: string }; Returns: Json }
+      resolve_public_campaign_student_token: { Args: { p_campaign_id: string; p_roll_number: string }; Returns: string | null }
       submit_public_student_update: { Args: { p_token: string; p_payload: Json }; Returns: Json }
       register_public_campaign_resume: {
         Args: {

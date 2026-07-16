@@ -134,6 +134,12 @@ export const studentUpdatePortalRoute = createRoute({
   component: StudentUpdatePortalPage,
 })
 
+export const studentUpdateCampaignPortalRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/student/update/campaign/$campaignId',
+  component: StudentUpdatePortalPage,
+})
+
 export const publicProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/$profileUsername',
@@ -157,6 +163,7 @@ const routeTree = rootRoute.addChildren([
   ...createPlacementRoutes(rootRoute),
   publicStudentPerformanceRoute,
   studentUpdatePortalRoute,
+  studentUpdateCampaignPortalRoute,
   publicProfileRoute,
 ])
 

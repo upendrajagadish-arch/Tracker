@@ -6,18 +6,27 @@ import type { Database, Json } from '@/types/supabase'
 export type StudentUpdateCampaignRow = Database['public']['Tables']['student_update_campaigns']['Row']
 export type StudentUpdateTokenRow = Database['public']['Tables']['student_update_tokens']['Row']
 
+/** Same profile fields as the staff edit-student form. */
 export const DEFAULT_CAMPAIGN_ALLOWLIST = [
+  'roll_number',
+  'full_name',
+  'email',
   'phone',
-  'address',
-  'projects_summary',
-  'certifications_summary',
-  'internship_summary',
-  'skills_summary',
-  'portfolio_url',
+  'branch',
+  'batch',
+  'academic_batch',
+  'date_of_birth',
+  'cgpa',
+  'active_backlogs',
+  'placement_status',
+  'is_placement_eligible',
   'linkedin_url',
   'github_url',
+  'portfolio_url',
+  'skills_summary',
   'career_interest',
   'platform_handles',
+  'projects_summary',
 ] as const
 
 export interface CampaignRecipientRow extends StudentUpdateTokenRow {
@@ -51,35 +60,25 @@ export interface PublicUpdateForm {
   expiresAt: string | null
   allowlistedFields: string[]
   submittedAt: string | null
-  locked: {
-    fullName: string
-    rollNumber: string
-    email: string
-    branch: string
-    section: string
-    academicBatch: string
-    admissionYear: number | null
-    graduationYear: number | null
-    placementStatus: string
-    readinessScore: number
-    readinessStatus: string
-    communicationScore: number | null
-    aptitudeScore: number | null
-    verbalScore: number | null
-    codenowScore: number | null
-  }
   editable: {
+    rollNumber: string
+    fullName: string
+    email: string
     phone: string
-    address: string
-    projectsSummary: string
-    certificationsSummary: string
-    internshipSummary: string
-    skillsSummary: string
-    portfolioUrl: string
+    branch: string
+    batch: string
+    dateOfBirth: string | null
+    cgpa: number | null
+    activeBacklogs: number
+    placementStatus: string
+    isPlacementEligible: boolean
     linkedinUrl: string
     githubUrl: string
+    portfolioUrl: string
+    skillsSummary: string
     careerInterest: string
     platformHandles: Record<string, string>
+    projectsSummary: string
   }
   resumeFileName: string | null
 }
@@ -99,6 +98,11 @@ function defaultExpiry(days = 14): string {
 export function campaignUpdateUrl(token: string): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   return `${origin}/student/update/${token}`
+}
+
+export function campaignSharedUpdateUrl(campaignId: string): string {
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  return `${origin}/student/update/campaign/${campaignId}`
 }
 
 export async function listCampaigns(): Promise<StudentUpdateCampaignRow[]> {
@@ -220,7 +224,7 @@ export async function createCampaignWithTokens(input: CreateCampaignInput): Prom
     studentIds = all
   }
 
-  if (!studentIds.length) throw new Error('No students matched the campaign filters.')
+  if (!studentIds.length) throw new Error('No active students found to create campaign links.')
 
   const { data: campaign, error } = await client
     .from('student_update_campaigns')
@@ -348,6 +352,9 @@ export async function getPublicStudentUpdateForm(token: string): Promise<PublicU
   const raw = data as Record<string, unknown>
   const locked = (raw.locked ?? {}) as Record<string, unknown>
   const editable = (raw.editable ?? {}) as Record<string, unknown>
+  // New RPC puts all fields in editable; legacy responses split locked + editable.
+  const profile = { ...locked, ...editable }
+
   return {
     campaignTitle: String(raw.campaignTitle ?? ''),
     campaignDescription: String(raw.campaignDescription ?? ''),
@@ -356,38 +363,39 @@ export async function getPublicStudentUpdateForm(token: string): Promise<PublicU
       ? (raw.allowlistedFields as string[])
       : [...DEFAULT_CAMPAIGN_ALLOWLIST],
     submittedAt: (raw.submittedAt as string | null) ?? null,
-    locked: {
-      fullName: String(locked.fullName ?? ''),
-      rollNumber: String(locked.rollNumber ?? ''),
-      email: String(locked.email ?? ''),
-      branch: String(locked.branch ?? ''),
-      section: String(locked.section ?? ''),
-      academicBatch: String(locked.academicBatch ?? ''),
-      admissionYear: (locked.admissionYear as number | null) ?? null,
-      graduationYear: (locked.graduationYear as number | null) ?? null,
-      placementStatus: String(locked.placementStatus ?? ''),
-      readinessScore: Number(locked.readinessScore ?? 0),
-      readinessStatus: String(locked.readinessStatus ?? ''),
-      communicationScore: (locked.communicationScore as number | null) ?? null,
-      aptitudeScore: (locked.aptitudeScore as number | null) ?? null,
-      verbalScore: (locked.verbalScore as number | null) ?? null,
-      codenowScore: (locked.codenowScore as number | null) ?? null,
-    },
     editable: {
-      phone: String(editable.phone ?? ''),
-      address: String(editable.address ?? ''),
-      projectsSummary: String(editable.projectsSummary ?? ''),
-      certificationsSummary: String(editable.certificationsSummary ?? ''),
-      internshipSummary: String(editable.internshipSummary ?? ''),
-      skillsSummary: String(editable.skillsSummary ?? ''),
-      portfolioUrl: String(editable.portfolioUrl ?? ''),
-      linkedinUrl: String(editable.linkedinUrl ?? ''),
-      githubUrl: String(editable.githubUrl ?? ''),
-      careerInterest: String(editable.careerInterest ?? ''),
-      platformHandles: (editable.platformHandles as Record<string, string>) ?? {},
+      rollNumber: String(profile.rollNumber ?? ''),
+      fullName: String(profile.fullName ?? ''),
+      email: String(profile.email ?? ''),
+      phone: String(profile.phone ?? ''),
+      branch: String(profile.branch ?? ''),
+      batch: String(profile.batch ?? profile.academicBatch ?? ''),
+      dateOfBirth: (profile.dateOfBirth as string | null) ?? null,
+      cgpa: profile.cgpa == null || profile.cgpa === '' ? null : Number(profile.cgpa),
+      activeBacklogs: Number(profile.activeBacklogs ?? 0),
+      placementStatus: String(profile.placementStatus ?? 'NOT_STARTED'),
+      isPlacementEligible: profile.isPlacementEligible !== false,
+      linkedinUrl: String(profile.linkedinUrl ?? ''),
+      githubUrl: String(profile.githubUrl ?? ''),
+      portfolioUrl: String(profile.portfolioUrl ?? ''),
+      skillsSummary: String(profile.skillsSummary ?? ''),
+      careerInterest: String(profile.careerInterest ?? ''),
+      platformHandles: (profile.platformHandles as Record<string, string>) ?? {},
+      projectsSummary: String(profile.projectsSummary ?? ''),
     },
     resumeFileName: (raw.resumeFileName as string | null) ?? null,
   }
+}
+
+export async function resolveCampaignStudentToken(campaignId: string, rollNumber: string): Promise<string | null> {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('resolve_public_campaign_student_token', {
+    p_campaign_id: campaignId,
+    p_roll_number: rollNumber.trim(),
+  })
+  if (error) throw error
+  if (!data) return null
+  return String(data)
 }
 
 export async function submitPublicStudentUpdate(

@@ -20,7 +20,7 @@ import {
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
 import {
-  campaignUpdateUrl,
+  campaignSharedUpdateUrl,
   disableCampaignToken,
   extendCampaignToken,
   getCampaign,
@@ -69,9 +69,10 @@ export function StudentUpdateCampaignDetailPage() {
   const pending = recipients.filter((r) => !r.submitted_at && r.is_active && !r.revoked_at).length
   const expired = recipients.filter((r) => r.revoked_at || !r.is_active || new Date(r.expires_at).getTime() <= Date.now()).length
 
-  const copyLink = async (token: string) => {
-    await navigator.clipboard.writeText(campaignUpdateUrl(token))
-    setSuccess('Link copied')
+  const copySharedLink = async () => {
+    if (!campaign?.id) return
+    await navigator.clipboard.writeText(campaignSharedUpdateUrl(campaign.id))
+    setSuccess('Shared campaign link copied')
     setTimeout(() => setSuccess(null), 2000)
   }
 
@@ -95,7 +96,7 @@ export function StudentUpdateCampaignDetailPage() {
     <PlacementShell title="Campaign detail">
       <PlacementPageHeader
         title={campaign?.title || 'Campaign'}
-        description={campaign?.description || 'Secure student profile update campaign'}
+        description={campaign?.description || 'Share edit-profile links with students. Saves appear in the placement app automatically.'}
         actions={
           base ? (
             <Button asChild variant="outline" size="sm">
@@ -107,6 +108,12 @@ export function StudentUpdateCampaignDetailPage() {
 
       <PlacementPageStack>
         <PlacementAlerts error={error} success={success} />
+
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => void copySharedLink()} disabled={!campaign?.id}>
+            Copy one shared student link
+          </Button>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <PlacementStatCard label="Recipients" value={recipients.length} />
@@ -159,9 +166,6 @@ export function StudentUpdateCampaignDetailPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          <Button size="sm" variant="outline" onClick={() => void copyLink(row.token)}>
-                            Copy link
-                          </Button>
                           {canManage ? (
                             <>
                               <Button

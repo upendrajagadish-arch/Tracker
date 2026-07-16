@@ -86,8 +86,8 @@ export function StudentUpdateCampaignsPage() {
           loadingLabel="Loading campaigns…"
           empty={!campaigns.length ? (
             <PlacementEmptyState
-              title="No update campaigns yet"
-              description="Create a campaign from Student Tracker filters to issue secure profile-update links."
+              title="No registration campaigns yet"
+              description="Create a campaign to generate edit-profile links for all students."
               action={
                 canManage && base ? (
                   <Button asChild size="sm">
