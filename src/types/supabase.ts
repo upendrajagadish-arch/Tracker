@@ -910,7 +910,7 @@ export interface Database {
       register_public_campaign_registration_resume: {
         Args: {
           p_campaign_id: string
-          p_roll_number: string
+          p_student_profile_id: string
           p_file_name: string
           p_storage_path: string
           p_mime_type: string

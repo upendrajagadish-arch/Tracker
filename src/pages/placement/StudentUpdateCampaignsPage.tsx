@@ -19,6 +19,7 @@ import {
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
 import {
+  deleteCampaign,
   getCampaignSummary,
   listCampaigns,
   type StudentUpdateCampaignRow,
@@ -34,6 +35,7 @@ export function StudentUpdateCampaignsPage() {
   const [summary, setSummary] = useState<Awaited<ReturnType<typeof getCampaignSummary>> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -52,6 +54,24 @@ export function StudentUpdateCampaignsPage() {
   useEffect(() => {
     void load()
   }, [load])
+
+  const handleDelete = async (campaign: StudentUpdateCampaignRow) => {
+    const ok = window.confirm(
+      `Delete "${campaign.title}"? The registration link will stop working. Registered students will remain in the application.`,
+    )
+    if (!ok) return
+
+    setDeletingId(campaign.id)
+    setError(null)
+    try {
+      await deleteCampaign(campaign.id)
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete campaign')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   return (
     <PlacementShell title="Student Update Campaigns">
@@ -107,7 +127,7 @@ export function StudentUpdateCampaignsPage() {
                     <TableHead>Status</TableHead>
                     <TableHead>Expires</TableHead>
                     <TableHead>Created</TableHead>
-                    <TableHead />
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -122,16 +142,28 @@ export function StudentUpdateCampaignsPage() {
                         {new Date(campaign.created_at).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
-                        {base ? (
-                          <Button asChild variant="outline" size="sm">
-                            <PlacementLink
-                              href={`${base}/student-update-campaigns/$id`}
-                              params={{ id: campaign.id }}
+                        <div className="flex justify-end gap-1">
+                          {base ? (
+                            <Button asChild variant="outline" size="sm">
+                              <PlacementLink
+                                href={`${base}/student-update-campaigns/$id`}
+                                params={{ id: campaign.id }}
+                              >
+                                Open
+                              </PlacementLink>
+                            </Button>
+                          ) : null}
+                          {canManage ? (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              disabled={deletingId === campaign.id}
+                              onClick={() => void handleDelete(campaign)}
                             >
-                              Open
-                            </PlacementLink>
-                          </Button>
-                        ) : null}
+                              {deletingId === campaign.id ? 'Deleting…' : 'Delete'}
+                            </Button>
+                          ) : null}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

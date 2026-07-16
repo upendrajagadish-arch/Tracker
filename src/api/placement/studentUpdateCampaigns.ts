@@ -242,6 +242,26 @@ export async function createCampaignWithTokens(input: CreateCampaignInput): Prom
   return { campaign, registrationUrl: campaignRegistrationUrl(campaign.id) }
 }
 
+export async function deleteCampaign(campaignId: string): Promise<void> {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('student_update_campaigns')
+    .delete()
+    .eq('id', campaignId)
+    .select('id, title')
+    .maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('Campaign not found or could not be deleted.')
+
+  await logPlacementAudit({
+    action: 'campaign.delete',
+    entityType: 'student_update_campaign',
+    entityId: campaignId,
+    description: `Deleted registration campaign "${data.title}"`,
+    metadata: { campaignId },
+  })
+}
+
 export async function disableCampaignToken(tokenId: string): Promise<void> {
   const client = requireSupabase()
   const { data, error } = await client
@@ -391,13 +411,12 @@ export async function submitPublicCampaignRegistration(
 
 export async function uploadPublicCampaignRegistrationResume(
   campaignId: string,
-  rollNumber: string,
+  studentProfileId: string,
   file: File,
 ): Promise<void> {
   const client = requireSupabase()
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
-  const cleanRoll = rollNumber.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '_')
-  const storagePath = `campaign-reg/${campaignId}/${cleanRoll}/${Date.now()}-${safeName}`
+  const storagePath = `campaign-reg/${campaignId}/${studentProfileId}/${Date.now()}-${safeName}`
 
   const { error: uploadError } = await client.storage.from('resumes').upload(storagePath, file, {
     contentType: file.type || 'application/pdf',
@@ -407,7 +426,7 @@ export async function uploadPublicCampaignRegistrationResume(
 
   const { data, error } = await client.rpc('register_public_campaign_registration_resume', {
     p_campaign_id: campaignId,
-    p_roll_number: rollNumber.trim(),
+    p_student_profile_id: studentProfileId,
     p_file_name: file.name,
     p_storage_path: storagePath,
     p_mime_type: file.type || 'application/pdf',

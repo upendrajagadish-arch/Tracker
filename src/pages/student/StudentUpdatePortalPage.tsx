@@ -225,12 +225,21 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
         projectsSummary: form.projectsSummary,
       })
       if (!result.ok) throw new Error(result.error || 'Registration failed')
+      if (!result.studentProfileId) throw new Error('Registration succeeded but student id was missing')
 
       if (resumeFile) {
-        await uploadPublicCampaignRegistrationResume(campaignId, form.rollNumber.trim(), resumeFile)
+        try {
+          await uploadPublicCampaignRegistrationResume(campaignId, result.studentProfileId, resumeFile)
+        } catch (resumeError) {
+          throw new Error(
+            `Your profile was registered, but resume upload failed: ${
+              resumeError instanceof Error ? resumeError.message : 'unknown error'
+            }. Please ask placement staff to upload your resume.`,
+          )
+        }
       }
 
-      setSuccess('Registration successful. Your profile has been added to the placement application.')
+      setSuccess('Registration successful. Your profile and resume (if uploaded) are now in the placement application.')
       setForm(emptyRegistrationForm)
       setResumeFile(null)
     } catch (e) {
