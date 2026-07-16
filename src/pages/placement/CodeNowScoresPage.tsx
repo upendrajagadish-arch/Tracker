@@ -9,6 +9,10 @@ import {
   PlacementStatCard,
 } from '@/components/placement/PlacementStates'
 import {
+  LuxuryBarChart,
+  LuxuryDonutChart,
+} from '@/components/placement/charts'
+import {
   PlacementAlerts,
   PlacementPageStack,
   PlacementTableCard,
@@ -111,21 +115,46 @@ export function CodeNowScoresPage() {
       <PlacementPageStack>
         <PlacementAlerts error={error} />
         {summary ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <PlacementStatCard label="CodeNow profiles" value={summary.totalProfiles} />
-            <PlacementStatCard label="Average %" value={summary.averageScore} />
-            <PlacementStatCard label="Attempted challenges" value={summary.attemptedChallenges} />
-            <PlacementStatCard
-              label="Top category"
-              value={
-                summary.topCategory
-                  ? CODENOW_CATEGORY_LABELS[summary.topCategory as CodeNowCategory] ||
-                    summary.topCategory
-                  : '—'
-              }
-            />
-            <PlacementStatCard label="Without CodeNow" value={summary.studentsWithoutCodeNow} />
-          </div>
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <PlacementStatCard label="CodeNow profiles" value={summary.totalProfiles} />
+              <PlacementStatCard label="Average %" value={summary.averageScore} />
+              <PlacementStatCard label="Attempted challenges" value={summary.attemptedChallenges} />
+              <PlacementStatCard
+                label="Top category"
+                value={
+                  summary.topCategory
+                    ? CODENOW_CATEGORY_LABELS[summary.topCategory as CodeNowCategory] ||
+                      summary.topCategory
+                    : '—'
+                }
+              />
+              <PlacementStatCard label="Without CodeNow" value={summary.studentsWithoutCodeNow} />
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <LuxuryDonutChart
+                title="Coverage"
+                subtitle="Students with vs without CodeNow profiles"
+                data={[
+                  { name: 'With CodeNow', value: summary.totalProfiles, color: '#0ECB81' },
+                  { name: 'Without CodeNow', value: summary.studentsWithoutCodeNow, color: '#F6465D' },
+                ]}
+                centerLabel="Profiles"
+                centerValue={summary.totalProfiles}
+              />
+              <LuxuryBarChart
+                title="Category attempts"
+                subtitle="Challenge attempts by CodeNow category"
+                data={(summary.categoryDistribution ?? []).map((row) => ({
+                  name:
+                    CODENOW_CATEGORY_LABELS[row.category as CodeNowCategory] || row.category,
+                  value: row.count,
+                }))}
+                layout="horizontal"
+                height={320}
+              />
+            </div>
+          </>
         ) : null}
 
         {summary?.categoryDistribution?.length ? (

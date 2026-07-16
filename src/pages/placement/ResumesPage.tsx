@@ -16,6 +16,10 @@ import {
   PlacementStatCard,
 } from '@/components/placement/PlacementStates'
 import {
+  LuxuryBarChart,
+  LuxuryDonutChart,
+} from '@/components/placement/charts'
+import {
   PlacementAlerts,
   PlacementPageBody,
   PlacementPageStack,
@@ -80,6 +84,35 @@ export function ResumesPage() {
           <PlacementStatCard label="Pending review" value={pending} />
           <PlacementStatCard label="Approved" value={approved} />
         </div>
+
+        {resumes.length ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <LuxuryDonutChart
+              title="Review pipeline"
+              subtitle="Approved vs pending resume reviews"
+              data={[
+                { name: 'Approved', value: approved, color: '#0ECB81' },
+                { name: 'Pending', value: pending, color: '#F0B90B' },
+                {
+                  name: 'Other',
+                  value: Math.max(0, resumes.length - approved - pending),
+                  color: '#3B82F6',
+                },
+              ]}
+              centerLabel="Resumes"
+              centerValue={resumes.length}
+            />
+            <LuxuryBarChart
+              title="Resume status counts"
+              subtitle="Queue composition"
+              data={[
+                { name: 'Active', value: resumes.length },
+                { name: 'Pending', value: pending },
+                { name: 'Approved', value: approved },
+              ]}
+            />
+          </div>
+        ) : null}
 
         <PlacementPageBody
           loading={loading}

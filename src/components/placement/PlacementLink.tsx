@@ -1,4 +1,4 @@
-import { Link, type LinkProps } from '@tanstack/react-router'
+import { Link } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 
 /** TanStack Router requires static route paths; cast dynamic role-prefixed placement URLs. */
@@ -15,8 +15,8 @@ export function PlacementLink({
 }) {
   return (
     <Link
-      to={href as LinkProps['to']}
-      params={params as LinkProps['params']}
+      to={href as never}
+      params={params as never}
       className={className}
     >
       {children}
@@ -24,6 +24,6 @@ export function PlacementLink({
   )
 }
 
-export function asPlacementPath(path: string): LinkProps['to'] {
-  return path as LinkProps['to']
+export function asPlacementPath(path: string) {
+  return path as never
 }

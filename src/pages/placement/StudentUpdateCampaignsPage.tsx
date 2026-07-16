@@ -13,6 +13,10 @@ import { PlacementShell, usePlacementPaths } from '@/components/placement/Placem
 import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
 import { PlacementEmptyState, PlacementStatCard } from '@/components/placement/PlacementStates'
 import {
+  LuxuryBarChart,
+  LuxuryDonutChart,
+} from '@/components/placement/charts'
+import {
   PlacementAlerts,
   PlacementPageBody,
   PlacementPageStack,
@@ -91,14 +95,42 @@ export function StudentUpdateCampaignsPage() {
         <PlacementAlerts error={error} />
 
         {summary ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-            <PlacementStatCard label="Campaigns" value={summary.campaigns} />
-            <PlacementStatCard label="Registrations" value={summary.students} />
-            <PlacementStatCard label="Opened" value={summary.opened} />
-            <PlacementStatCard label="Completed" value={summary.completed} />
-            <PlacementStatCard label="Pending" value={summary.pending} />
-            <PlacementStatCard label="Expired" value={summary.expired} />
-          </div>
+          <>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
+              <PlacementStatCard label="Campaigns" value={summary.campaigns} />
+              <PlacementStatCard label="Registrations" value={summary.students} />
+              <PlacementStatCard label="Opened" value={summary.opened} />
+              <PlacementStatCard label="Completed" value={summary.completed} />
+              <PlacementStatCard label="Pending" value={summary.pending} />
+              <PlacementStatCard label="Expired" value={summary.expired} />
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <LuxuryDonutChart
+                title="Registration funnel"
+                subtitle="Opened · Completed · Pending · Expired"
+                data={[
+                  { name: 'Opened', value: summary.opened, color: '#3B82F6' },
+                  { name: 'Completed', value: summary.completed, color: '#0ECB81' },
+                  { name: 'Pending', value: summary.pending, color: '#F0B90B' },
+                  { name: 'Expired', value: summary.expired, color: '#F6465D' },
+                ]}
+                centerLabel="Regs"
+                centerValue={summary.students}
+              />
+              <LuxuryBarChart
+                title="Campaign activity"
+                subtitle="Volume across campaign lifecycle states"
+                data={[
+                  { name: 'Campaigns', value: summary.campaigns },
+                  { name: 'Registrations', value: summary.students },
+                  { name: 'Opened', value: summary.opened },
+                  { name: 'Completed', value: summary.completed },
+                  { name: 'Pending', value: summary.pending },
+                  { name: 'Expired', value: summary.expired },
+                ]}
+              />
+            </div>
+          </>
         ) : null}
 
         <PlacementPageBody

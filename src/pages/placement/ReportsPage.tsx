@@ -1,8 +1,14 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { ReportFilters, type ReportFilterValues } from '@/components/placement/reports/ReportFilters'
 import { ReportSection } from '@/components/placement/reports/ReportSection'
 import { ReportSummaryCards } from '@/components/placement/reports/ReportSummaryCards'
+import {
+  LuxuryAreaChart,
+  LuxuryBarChart,
+  LuxuryDonutChart,
+} from '@/components/placement/charts'
+import { reportToCharts } from '@/components/placement/charts/reportCharts'
 import { PlacementShell } from '@/components/placement/PlacementShell'
 import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
 import { PlacementEmptyState } from '@/components/placement/PlacementStates'
@@ -104,11 +110,13 @@ export function ReportsPage() {
     }
   }
 
+  const charts = useMemo(() => (report ? reportToCharts(report) : null), [report])
+
   return (
     <PlacementShell title="Analytics">
       <PlacementPageHeader
         title="Analytics"
-        description="Generate placement-office reports across students, readiness, and pipeline data."
+        description="Generate luxurious graphical placement reports across students, readiness, and pipeline data."
       />
 
       <PlacementPageStack>
@@ -161,6 +169,33 @@ export function ReportsPage() {
           {report && report.rows.length ? (
             <div className="space-y-6">
               <ReportSummaryCards summary={summaryToCards(report.summary)} />
+
+              {charts ? (
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <LuxuryDonutChart
+                    title={charts.donutTitle}
+                    subtitle="Interactive distribution view"
+                    data={charts.donut}
+                    centerLabel="Items"
+                    centerValue={charts.donut.reduce((s, r) => s + Number(r.value || 0), 0)}
+                  />
+                  <LuxuryBarChart
+                    title={charts.barTitle}
+                    subtitle="Comparative breakdown"
+                    data={charts.bars}
+                    layout={charts.bars.length > 6 ? 'horizontal' : 'vertical'}
+                    height={charts.bars.length > 6 ? 340 : 300}
+                  />
+                  <LuxuryAreaChart
+                    title={charts.areaTitle}
+                    subtitle="Trend-style visualization of the same cohort"
+                    data={charts.area}
+                    className="lg:col-span-2"
+                    color="#D27918"
+                  />
+                </div>
+              ) : null}
+
               <ReportSection section={reportToSection(report)} />
             </div>
           ) : null}

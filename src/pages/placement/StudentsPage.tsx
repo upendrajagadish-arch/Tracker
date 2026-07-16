@@ -23,6 +23,10 @@ import {
   PlacementStatCard,
 } from '@/components/placement/PlacementStates'
 import {
+  LuxuryBarChart,
+  LuxuryDonutChart,
+} from '@/components/placement/charts'
+import {
   PlacementAlerts,
   PlacementField,
   PlacementFilterCard,
@@ -172,6 +176,46 @@ export function StudentsPage() {
           <PlacementStatCard label="Average CGPA" value={avgCgpa} hint="Current page" />
           <PlacementStatCard label="Incomplete profiles" value={summary?.filter((s) => s.profile_completeness < 70).length ?? '—'} hint="Below 70%" />
         </div>
+
+        {summary?.length ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <LuxuryDonutChart
+              title="Profile completeness"
+              subtitle="Complete vs incomplete profiles on this page"
+              data={[
+                {
+                  name: 'Complete (≥70%)',
+                  value: summary.filter((s) => s.profile_completeness >= 70).length,
+                  color: '#0ECB81',
+                },
+                {
+                  name: 'Incomplete (<70%)',
+                  value: summary.filter((s) => s.profile_completeness < 70).length,
+                  color: '#F6465D',
+                },
+              ]}
+              centerLabel="Page"
+              centerValue={summary.length}
+            />
+            <LuxuryBarChart
+              title="Eligibility snapshot"
+              subtitle="Eligible students vs incomplete profiles"
+              data={[
+                { name: 'Eligible', value: eligible, color: '#F0B90B' },
+                {
+                  name: 'Incomplete',
+                  value: summary.filter((s) => s.profile_completeness < 70).length,
+                  color: '#F6465D',
+                },
+                {
+                  name: 'Total page',
+                  value: summary.length,
+                  color: '#3B82F6',
+                },
+              ]}
+            />
+          </div>
+        ) : null}
 
         <PlacementFilterCard>
           <form onSubmit={applyFilters} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">

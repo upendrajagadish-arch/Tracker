@@ -29,6 +29,11 @@ import {
 import { listStudentSkills, type StudentTechSkillWithMeta } from '@/api/placement/techSkills'
 import { getLatestEvaluationForStudent, type CommunicationEvaluationRow } from '@/api/placement/communicationEvaluations'
 import {
+  classifyCommunicationBadge,
+  formatCommunicationBadge,
+  totalScoreFromPercentage,
+} from '@/lib/communicationBadge'
+import {
   getLatestAptitudeScore,
   getLatestVerbalScore,
   type AptitudeScoreRow,
@@ -331,16 +336,30 @@ export function StudentDetailPage() {
               >
                 {commEval || student.communication_score != null ? (
                   <dl>
-                    <DetailRow label="Total score">
+                    <DetailRow label="Communication Score">
                       {commEval
                         ? `${commEval.total_score}/250`
-                        : '—'}
+                        : student.communication_score != null
+                          ? `${totalScoreFromPercentage(Number(student.communication_score)) ?? '—'}/250`
+                          : '—'}
                     </DetailRow>
                     <DetailRow label="Percentage">
                       {commEval?.percentage ?? student.communication_score ?? '—'}%
                     </DetailRow>
                     <DetailRow label="Grade">
                       {commEval?.grade ?? student.communication_grade ?? '—'}
+                    </DetailRow>
+                    <DetailRow label="Badge">
+                      {formatCommunicationBadge(
+                        classifyCommunicationBadge(
+                          commEval?.total_score ??
+                            totalScoreFromPercentage(
+                              student.communication_score != null
+                                ? Number(student.communication_score)
+                                : null,
+                            ),
+                        ),
+                      )}
                     </DetailRow>
                     <DetailRow label="Section totals">
                       Proficiency {commEval?.communication_proficiency_total ?? '—'}/80 ·

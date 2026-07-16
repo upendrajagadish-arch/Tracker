@@ -10,6 +10,13 @@ import {
   type CriteriaKey,
   type EvaluationScoreInput,
 } from '@/lib/communicationEvaluation'
+import {
+  classifyCommunicationBadge,
+  communicationBadgePercent,
+  isCommunicationBadge,
+  badgeStudentsToCsv,
+  type CommunicationBadge,
+} from '@/lib/communicationBadge'
 import type { Database } from '@/types/supabase'
 
 export type CommunicationEvaluationRow = Database['public']['Tables']['communication_evaluations']['Row']
@@ -647,3 +654,210 @@ export async function exportCommunicationEvaluations(filters: CommunicationListF
   })
   return evaluationsToCsv(data)
 }
+
+export interface CommunicationDashboardFilters {
+  academicBatch?: string
+  branch?: string
+  search?: string
+}
+
+export interface CommunicationDashboardSummary {
+  goldCount: number
+  silverCount: number
+  bronzeCount: number
+  filteredTotal: number
+  goldPercent: number
+  silverPercent: number
+  bronzePercent: number
+}
+
+export interface CommunicationBadgeStudentRow {
+  studentProfileId: string
+  rollNumber: string
+  fullName: string
+  branch: string
+  academicBatch: string
+  totalScore: number
+  percentage: number
+  grade: string
+  badge: CommunicationBadge
+}
+
+type ProfileJoin = {
+  id: string
+  branch: string
+  batch: string
+  academic_batch: string | null
+  full_name: string
+  roll_number: string
+}
+
+async function loadLatestEvaluatedStudents(filters: CommunicationDashboardFilters = {}) {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('communication_evaluations')
+    .select('id, student_profile_id, roll_number, student_name, department, total_score, percentage, grade, evaluation_date')
+    .eq('is_active', true)
+    .order('evaluation_date', { ascending: false })
+    .range(0, 4999)
+  if (error) throw formatError(error)
+
+  const latest: typeof data = []
+  const seen = new Set<string>()
+  for (const row of data ?? []) {
+    if (seen.has(row.student_profile_id)) continue
+    seen.add(row.student_profile_id)
+    latest.push(row)
+  }
+
+  const ids = latest.map((r) => r.student_profile_id)
+  const profiles = new Map<string, ProfileJoin>()
+  if (ids.length) {
+    for (let i = 0; i < ids.length; i += 200) {
+      const chunk = ids.slice(i, i + 200)
+      const { data: rows, error: pErr } = await client
+        .from('student_profiles')
+        .select('id, branch, batch, academic_batch, full_name, roll_number')
+        .in('id', chunk)
+        .eq('is_active', true)
+      if (pErr) throw formatError(pErr)
+      for (const row of rows ?? []) profiles.set(row.id, row)
+    }
+  }
+
+  const academicBatch = filters.academicBatch?.trim() || ''
+  const branch = filters.branch?.trim() || ''
+  const search = filters.search?.trim().toLowerCase() || ''
+
+  const rows: CommunicationBadgeStudentRow[] = []
+  for (const evalRow of latest) {
+    const profile = profiles.get(evalRow.student_profile_id)
+    if (!profile) continue
+
+    const displayBatch = (profile.academic_batch || profile.batch || '').trim()
+    const displayBranch = (profile.branch || evalRow.department || '').trim()
+    const roll = (profile.roll_number || evalRow.roll_number || '').trim()
+    const name = (profile.full_name || evalRow.student_name || '').trim()
+
+    if (academicBatch && displayBatch !== academicBatch) continue
+    if (branch && displayBranch !== branch) continue
+    if (search) {
+      const hay = `${roll} ${name}`.toLowerCase()
+      if (!hay.includes(search)) continue
+    }
+
+    const badge = classifyCommunicationBadge(evalRow.total_score)
+    if (!badge) continue
+
+    rows.push({
+      studentProfileId: evalRow.student_profile_id,
+      rollNumber: roll,
+      fullName: name,
+      branch: displayBranch,
+      academicBatch: displayBatch,
+      totalScore: evalRow.total_score,
+      percentage: evalRow.percentage,
+      grade: evalRow.grade,
+      badge,
+    })
+  }
+
+  return rows
+}
+
+export async function getCommunicationDashboard(
+  filters: CommunicationDashboardFilters = {},
+  options: { audit?: boolean } = {},
+): Promise<CommunicationDashboardSummary> {
+  const rows = await loadLatestEvaluatedStudents(filters)
+  const goldCount = rows.filter((r) => r.badge === 'gold').length
+  const silverCount = rows.filter((r) => r.badge === 'silver').length
+  const bronzeCount = rows.filter((r) => r.badge === 'bronze').length
+  const filteredTotal = rows.length
+
+  if (options.audit !== false) {
+    await logPlacementAudit({
+      action: 'COMMUNICATION_DASHBOARD_VIEWED',
+      entityType: 'communication_dashboard',
+      description: 'Communication dashboard viewed',
+      metadata: { ...filters, filteredTotal, goldCount, silverCount, bronzeCount },
+    })
+  }
+
+  return {
+    goldCount,
+    silverCount,
+    bronzeCount,
+    filteredTotal,
+    goldPercent: communicationBadgePercent(goldCount, filteredTotal),
+    silverPercent: communicationBadgePercent(silverCount, filteredTotal),
+    bronzePercent: communicationBadgePercent(bronzeCount, filteredTotal),
+  }
+}
+
+export async function listCommunicationBadgeStudents(
+  badge: string,
+  filters: CommunicationDashboardFilters & { page?: number; limit?: number } = {},
+) {
+  if (!isCommunicationBadge(badge)) {
+    throw new Error('Invalid badge. Use gold, silver, or bronze.')
+  }
+
+  const { page, limit, from, to } = normalizePagination(filters.page, filters.limit)
+  const all = await loadLatestEvaluatedStudents(filters)
+  const filtered = all.filter((r) => r.badge === badge)
+  const data = filtered.slice(from, to + 1)
+
+  await logPlacementAudit({
+    action: 'COMMUNICATION_BADGE_LIST_VIEWED',
+    entityType: 'communication_badge',
+    entityId: badge,
+    description: `Communication ${badge} list viewed`,
+    metadata: { ...filters, total: filtered.length, page, limit },
+  })
+
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total: filtered.length,
+      pages: filtered.length ? Math.ceil(filtered.length / limit) : 0,
+    },
+  }
+}
+
+export async function exportCommunicationBadgeStudents(
+  badge: string,
+  filters: CommunicationDashboardFilters = {},
+) {
+  if (!isCommunicationBadge(badge)) {
+    throw new Error('Invalid badge. Use gold, silver, or bronze.')
+  }
+  const all = await loadLatestEvaluatedStudents(filters)
+  const data = all.filter((r) => r.badge === badge)
+  await logPlacementAudit({
+    action: 'COMMUNICATION_BADGE_EXPORT',
+    entityType: 'communication_badge',
+    entityId: badge,
+    description: `Communication ${badge} list exported`,
+    metadata: { ...filters, count: data.length },
+  })
+  return badgeStudentsToCsv(data)
+}
+
+export async function exportCommunicationDashboardStudents(
+  filters: CommunicationDashboardFilters = {},
+) {
+  const data = await loadLatestEvaluatedStudents(filters)
+  await logPlacementAudit({
+    action: 'COMMUNICATION_BADGE_EXPORT',
+    entityType: 'communication_dashboard',
+    description: 'Communication dashboard filtered list exported',
+    metadata: { ...filters, count: data.length },
+  })
+  return badgeStudentsToCsv(data)
+}
+
+export { badgeStudentsToCsv }
+

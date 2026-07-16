@@ -8,10 +8,15 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
+import { CommunicationModuleNav } from '@/components/placement/CommunicationModuleNav'
 import { PlacementLink } from '@/components/placement/PlacementLink'
 import { PlacementShell, usePlacementPaths } from '@/components/placement/PlacementShell'
 import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
 import { PlacementEmptyState, PlacementStatCard } from '@/components/placement/PlacementStates'
+import {
+  LuxuryBarChart,
+  LuxuryDonutChart,
+} from '@/components/placement/charts'
 import {
   PlacementAlerts,
   PlacementField,
@@ -25,7 +30,7 @@ import {
   listCommunicationEvaluations,
   type CommunicationEvaluationRow,
 } from '@/api/placement/communicationEvaluations'
-import { canExportReports, canManageReadiness } from '@/lib/placementNavigation'
+import { canExportReports, canManageReadiness, canViewCommunicationModule } from '@/lib/placementNavigation'
 import { useAuth } from '@/hooks/useAuth'
 
 export function CommunicationEvaluationsPage() {
@@ -33,6 +38,7 @@ export function CommunicationEvaluationsPage() {
   const { base } = usePlacementPaths()
   const canManage = canManageReadiness(placementRole)
   const canExport = canExportReports(placementRole)
+  const canView = canViewCommunicationModule(placementRole)
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -96,9 +102,9 @@ export function CommunicationEvaluationsPage() {
   }
 
   return (
-    <PlacementShell title="Communication Evaluation">
+    <PlacementShell title="Communication Students">
       <PlacementPageHeader
-        title="Communication Evaluation"
+        title="Communication Students"
         description="25 criteria × 10 marks = 250 total. Communication Proficiency (80) · Presentation (60) · Behavioural (110)."
         actions={
           <>
@@ -121,6 +127,14 @@ export function CommunicationEvaluationsPage() {
         }
       />
 
+      <CommunicationModuleNav />
+
+      {!canView ? (
+        <PlacementEmptyState
+          title="403 Forbidden"
+          description="Only Admin, TPO, and Faculty can access Communication students."
+        />
+      ) : (
       <PlacementPageStack>
         <PlacementAlerts error={error} />
 
@@ -129,6 +143,37 @@ export function CommunicationEvaluationsPage() {
           <PlacementStatCard label="Average %" value={summary.averageCommunicationScore} />
           <PlacementStatCard label="A+ grades" value={summary.gradeAPlus} />
           <PlacementStatCard label="Needs improvement" value={summary.needsImprovement} />
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <LuxuryDonutChart
+            title="Grade quality"
+            subtitle="A+ vs needs improvement among evaluated students"
+            data={[
+              { name: 'A+', value: summary.gradeAPlus, color: '#0ECB81' },
+              { name: 'Needs improvement', value: summary.needsImprovement, color: '#F6465D' },
+              {
+                name: 'Other grades',
+                value: Math.max(
+                  0,
+                  summary.totalEvaluated - summary.gradeAPlus - summary.needsImprovement,
+                ),
+                color: '#F0B90B',
+              },
+            ]}
+            centerLabel="Evaluated"
+            centerValue={summary.totalEvaluated}
+          />
+          <LuxuryBarChart
+            title="Evaluation snapshot"
+            subtitle="Core communication quality indicators"
+            data={[
+              { name: 'Evaluated', value: summary.totalEvaluated },
+              { name: 'Average %', value: summary.averageCommunicationScore },
+              { name: 'A+', value: summary.gradeAPlus },
+              { name: 'Needs improvement', value: summary.needsImprovement },
+            ]}
+          />
         </div>
 
         <PlacementFilterCard
@@ -245,6 +290,7 @@ export function CommunicationEvaluationsPage() {
           </PlacementTableCard>
         )}
       </PlacementPageStack>
+      )}
     </PlacementShell>
   )
 }

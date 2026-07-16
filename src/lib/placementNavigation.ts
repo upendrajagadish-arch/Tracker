@@ -125,6 +125,19 @@ export function canManageReadiness(role: PlacementRole | null | undefined) {
   return role === 'admin' || role === 'tpo'
 }
 
+/** Communication Evaluation module (Dashboard / Students / Analytics). Admin, TPO, Faculty only. */
+export function canViewCommunicationModule(role: PlacementRole | null | undefined) {
+  return role === 'admin' || role === 'tpo' || role === 'faculty'
+}
+
+export function assertCanViewCommunicationModule(role: PlacementRole | null | undefined) {
+  if (!canViewCommunicationModule(role)) {
+    const err = new Error('403 Forbidden: Communication module access denied')
+    err.name = 'ForbiddenError'
+    throw err
+  }
+}
+
 export function canViewCompanies(role: PlacementRole | null | undefined) {
   return hasPermission(role, 'students:view')
 }

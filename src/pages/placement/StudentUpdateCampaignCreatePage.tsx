@@ -49,7 +49,7 @@ export function StudentUpdateCampaignCreatePage() {
       })
       setSuccess('Registration campaign created. Share the link with students — they can register themselves.')
       if (base) {
-        navigate({ to: asPlacementPath(`${base}/student-update-campaigns/${campaign.id}`) })
+        navigate({ to: asPlacementPath(`${base}/student-update-campaigns/${campaign.id}`) as never })
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create campaign')

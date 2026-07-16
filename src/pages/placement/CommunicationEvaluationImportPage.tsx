@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import * as XLSX from 'xlsx'
 import { Button } from '@/components/ui/button'
+import { CommunicationModuleNav } from '@/components/placement/CommunicationModuleNav'
 import { PlacementLink } from '@/components/placement/PlacementLink'
 import { PlacementShell, usePlacementPaths } from '@/components/placement/PlacementShell'
 import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
@@ -69,7 +70,7 @@ export function CommunicationEvaluationImportPage() {
           action={
             base ? (
               <Button asChild variant="outline" size="sm">
-                <PlacementLink href={`${base}/communication`}>← Back</PlacementLink>
+                <PlacementLink href={`${base}/communication/students`}>← Back</PlacementLink>
               </Button>
             ) : undefined
           }
@@ -129,11 +130,13 @@ export function CommunicationEvaluationImportPage() {
         actions={
           base ? (
             <Button asChild variant="outline" size="sm">
-              <PlacementLink href={`${base}/communication`}>← Back</PlacementLink>
+              <PlacementLink href={`${base}/communication/students`}>← Students</PlacementLink>
             </Button>
           ) : null
         }
       />
+
+      <CommunicationModuleNav />
 
       <PlacementPageStack>
         <PlacementAlerts error={error} />
@@ -162,7 +165,7 @@ export function CommunicationEvaluationImportPage() {
             ) : null}
             {base ? (
               <Button asChild size="sm" className="mt-4">
-                <PlacementLink href={`${base}/communication`}>View evaluations</PlacementLink>
+                <PlacementLink href={`${base}/communication/students`}>View evaluations</PlacementLink>
               </Button>
             ) : null}
           </PlacementSectionCard>

@@ -15,6 +15,10 @@ import { PlacementShell, usePlacementPaths } from '@/components/placement/Placem
 import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
 import { PlacementEmptyState, PlacementStatCard } from '@/components/placement/PlacementStates'
 import {
+  LuxuryBarChart,
+  LuxuryDonutChart,
+} from '@/components/placement/charts'
+import {
   PlacementAlerts,
   PlacementField,
   PlacementFilterCard,
@@ -147,6 +151,31 @@ export function TechStackPage() {
                 <PlacementStatCard label="Top skill" value={stats?.topSkills[0]?.skill ?? '—'} hint={stats?.topSkills[0] ? `${stats.topSkills[0].studentCount} students` : undefined} />
                 <PlacementStatCard label="Top category" value={stats?.categoryDistribution[0]?.category ? formatEnumLabel(stats.categoryDistribution[0].category) : '—'} />
               </div>
+
+              {stats ? (
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <LuxuryDonutChart
+                    title="Category distribution"
+                    subtitle="Students represented per skill category"
+                    data={(stats.categoryDistribution ?? []).map((row) => ({
+                      name: formatEnumLabel(row.category),
+                      value: row.studentCount,
+                    }))}
+                    centerLabel="With stack"
+                    centerValue={stats.studentsWithTechStack}
+                  />
+                  <LuxuryBarChart
+                    title="Top skills"
+                    subtitle="Most popular declared skills"
+                    data={(stats.topSkills ?? []).map((row) => ({
+                      name: row.skill,
+                      value: row.studentCount,
+                    }))}
+                    layout="horizontal"
+                    height={300}
+                  />
+                </div>
+              ) : null}
 
               <PlacementFilterCard>
                 <form onSubmit={applyFilters} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

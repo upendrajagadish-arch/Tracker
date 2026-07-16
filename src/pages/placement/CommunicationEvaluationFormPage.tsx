@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
+import { CommunicationModuleNav } from '@/components/placement/CommunicationModuleNav'
 import { PlacementLink } from '@/components/placement/PlacementLink'
 import { PlacementShell, usePlacementPaths } from '@/components/placement/PlacementShell'
 import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
@@ -118,7 +119,7 @@ export function CommunicationEvaluationFormPage() {
         await createCommunicationEvaluation({ studentProfileId: targetId, ...payload })
       }
       if (base) {
-        void navigate({ to: `${base}/communication` as '/admin/placement/communication' })
+        void navigate({ to: `${base}/communication/students` as '/admin/placement/communication/students' })
       }
     } catch (err) {
       const message =
@@ -148,11 +149,13 @@ export function CommunicationEvaluationFormPage() {
         actions={
           base ? (
             <Button asChild variant="outline" size="sm">
-              <PlacementLink href={`${base}/communication`}>← Back</PlacementLink>
+              <PlacementLink href={`${base}/communication/students`}>← Students</PlacementLink>
             </Button>
           ) : null
         }
       />
+
+      <CommunicationModuleNav />
 
       <PlacementPageStack>
         <PlacementAlerts error={error} />

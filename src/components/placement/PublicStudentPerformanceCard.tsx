@@ -31,6 +31,10 @@ import {
 import type { StudentProfileRow } from '@/api/placement/students'
 import { COMMUNICATION_SECTIONS } from '@/lib/communicationEvaluation'
 import {
+  classifyCommunicationBadge,
+  formatCommunicationBadge,
+} from '@/lib/communicationBadge'
+import {
   buildOverallPerformanceSummary,
   blendCodingPercent,
   codingPercentFromSolved,
@@ -315,11 +319,19 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <ShareMetric
-                  label="Total score"
+                  label="Communication"
                   value={`${profile.communication.totalScore}/${profile.communication.maxScore}`}
                 />
                 <ShareMetric label="Percentage" value={`${profile.communication.percentage}%`} />
                 <ShareMetric label="Grade" value={profile.communication.grade} />
+                <ShareMetric
+                  label="Badge"
+                  value={formatCommunicationBadge(
+                    classifyCommunicationBadge(profile.communication.totalScore),
+                  )}
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <ShareMetric
                   label="Last evaluated"
                   value={formatDate(profile.communication.evaluatedAt)}

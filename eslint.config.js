@@ -20,7 +20,7 @@ export default defineConfig([
     },
   },
   {
-    files: ['src/pages/placement/**/*.{ts,tsx}', 'src/components/placement/**/*.{ts,tsx}'],
+    files: ['src/pages/placement/**/*.{ts,tsx}', 'src/pages/public/**/*.{ts,tsx}', 'src/components/placement/**/*.{ts,tsx}'],
     rules: {
       'react-hooks/set-state-in-effect': 'off',
       'react-refresh/only-export-components': 'off',

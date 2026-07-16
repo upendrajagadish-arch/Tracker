@@ -8,7 +8,13 @@ import {
   PlacementPageBody,
   PlacementPageStack,
 } from '@/components/placement/PlacementUi'
-import { PlacementErrorAlert, PlacementStatCard } from '@/components/placement/PlacementStates'
+import { PlacementErrorAlert } from '@/components/placement/PlacementStates'
+import {
+  LuxuryAreaChart,
+  LuxuryBarChart,
+  LuxuryDonutChart,
+  LuxuryKpiStrip,
+} from '@/components/placement/charts'
 import { getManagementSummary } from '@/api/placement/reports'
 import { getTechStackDashboardStats } from '@/api/placement/techSkills'
 
@@ -40,17 +46,70 @@ export function PlacementDashboardPage() {
     void load()
   }, [load])
 
+  const pipelineDonut = summary
+    ? [
+        { name: 'Ready', value: summary.readyCount, color: '#0ECB81' },
+        { name: 'Placed', value: summary.placedCount, color: '#F0B90B' },
+        {
+          name: 'In pipeline',
+          value: Math.max(
+            0,
+            summary.activeStudents - summary.readyCount - summary.placedCount,
+          ),
+          color: '#3B82F6',
+        },
+      ]
+    : []
+
+  const operationsBars = summary
+    ? [
+        { name: 'Active', value: summary.activeStudents },
+        { name: 'Eligible', value: summary.placementEligible },
+        { name: 'Ready', value: summary.readyCount },
+        { name: 'Placed', value: summary.placedCount },
+        { name: 'Pending resumes', value: summary.pendingResumes },
+      ]
+    : []
+
+  const readinessArea = summary
+    ? [
+        { name: 'Eligible', value: summary.placementEligible },
+        { name: 'Avg readiness', value: summary.averageReadiness },
+        { name: 'Ready', value: summary.readyCount },
+        { name: 'Placed', value: summary.placedCount },
+      ]
+    : []
+
+  const skillBars =
+    techStats?.topSkills.map((row) => ({
+      name: row.skill,
+      value: row.studentCount,
+    })) ?? []
+
+  const categoryDonut =
+    techStats?.categoryDistribution.map((row) => ({
+      name: row.category.replace(/_/g, ' '),
+      value: row.studentCount,
+    })) ?? []
+
   return (
     <PlacementShell title="Dashboard">
       <PlacementPageHeader
         title="Placement Dashboard"
-        description="Overview of students, readiness, resumes, and placement operations."
+        description="Luxury overview of students, readiness, resumes, and placement operations."
         actions={
-          base ? (
+          <>
             <Button asChild variant="outline" size="sm">
-              <PlacementLink href={`${base}/students`}>Open student tracker</PlacementLink>
+              <a href="/public/leaderboard" target="_blank" rel="noreferrer">
+                🏆 Public leaderboard
+              </a>
             </Button>
-          ) : null
+            {base ? (
+              <Button asChild variant="outline" size="sm">
+                <PlacementLink href={`${base}/students`}>Open student tracker</PlacementLink>
+              </Button>
+            ) : null}
+          </>
         }
       />
 
@@ -60,21 +119,56 @@ export function PlacementDashboardPage() {
         <PlacementPageBody loading={loading} loadingLabel="Loading dashboard…">
           {summary ? (
             <>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <PlacementStatCard label="Active students" value={summary.activeStudents} />
-                <PlacementStatCard label="Placement eligible" value={summary.placementEligible} />
-                <PlacementStatCard label="Average readiness" value={summary.averageReadiness} />
-                <PlacementStatCard label="Pending resumes" value={summary.pendingResumes} hint="Awaiting review" />
-                <PlacementStatCard label="Ready students" value={summary.readyCount} />
-                <PlacementStatCard label="Placed students" value={summary.placedCount} />
+              <LuxuryKpiStrip
+                items={[
+                  { label: 'Active students', value: summary.activeStudents },
+                  { label: 'Placement eligible', value: summary.placementEligible },
+                  { label: 'Average readiness', value: summary.averageReadiness },
+                  { label: 'Pending resumes', value: summary.pendingResumes, hint: 'Awaiting review' },
+                  { label: 'Ready students', value: summary.readyCount },
+                  { label: 'Placed students', value: summary.placedCount },
+                ]}
+                className="lg:grid-cols-3 xl:grid-cols-6"
+              />
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <LuxuryDonutChart
+                  title="Placement pipeline"
+                  subtitle="Ready · Placed · Remaining active cohort"
+                  data={pipelineDonut}
+                  centerLabel="Active"
+                  centerValue={summary.activeStudents}
+                />
+                <LuxuryBarChart
+                  title="Operations snapshot"
+                  subtitle="Key placement counts at a glance"
+                  data={operationsBars}
+                />
               </div>
 
+              <LuxuryAreaChart
+                title="Readiness pulse"
+                subtitle="Eligible → readiness → ready → placed"
+                data={readinessArea}
+                color="#D27918"
+              />
+
               {techStats ? (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <PlacementStatCard label="Students with tech stack" value={techStats.studentsWithTechStack} />
-                  <PlacementStatCard label="Avg verified skills" value={techStats.averageVerifiedSkillsPerStudent} />
-                  <PlacementStatCard label="Top skill" value={techStats.topSkills[0]?.skill ?? '—'} hint={techStats.topSkills[0] ? `${techStats.topSkills[0].studentCount} students` : undefined} />
-                  <PlacementStatCard label="Top category" value={techStats.categoryDistribution[0]?.category?.replace(/_/g, ' ') ?? '—'} />
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <LuxuryDonutChart
+                    title="Tech stack categories"
+                    subtitle="Students represented in each skill category"
+                    data={categoryDonut}
+                    centerLabel="With stack"
+                    centerValue={techStats.studentsWithTechStack}
+                  />
+                  <LuxuryBarChart
+                    title="Top skills"
+                    subtitle="Most declared skills across students"
+                    data={skillBars}
+                    layout="horizontal"
+                    height={320}
+                  />
                 </div>
               ) : null}
             </>
