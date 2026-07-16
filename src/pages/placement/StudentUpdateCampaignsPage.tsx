@@ -56,8 +56,8 @@ export function StudentUpdateCampaignsPage() {
   return (
     <PlacementShell title="Student Update Campaigns">
       <PlacementPageHeader
-        title="Student Update Campaigns"
-        description="Generate secure, login-free update links so students can complete their own placement profiles."
+        title="Student Registration Campaigns"
+        description="Create one shared registration link. Students fill the form themselves and are added to the placement application — no pre-existing student data required."
         actions={
           canManage && base ? (
             <Button asChild size="sm">
@@ -73,7 +73,7 @@ export function StudentUpdateCampaignsPage() {
         {summary ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
             <PlacementStatCard label="Campaigns" value={summary.campaigns} />
-            <PlacementStatCard label="Students" value={summary.students} />
+            <PlacementStatCard label="Registrations" value={summary.students} />
             <PlacementStatCard label="Opened" value={summary.opened} />
             <PlacementStatCard label="Completed" value={summary.completed} />
             <PlacementStatCard label="Pending" value={summary.pending} />
@@ -87,7 +87,7 @@ export function StudentUpdateCampaignsPage() {
           empty={!campaigns.length ? (
             <PlacementEmptyState
               title="No registration campaigns yet"
-              description="Create a campaign to generate edit-profile links for all students."
+              description="Create a campaign to get one shared link for student self-registration."
               action={
                 canManage && base ? (
                   <Button asChild size="sm">

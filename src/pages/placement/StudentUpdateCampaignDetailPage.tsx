@@ -20,39 +20,31 @@ import {
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
 import {
-  campaignSharedUpdateUrl,
-  disableCampaignToken,
-  extendCampaignToken,
+  campaignRegistrationUrl,
   getCampaign,
-  listCampaignRecipients,
-  regenerateCampaignToken,
-  type CampaignRecipientRow,
+  listCampaignRegistrants,
+  type CampaignRegistrantRow,
   type StudentUpdateCampaignRow,
 } from '@/api/placement/studentUpdateCampaigns'
 import { displayAcademicBatch } from '@/lib/academicBatch'
-import { canManageCampaigns } from '@/lib/placementPermissions'
-import { useAuth } from '@/hooks/useAuth'
 
 export function StudentUpdateCampaignDetailPage() {
   const { id } = useParams({ strict: false }) as { id: string }
   const { base } = usePlacementPaths()
-  const { placementRole } = useAuth()
-  const canManage = canManageCampaigns(placementRole)
 
   const [campaign, setCampaign] = useState<StudentUpdateCampaignRow | null>(null)
-  const [recipients, setRecipients] = useState<CampaignRecipientRow[]>([])
+  const [registrants, setRegistrants] = useState<CampaignRegistrantRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
-  const [busyId, setBusyId] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const [camp, rows] = await Promise.all([getCampaign(id), listCampaignRecipients(id)])
+      const [camp, rows] = await Promise.all([getCampaign(id), listCampaignRegistrants(id)])
       setCampaign(camp)
-      setRecipients(rows)
+      setRegistrants(rows)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load campaign')
     } finally {
@@ -64,39 +56,18 @@ export function StudentUpdateCampaignDetailPage() {
     void load()
   }, [load])
 
-  const opened = recipients.filter((r) => r.opened_at).length
-  const completed = recipients.filter((r) => r.submitted_at).length
-  const pending = recipients.filter((r) => !r.submitted_at && r.is_active && !r.revoked_at).length
-  const expired = recipients.filter((r) => r.revoked_at || !r.is_active || new Date(r.expires_at).getTime() <= Date.now()).length
-
-  const copySharedLink = async () => {
+  const copyRegistrationLink = async () => {
     if (!campaign?.id) return
-    await navigator.clipboard.writeText(campaignSharedUpdateUrl(campaign.id))
-    setSuccess('Shared campaign link copied')
+    await navigator.clipboard.writeText(campaignRegistrationUrl(campaign.id))
+    setSuccess('Registration link copied')
     setTimeout(() => setSuccess(null), 2000)
-  }
-
-  const runAction = async (tokenId: string, action: 'disable' | 'extend' | 'regenerate') => {
-    setBusyId(tokenId)
-    setError(null)
-    try {
-      if (action === 'disable') await disableCampaignToken(tokenId)
-      if (action === 'extend') await extendCampaignToken(tokenId, 14)
-      if (action === 'regenerate') await regenerateCampaignToken(tokenId)
-      setSuccess(action === 'disable' ? 'Link disabled' : action === 'extend' ? 'Expiry extended' : 'Link regenerated')
-      await load()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Action failed')
-    } finally {
-      setBusyId(null)
-    }
   }
 
   return (
     <PlacementShell title="Campaign detail">
       <PlacementPageHeader
         title={campaign?.title || 'Campaign'}
-        description={campaign?.description || 'Share edit-profile links with students. Saves appear in the placement app automatically.'}
+        description={campaign?.description || 'Share one registration link. Students add themselves to the placement application.'}
         actions={
           base ? (
             <Button asChild variant="outline" size="sm">
@@ -110,94 +81,56 @@ export function StudentUpdateCampaignDetailPage() {
         <PlacementAlerts error={error} success={success} />
 
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => void copySharedLink()} disabled={!campaign?.id}>
-            Copy one shared student link
+          <Button variant="outline" onClick={() => void copyRegistrationLink()} disabled={!campaign?.id}>
+            Copy registration link
           </Button>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <PlacementStatCard label="Recipients" value={recipients.length} />
-          <PlacementStatCard label="Opened" value={opened} />
-          <PlacementStatCard label="Completed" value={completed} />
-          <PlacementStatCard label="Pending" value={pending} />
-          <PlacementStatCard label="Expired / disabled" value={expired} />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <PlacementStatCard label="Registered students" value={registrants.length} />
+          <PlacementStatCard label="Status" value={campaign?.status ?? '—'} />
+          <PlacementStatCard
+            label="Expires"
+            value={campaign?.expires_at ? new Date(campaign.expires_at).toLocaleDateString() : 'No expiry'}
+          />
         </div>
 
         <PlacementPageBody
           loading={loading}
-          loadingLabel="Loading recipients…"
-          empty={!recipients.length ? (
-            <PlacementEmptyState title="No recipients" description="This campaign has no generated links." />
+          loadingLabel="Loading registrations…"
+          empty={!registrants.length ? (
+            <PlacementEmptyState
+              title="No registrations yet"
+              description="Share the registration link with students. When they submit the form, they will appear here."
+            />
           ) : undefined}
         >
-          {recipients.length ? (
-            <PlacementTableCard title="Recipients">
+          {registrants.length ? (
+            <PlacementTableCard title="Registered students">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Student</TableHead>
                     <TableHead>Roll</TableHead>
+                    <TableHead>Email</TableHead>
                     <TableHead>Academic Batch</TableHead>
-                    <TableHead>Opened</TableHead>
-                    <TableHead>Submitted</TableHead>
-                    <TableHead>Last activity</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>Registered</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {recipients.map((row) => (
+                  {registrants.map((row) => (
                     <TableRow key={row.id}>
-                      <TableCell className="font-semibold">{row.student?.full_name ?? '—'}</TableCell>
-                      <TableCell className="font-mono text-xs">{row.student?.roll_number ?? '—'}</TableCell>
+                      <TableCell className="font-semibold">{row.full_name}</TableCell>
+                      <TableCell className="font-mono text-xs">{row.roll_number}</TableCell>
+                      <TableCell className="text-secondary">{row.email || '—'}</TableCell>
                       <TableCell>
                         {displayAcademicBatch({
-                          academic_batch: row.student?.academic_batch,
-                          batch: row.student?.batch,
+                          academic_batch: row.academic_batch,
+                          batch: row.batch,
                         })}
                       </TableCell>
                       <TableCell className="text-secondary">
-                        {row.opened_at ? new Date(row.opened_at).toLocaleString() : '—'}
-                      </TableCell>
-                      <TableCell className="text-secondary">
-                        {row.submitted_at ? new Date(row.submitted_at).toLocaleString() : '—'}
-                      </TableCell>
-                      <TableCell className="text-secondary">
-                        {row.last_activity_at ? new Date(row.last_activity_at).toLocaleString() : '—'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {canManage ? (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={busyId === row.id}
-                                onClick={() => void runAction(row.id, 'extend')}
-                              >
-                                Extend
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                disabled={busyId === row.id}
-                                onClick={() => void runAction(row.id, 'regenerate')}
-                              >
-                                Regenerate
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                disabled={busyId === row.id}
-                                onClick={() => void runAction(row.id, 'disable')}
-                              >
-                                Disable
-                              </Button>
-                              <Button size="sm" variant="ghost" disabled title="Email resend coming soon">
-                                Resend
-                              </Button>
-                            </>
-                          ) : null}
-                        </div>
+                        {new Date(row.created_at).toLocaleString()}
                       </TableCell>
                     </TableRow>
                   ))}

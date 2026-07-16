@@ -144,6 +144,7 @@ export interface Database {
           active_backlogs: number
           graduation_year: number | null
           placement_status: string
+          registered_via_campaign_id: string | null
           profile_completeness: number
           readiness_score: number
           readiness_status: string
@@ -194,6 +195,7 @@ export interface Database {
           active_backlogs?: number
           graduation_year?: number | null
           placement_status?: string
+          registered_via_campaign_id?: string | null
           profile_completeness?: number
           readiness_score?: number
           readiness_status?: string
@@ -903,6 +905,19 @@ export interface Database {
       }
       get_public_student_performance: { Args: { p_token: string }; Returns: Json }
       get_public_student_update_form: { Args: { p_token: string }; Returns: Json }
+      get_public_campaign_registration_form: { Args: { p_campaign_id: string }; Returns: Json }
+      submit_public_campaign_registration: { Args: { p_campaign_id: string; p_payload: Json }; Returns: Json }
+      register_public_campaign_registration_resume: {
+        Args: {
+          p_campaign_id: string
+          p_roll_number: string
+          p_file_name: string
+          p_storage_path: string
+          p_mime_type: string
+          p_file_size: number
+        }
+        Returns: Json
+      }
       resolve_public_campaign_student_token: { Args: { p_campaign_id: string; p_roll_number: string }; Returns: string | null }
       submit_public_student_update: { Args: { p_token: string; p_payload: Json }; Returns: Json }
       register_public_campaign_resume: {

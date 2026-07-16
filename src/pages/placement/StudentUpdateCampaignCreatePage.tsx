@@ -42,13 +42,12 @@ export function StudentUpdateCampaignCreatePage() {
     setError(null)
     setSuccess(null)
     try {
-      const { campaign, tokenCount } = await createCampaignWithTokens({
+      const { campaign } = await createCampaignWithTokens({
         title,
         description,
         expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
-        filters: {},
       })
-      setSuccess(`Created campaign with ${tokenCount} profile edit links.`)
+      setSuccess('Registration campaign created. Share the link with students — they can register themselves.')
       if (base) {
         navigate({ to: asPlacementPath(`${base}/student-update-campaigns/${campaign.id}`) })
       }
@@ -63,7 +62,7 @@ export function StudentUpdateCampaignCreatePage() {
     <PlacementShell title="Create campaign">
       <PlacementPageHeader
         title="Create registration campaign"
-        description="Generate one edit-profile link per student. Share the links — students update their details and saves appear in the placement app automatically."
+        description="Generate one shared link. Students open it, fill their details, and are added to the placement application automatically."
         actions={
           base ? (
             <Button asChild variant="outline" size="sm">
@@ -80,7 +79,7 @@ export function StudentUpdateCampaignCreatePage() {
           <PlacementFilterCard title="Campaign details">
             <div className="grid gap-4 md:grid-cols-2">
               <PlacementField label="Title">
-                <Input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="2027 Batch profile registration" />
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="2027 Batch student registration" />
               </PlacementField>
               <PlacementField label="Expires on">
                 <Input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
@@ -89,18 +88,18 @@ export function StudentUpdateCampaignCreatePage() {
                 <Input
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Please complete and save your placement profile"
+                  placeholder="Please register and complete your placement profile"
                 />
               </PlacementField>
             </div>
             <p className="mt-3 text-[13px] text-secondary">
-              Links are created for every active student — no filters. Each link opens the same edit-profile form students use to update and save their details.
+              No student list is required. Share one link with everyone — new students register themselves and duplicates are blocked by roll number and email.
             </p>
           </PlacementFilterCard>
 
           <div>
             <Button type="submit" disabled={saving || !title.trim()}>
-              {saving ? 'Generating links…' : 'Generate campaign links'}
+              {saving ? 'Creating…' : 'Create registration link'}
             </Button>
           </div>
         </form>
