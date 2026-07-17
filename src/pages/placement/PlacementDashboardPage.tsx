@@ -101,7 +101,7 @@ export function PlacementDashboardPage() {
           <>
             <Button asChild variant="outline" size="sm">
               <a href="/public/leaderboard" target="_blank" rel="noreferrer">
-                🏆 Public leaderboard
+                🏆 Hall of Fame
               </a>
             </Button>
             {base ? (

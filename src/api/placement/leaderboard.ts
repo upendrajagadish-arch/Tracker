@@ -1,4 +1,5 @@
 import { requireSupabase } from '@/lib/supabase'
+import { fameLevelFromXp } from '@/lib/leaderboardFame'
 
 export interface LeaderboardRow {
   rank: number
@@ -7,11 +8,19 @@ export interface LeaderboardRow {
   branch: string
   batch: string
   academicBatch: string | null
+  fameXp: number
+  fameLevel: string
   readinessScore: number
   readinessStatus: string
   placementStatus: string
   communicationScore: number | null
   communicationGrade: string | null
+  aptitudeScore: number | null
+  aptitudeGrade: string | null
+  verbalScore: number | null
+  verbalGrade: string | null
+  codeNowScore: number | null
+  codeNowGrade: string | null
   cgpa: number | null
   totalSolved: number
   linkedCount: number
@@ -27,6 +36,12 @@ export interface LeaderboardResult {
 }
 
 function toRow(raw: Record<string, unknown>): LeaderboardRow {
+  const fameXp = Number(raw.fameXp ?? raw.readinessScore ?? 0)
+  const fameLevel =
+    raw.fameLevel == null || raw.fameLevel === ''
+      ? fameLevelFromXp(fameXp).name
+      : String(raw.fameLevel)
+
   return {
     rank: Number(raw.rank ?? 0),
     rollNumber: String(raw.rollNumber ?? ''),
@@ -34,11 +49,19 @@ function toRow(raw: Record<string, unknown>): LeaderboardRow {
     branch: String(raw.branch ?? ''),
     batch: String(raw.batch ?? ''),
     academicBatch: raw.academicBatch == null ? null : String(raw.academicBatch),
+    fameXp,
+    fameLevel,
     readinessScore: Number(raw.readinessScore ?? 0),
     readinessStatus: String(raw.readinessStatus ?? ''),
     placementStatus: String(raw.placementStatus ?? ''),
     communicationScore: raw.communicationScore == null ? null : Number(raw.communicationScore),
     communicationGrade: raw.communicationGrade == null ? null : String(raw.communicationGrade),
+    aptitudeScore: raw.aptitudeScore == null ? null : Number(raw.aptitudeScore),
+    aptitudeGrade: raw.aptitudeGrade == null ? null : String(raw.aptitudeGrade),
+    verbalScore: raw.verbalScore == null ? null : Number(raw.verbalScore),
+    verbalGrade: raw.verbalGrade == null ? null : String(raw.verbalGrade),
+    codeNowScore: raw.codeNowScore == null ? null : Number(raw.codeNowScore),
+    codeNowGrade: raw.codeNowGrade == null ? null : String(raw.codeNowGrade),
     cgpa: raw.cgpa == null ? null : Number(raw.cgpa),
     totalSolved: Number(raw.totalSolved ?? 0),
     linkedCount: Number(raw.linkedCount ?? 0),
@@ -46,7 +69,7 @@ function toRow(raw: Record<string, unknown>): LeaderboardRow {
   }
 }
 
-/** Open (anonymous) leaderboard of top performers, ranked by readiness score. */
+/** Open (anonymous) Hall of Fame — ranks live by fame XP from all evaluations. */
 export async function getPublicLeaderboard(options: {
   search?: string
   limit?: number
