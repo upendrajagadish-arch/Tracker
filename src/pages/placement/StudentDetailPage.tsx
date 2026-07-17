@@ -47,6 +47,8 @@ import {
   type CodeNowProfileRow,
 } from '@/api/placement/codeNow'
 import { StudentPerformanceShare } from '@/components/placement/StudentPerformanceShare'
+import { buildStudentPerformanceProfile } from '@/lib/buildStudentPerformanceProfile'
+import { downloadStudentPerformancePdf } from '@/lib/downloadStudentPerformancePdf'
 import { canManageStudents, canManageResumes, canManageReadiness } from '@/lib/placementNavigation'
 import { hasPermission } from '@/lib/placementPermissions'
 import { countLinkedPlatforms, resolvePlatformHandles } from '@/lib/studentPlatformHandles'
@@ -106,6 +108,7 @@ export function StudentDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [publicShareUrl, setPublicShareUrl] = useState<string | null>(null)
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
   const canShare = hasPermission(role, 'students:update')
 
   const loadStudent = async () => {
@@ -147,6 +150,20 @@ export function StudentDetailPage() {
     void loadStudent()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
+
+  const handleDownloadPdf = async () => {
+    if (!student) return
+    setDownloadingPdf(true)
+    setError(null)
+    try {
+      const profile = await buildStudentPerformanceProfile(student.id)
+      await downloadStudentPerformancePdf(profile)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to download student PDF')
+    } finally {
+      setDownloadingPdf(false)
+    }
+  }
 
   useEffect(() => {
     if (!student) return
@@ -253,6 +270,15 @@ export function StudentDetailPage() {
                       onShareUrl={setPublicShareUrl}
                     />
                   ) : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={downloadingPdf}
+                    onClick={() => void handleDownloadPdf()}
+                  >
+                    {downloadingPdf ? 'Preparing PDF…' : 'Download PDF'}
+                  </Button>
                 </div>
               </div>
 

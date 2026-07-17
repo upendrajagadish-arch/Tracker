@@ -39,6 +39,15 @@ import {
 import { listStudents, type StudentListFilters } from '@/api/placement/students'
 import { listTechStackStudents } from '@/api/placement/techSkills'
 import {
+  BULK_PDF_CAP,
+  buildStudentPerformanceProfile,
+  listStudentIdsForPerformancePdf,
+} from '@/lib/buildStudentPerformanceProfile'
+import {
+  downloadStudentPerformancePdf,
+  downloadStudentPerformancePdfBundle,
+} from '@/lib/downloadStudentPerformancePdf'
+import {
   canAssignStudentBranch,
   canImportStudents,
   canManageStudents,
@@ -53,6 +62,8 @@ export function StudentsPage() {
   const [draft, setDraft] = useState({ q: '', branch: '', batch: '', placementStatus: '' })
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [exportingPdf, setExportingPdf] = useState(false)
+  const [pdfProgress, setPdfProgress] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<Awaited<ReturnType<typeof listStudents>> | null>(null)
 
@@ -127,6 +138,65 @@ export function StudentsPage() {
     }
   }
 
+  const handleBulkPdf = async () => {
+    setExportingPdf(true)
+    setPdfProgress('Collecting filtered students…')
+    setError(null)
+    try {
+      const { ids, total, capped } = await listStudentIdsForPerformancePdf({
+        q: filters.q,
+        branch: filters.branch,
+        batch: filters.batch,
+        placementStatus: filters.placementStatus,
+      })
+      if (!ids.length) {
+        setError('No students match the current filters.')
+        return
+      }
+      if (capped) {
+        setPdfProgress(
+          `Preparing PDF for first ${ids.length} of ${total} students (cap ${BULK_PDF_CAP})…`,
+        )
+      }
+      const profiles = []
+      for (let i = 0; i < ids.length; i += 1) {
+        setPdfProgress(`Building profile ${i + 1} of ${ids.length}…`)
+        profiles.push(await buildStudentPerformanceProfile(ids[i]!))
+      }
+      setPdfProgress(`Rendering PDF (${profiles.length} profiles)…`)
+      await downloadStudentPerformancePdfBundle(
+        profiles,
+        'filtered_students_performance_profiles.pdf',
+        (done, n) => setPdfProgress(`Rendering PDF page set ${done} of ${n}…`),
+      )
+      if (capped) {
+        setError(
+          `Downloaded ${ids.length} of ${total} matching students (bulk PDF cap is ${BULK_PDF_CAP}). Narrow filters to export the rest.`,
+        )
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to download PDF profiles')
+    } finally {
+      setExportingPdf(false)
+      setPdfProgress(null)
+    }
+  }
+
+  const handleRowPdf = async (studentId: string, rollNumber: string) => {
+    setExportingPdf(true)
+    setPdfProgress(`Preparing PDF for ${rollNumber}…`)
+    setError(null)
+    try {
+      const profile = await buildStudentPerformanceProfile(studentId)
+      await downloadStudentPerformancePdf(profile)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to download student PDF')
+    } finally {
+      setExportingPdf(false)
+      setPdfProgress(null)
+    }
+  }
+
   const summary = result?.data
   const eligible = summary?.filter((s) => s.is_placement_eligible).length ?? 0
   const withCgpa = summary?.filter((s) => s.cgpa != null) ?? []
@@ -157,11 +227,28 @@ export function StudentsPage() {
                   <Button variant="outline" size="sm" disabled={exporting} onClick={() => void handleExport()}>
                     {exporting ? 'Exporting…' : 'Export CSV'}
                   </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={exportingPdf}
+                    onClick={() => void handleBulkPdf()}
+                  >
+                    {exportingPdf ? 'Preparing PDFs…' : 'Download PDFs'}
+                  </Button>
                   <Button asChild size="sm">
                     <PlacementLink href={`${base}/students/new`}>Add student</PlacementLink>
                   </Button>
                 </>
-              ) : null}
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={exportingPdf}
+                  onClick={() => void handleBulkPdf()}
+                >
+                  {exportingPdf ? 'Preparing PDFs…' : 'Download PDFs'}
+                </Button>
+              )}
             </>
           ) : null
         }
@@ -169,6 +256,9 @@ export function StudentsPage() {
 
       <PlacementPageStack>
         <PlacementAlerts error={error} />
+        {pdfProgress ? (
+          <p className="text-sm text-muted-foreground">{pdfProgress}</p>
+        ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <PlacementStatCard label="Total students" value={result?.pagination.total ?? '—'} hint="Matching filters" />
@@ -312,11 +402,24 @@ export function StudentsPage() {
                       </TableCell>
                       <TableCell><CompletenessBar value={student.profile_completeness} /></TableCell>
                       <TableCell>
-                        {base ? (
-                          <Button asChild variant="outline" size="sm">
-                            <PlacementLink href={`${base}/students/$id`} params={{ id: student.id }}>Student profile</PlacementLink>
+                        <div className="flex flex-wrap gap-2">
+                          {base ? (
+                            <Button asChild variant="outline" size="sm">
+                              <PlacementLink href={`${base}/students/$id`} params={{ id: student.id }}>
+                                Student profile
+                              </PlacementLink>
+                            </Button>
+                          ) : null}
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={exportingPdf}
+                            onClick={() => void handleRowPdf(student.id, student.roll_number)}
+                          >
+                            PDF
                           </Button>
-                        ) : null}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

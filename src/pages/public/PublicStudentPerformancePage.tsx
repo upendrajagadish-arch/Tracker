@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
 import { useParams } from '@tanstack/react-router'
 import { SeoHead } from '@/components/SeoHead'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { PublicStudentPerformanceCard } from '@/components/placement/PublicStudentPerformanceCard'
 import { PlacementLoadingBlock } from '@/components/placement/PlacementStates'
 import { getPublicStudentPerformance } from '@/api/placement/studentShare'
+import { downloadStudentPerformancePdf } from '@/lib/downloadStudentPerformancePdf'
 
 export function PublicStudentPerformancePage() {
   const { token } = useParams({ strict: false }) as { token: string }
   const [profile, setProfile] = useState<Awaited<ReturnType<typeof getPublicStudentPerformance>>>(null)
   const [loading, setLoading] = useState(true)
+  const [downloading, setDownloading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -46,6 +49,18 @@ export function PublicStudentPerformancePage() {
     })()
   }, [token])
 
+  const handleDownloadPdf = async () => {
+    if (!profile) return
+    setDownloading(true)
+    try {
+      await downloadStudentPerformancePdf(profile)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to download PDF')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex flex-1 items-center justify-center px-4 py-16">
@@ -77,6 +92,17 @@ export function PublicStudentPerformancePage() {
         description={`Placement performance profile for ${profile.fullName}`}
       />
       <div className="flex-1 py-2">
+        <div className="mx-auto flex max-w-5xl justify-end px-4 pt-4 sm:px-6 md:px-8">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={downloading}
+            onClick={() => void handleDownloadPdf()}
+          >
+            {downloading ? 'Preparing PDF…' : 'Download PDF'}
+          </Button>
+        </div>
         <PublicStudentPerformanceCard profile={profile} />
       </div>
     </>
