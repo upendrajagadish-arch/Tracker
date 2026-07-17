@@ -35,7 +35,7 @@ export function CommunicationEvaluationFormPage() {
 
   const [scores, setScores] = useState<Record<CriteriaKey, number>>(emptyScores())
   const [notes, setNotes] = useState('')
-  const [trainerName, setTrainerName] = useState(user?.email ?? '')
+  const [trainerName, setTrainerName] = useState('')
   const [selectedStudentId, setSelectedStudentId] = useState(studentProfileId || '')
   const [students, setStudents] = useState<Array<{ id: string; label: string }>>([])
   const [studentLabel, setStudentLabel] = useState('')
@@ -50,12 +50,6 @@ export function CommunicationEvaluationFormPage() {
       return null
     }
   }, [scores])
-
-  useEffect(() => {
-    if (user?.email && !trainerName) {
-      setTrainerName(user.email)
-    }
-  }, [user?.email, trainerName])
 
   useEffect(() => {
     const boot = async () => {

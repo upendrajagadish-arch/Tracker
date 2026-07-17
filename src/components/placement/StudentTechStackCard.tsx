@@ -73,7 +73,7 @@ function verificationTone(status: string): 'green' | 'blue' | 'amber' | 'muted' 
 }
 
 export function StudentTechStackCard({ studentProfileId, onChanged }: StudentTechStackCardProps) {
-  const { placementRole, user } = useAuth()
+  const { placementRole } = useAuth()
   const canManage = canManageStudentTechStack(placementRole)
   const canVerify = canVerifyTechSkills(placementRole)
   const [skills, setSkills] = useState<StudentTechSkillWithMeta[]>([])
@@ -89,7 +89,7 @@ export function StudentTechStackCard({ studentProfileId, onChanged }: StudentTec
     verificationStatus: 'SELF_DECLARED' as VerificationStatus,
     evidenceSource: '',
     notes: '',
-    assessedByName: user?.email ?? '',
+    assessedByName: '',
   })
   const [roleForm, setRoleForm] = useState<{
     roleName: string
@@ -158,7 +158,6 @@ export function StudentTechStackCard({ studentProfileId, onChanged }: StudentTec
         techSkillId: '',
         notes: '',
         evidenceSource: '',
-        assessedByName: form.assessedByName || user?.email || '',
       }))
       await refreshAfterChange('Skill saved.')
     } catch (e) {
