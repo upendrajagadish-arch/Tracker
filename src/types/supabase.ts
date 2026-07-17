@@ -586,6 +586,7 @@ export interface Database {
           verification_status: string
           evidence_source: string
           notes: string
+          assessed_by_name: string
           added_by_user_id: string | null
           verified_by_user_id: string | null
           verified_at: string | null
@@ -600,6 +601,7 @@ export interface Database {
           verification_status?: string
           evidence_source?: string
           notes?: string
+          assessed_by_name?: string
           added_by_user_id?: string | null
           verified_by_user_id?: string | null
           verified_at?: string | null

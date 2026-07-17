@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { CommunicationModuleNav } from '@/components/placement/CommunicationModuleNav'
@@ -12,14 +12,9 @@ import {
   PlacementSectionCard,
   PlacementSelect,
 } from '@/components/placement/PlacementUi'
-import { listStudents } from '@/api/placement/students'
+import { listStudents, getStudent } from '@/api/placement/students'
+import { createCommunicationEvaluation } from '@/api/placement/communicationEvaluations'
 import {
-  getLatestEvaluationForStudent,
-  saveStudentCommunicationEvaluation,
-  createCommunicationEvaluation,
-} from '@/api/placement/communicationEvaluations'
-import {
-  ALL_CRITERIA_KEYS,
   COMMUNICATION_SECTIONS,
   SCORE_OPTIONS,
   calculateEvaluationTotals,
@@ -40,6 +35,7 @@ export function CommunicationEvaluationFormPage() {
 
   const [scores, setScores] = useState<Record<CriteriaKey, number>>(emptyScores())
   const [notes, setNotes] = useState('')
+  const [trainerName, setTrainerName] = useState(user?.email ?? '')
   const [selectedStudentId, setSelectedStudentId] = useState(studentProfileId || '')
   const [students, setStudents] = useState<Array<{ id: string; label: string }>>([])
   const [studentLabel, setStudentLabel] = useState('')
@@ -56,6 +52,12 @@ export function CommunicationEvaluationFormPage() {
   }, [scores])
 
   useEffect(() => {
+    if (user?.email && !trainerName) {
+      setTrainerName(user.email)
+    }
+  }, [user?.email, trainerName])
+
+  useEffect(() => {
     const boot = async () => {
       setLoading(true)
       setError(null)
@@ -69,24 +71,22 @@ export function CommunicationEvaluationFormPage() {
             })),
           )
         }
-        const id = studentProfileId || selectedStudentId
-        if (id) {
-          const evaluation = await getLatestEvaluationForStudent(id)
-          if (evaluation) {
-            const next = emptyScores()
-            for (const key of ALL_CRITERIA_KEYS) {
-              next[key] = Number(evaluation[key] ?? 0)
-            }
-            setScores(next)
-            setNotes(evaluation.notes || '')
-            setStudentLabel(`${evaluation.student_name} (${evaluation.roll_number})`)
+        if (studentProfileId) {
+          const student = await getStudent(studentProfileId)
+          if (student) {
+            setStudentLabel(`${student.full_name} (${student.roll_number})`)
+            setSelectedStudentId(student.id)
           }
         }
+        // Always start a blank interview form so each save is a new evaluation
+        // with its own trainer/interviewer name and scores.
+        setScores(emptyScores())
+        setNotes('')
       } catch (e) {
         const message =
           e && typeof e === 'object' && 'message' in e
             ? String((e as { message: unknown }).message)
-            : 'Failed to load evaluation'
+            : 'Failed to load evaluation form'
         setError(message)
       } finally {
         setLoading(false)
@@ -95,7 +95,7 @@ export function CommunicationEvaluationFormPage() {
     void boot()
   }, [studentProfileId, isNew, canManage])
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = async (e: FormEvent) => {
     e.preventDefault()
     if (!canManage) return
     const targetId = studentProfileId || selectedStudentId
@@ -103,23 +103,32 @@ export function CommunicationEvaluationFormPage() {
       setError('Select a student')
       return
     }
+    const trimmedTrainer = trainerName.trim()
+    if (!trimmedTrainer) {
+      setError('Enter the trainer / interviewer name')
+      return
+    }
     setSaving(true)
     setError(null)
     try {
-      const payload = {
+      // Always INSERT a new evaluation so different interviewers and scores are kept.
+      await createCommunicationEvaluation({
+        studentProfileId: targetId,
         scores,
         notes,
         evaluatorId: user?.id,
-        evaluatorName: user?.email ?? '',
+        evaluatorName: trimmedTrainer,
         evaluatorRole: placementRole ?? '',
-      }
-      if (studentProfileId) {
-        await saveStudentCommunicationEvaluation(targetId, payload)
-      } else {
-        await createCommunicationEvaluation({ studentProfileId: targetId, ...payload })
-      }
+      })
       if (base) {
-        void navigate({ to: `${base}/communication/students` as '/admin/placement/communication/students' })
+        if (studentProfileId) {
+          void navigate({
+            to: `${base}/students/$id` as '/admin/placement/students/$id',
+            params: { id: studentProfileId },
+          })
+        } else {
+          void navigate({ to: `${base}/communication/students` as '/admin/placement/communication/students' })
+        }
       }
     } catch (err) {
       const message =
@@ -140,11 +149,13 @@ export function CommunicationEvaluationFormPage() {
   }
 
   return (
-    <PlacementShell title={isNew ? 'New communication evaluation' : 'Communication evaluation'}>
+    <PlacementShell title="New communication evaluation">
       <PlacementPageHeader
-        title={isNew ? 'New evaluation' : canManage ? 'Edit evaluation' : 'View evaluation'}
+        title="New evaluation"
         description={
-          studentLabel || 'Score each criterion from 0 (Not Observed) to 10 (Excellent). Total out of 250.'
+          studentLabel
+            ? `${studentLabel} — enter trainer name and scores for this interview.`
+            : 'Score each criterion from 0 (Not Observed) to 10 (Excellent). Total out of 250. Each save creates a new interview record.'
         }
         actions={
           base ? (
@@ -181,6 +192,22 @@ export function CommunicationEvaluationFormPage() {
                 </PlacementField>
               </PlacementSectionCard>
             ) : null}
+
+            <PlacementSectionCard title="Trainer / Interviewer">
+              <PlacementField label="Trainer or interviewer name">
+                <input
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                  value={trainerName}
+                  disabled={!canManage}
+                  onChange={(e) => setTrainerName(e.target.value)}
+                  placeholder="Type the trainer or interviewer name"
+                  required
+                />
+              </PlacementField>
+              <p className="mt-2 text-[12px] text-muted-foreground">
+                Saved with this interview. If the student is evaluated again by someone else, enter their name on a new evaluation — both will appear on the admin/faculty student profile.
+              </p>
+            </PlacementSectionCard>
 
             {COMMUNICATION_SECTIONS.map((section) => {
               const sectionTotal = section.fields.reduce(
@@ -243,7 +270,7 @@ export function CommunicationEvaluationFormPage() {
               </PlacementField>
               {canManage ? (
                 <Button type="submit" disabled={saving} className="mt-4">
-                  {saving ? 'Saving…' : 'Save evaluation'}
+                  {saving ? 'Saving…' : 'Save interview'}
                 </Button>
               ) : null}
             </PlacementSectionCard>

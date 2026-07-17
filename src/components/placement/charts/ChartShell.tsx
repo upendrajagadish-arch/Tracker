@@ -62,7 +62,7 @@ export function ChartPanel({
         aria-hidden
         className="pointer-events-none absolute -right-16 -top-20 size-44 rounded-full bg-[#D27918]/8 blur-3xl"
       />
-      <CardContent className="relative pt-1">
+      <CardContent className="relative flex h-full flex-col pt-1">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h3 className="font-heading text-[15px] font-semibold tracking-tight text-foreground">

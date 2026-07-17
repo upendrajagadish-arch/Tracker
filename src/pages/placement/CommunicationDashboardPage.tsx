@@ -14,9 +14,7 @@ import {
 } from '@/components/placement/PlacementUi'
 import {
   BADGE_CHART_COLORS,
-  LuxuryBarChart,
   LuxuryDonutChart,
-  LuxuryKpiStrip,
 } from '@/components/placement/charts'
 import {
   exportCommunicationBadgeStudents,
@@ -33,7 +31,6 @@ import {
 } from '@/lib/communicationBadge'
 import { canViewCommunicationModule } from '@/lib/placementNavigation'
 import { useAuth } from '@/hooks/useAuth'
-import { cn } from '@/lib/utils'
 
 const BADGE_CARDS: CommunicationBadge[] = ['gold', 'silver', 'bronze']
 
@@ -130,23 +127,33 @@ export function CommunicationDashboardPage() {
     bronze: { count: summary?.bronzeCount ?? 0, percent: summary?.bronzePercent ?? 0 },
   }
 
-  const badgeDonut = BADGE_CARDS.map((badge) => ({
-    name: COMMUNICATION_BADGE_LABELS[badge],
-    value: counts[badge].count,
-    color: BADGE_CHART_COLORS[badge],
-  }))
+  const filteredTotal = summary?.filteredTotal ?? 0
 
-  const badgeBars = BADGE_CARDS.map((badge) => ({
-    name: COMMUNICATION_BADGE_LABELS[badge],
-    value: counts[badge].percent,
-    color: BADGE_CHART_COLORS[badge],
+  const badgeDonuts = BADGE_CARDS.map((badge) => ({
+    badge,
+    data: [
+      {
+        name: COMMUNICATION_BADGE_LABELS[badge],
+        value: counts[badge].count,
+        color: BADGE_CHART_COLORS[badge],
+      },
+      {
+        name: 'Others',
+        value: Math.max(0, filteredTotal - counts[badge].count),
+        color: '#2B3139',
+      },
+    ],
   }))
 
   return (
     <PlacementShell title="Communication Dashboard">
       <PlacementPageHeader
         title="Communication Dashboard"
-        description="Luxury Gold / Silver / Bronze analytics for Communication Evaluation."
+        description={
+          loading
+            ? 'Gold / Silver / Bronze analytics for Communication Evaluation.'
+            : `${filteredTotal} evaluated students · Gold / Silver / Bronze performance breakdown.`
+        }
         actions={
           canView ? (
             <Button type="button" variant="outline" size="sm" onClick={() => void handleDownloadAll()}>
@@ -215,71 +222,37 @@ export function CommunicationDashboardPage() {
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : (
-            <>
-              <LuxuryKpiStrip
-                items={[
-                  { label: 'Filtered total', value: summary?.filteredTotal ?? 0 },
-                  { label: 'Gold %', value: `${summary?.goldPercent ?? 0}%` },
-                  { label: 'Silver %', value: `${summary?.silverPercent ?? 0}%` },
-                  { label: 'Bronze %', value: `${summary?.bronzePercent ?? 0}%` },
-                ]}
-              />
-
-              <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-3">
-                {BADGE_CARDS.map((badge) => (
-                  <button
-                    key={badge}
-                    type="button"
-                    onClick={() => openBadge(badge)}
-                    className={cn(
-                      'rounded-card border border-soft bg-gradient-to-br from-card via-card to-[#D27918]/[0.08] p-5 text-left shadow-[0_0_0_1px_rgba(210,121,24,0.06)] transition-colors hover:border-binance/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]/40',
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-[13px] font-semibold uppercase tracking-wide text-secondary">
-                        {COMMUNICATION_BADGE_EMOJI[badge]} {COMMUNICATION_BADGE_LABELS[badge]}
-                      </p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                        onClick={(e) => void handleDownloadBadge(badge, e)}
-                      >
-                        ↓
-                      </Button>
-                    </div>
-                    <p className="tnum mt-3 text-[36px] font-bold tracking-tight text-binance">
-                      {counts[badge].count}
-                    </p>
-                    <p className="mt-1 text-sm text-secondary">
-                      {counts[badge].count} Students · {counts[badge].percent}%
-                    </p>
-                  </button>
-                ))}
-              </div>
-
-              <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-3 md:items-stretch">
+              {badgeDonuts.map(({ badge, data }) => (
                 <LuxuryDonutChart
-                  title="Badge distribution"
-                  subtitle="Share of evaluated students by Gold / Silver / Bronze"
-                  data={badgeDonut}
-                  centerLabel="Cohort"
-                  centerValue={summary?.filteredTotal ?? 0}
+                  key={badge}
+                  className="h-full"
+                  title={`${COMMUNICATION_BADGE_EMOJI[badge]} ${COMMUNICATION_BADGE_LABELS[badge]}`}
+                  subtitle={`${counts[badge].count} Students · ${counts[badge].percent}% of cohort`}
+                  data={data}
+                  height={240}
+                  hideLegend
+                  centerValue={`${counts[badge].percent}%`}
+                  centerLabel={`${counts[badge].count} Students`}
                   onSliceClick={(name) => {
-                    const badge = BADGE_CARDS.find(
-                      (b) => COMMUNICATION_BADGE_LABELS[b].toLowerCase() === name.toLowerCase(),
-                    )
-                    if (badge) openBadge(badge)
+                    if (name.toLowerCase() === COMMUNICATION_BADGE_LABELS[badge].toLowerCase()) {
+                      openBadge(badge)
+                    }
                   }}
+                  actions={
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      onClick={(e) => void handleDownloadBadge(badge, e)}
+                    >
+                      ↓ Export
+                    </Button>
+                  }
                 />
-                <LuxuryBarChart
-                  title="Badge percentage mix"
-                  subtitle="Percent of filtered cohort in each badge"
-                  data={badgeBars}
-                />
-              </div>
-            </>
+              ))}
+            </div>
           )}
         </PlacementPageStack>
       )}

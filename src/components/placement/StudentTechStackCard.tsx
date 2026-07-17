@@ -73,7 +73,7 @@ function verificationTone(status: string): 'green' | 'blue' | 'amber' | 'muted' 
 }
 
 export function StudentTechStackCard({ studentProfileId, onChanged }: StudentTechStackCardProps) {
-  const { placementRole } = useAuth()
+  const { placementRole, user } = useAuth()
   const canManage = canManageStudentTechStack(placementRole)
   const canVerify = canVerifyTechSkills(placementRole)
   const [skills, setSkills] = useState<StudentTechSkillWithMeta[]>([])
@@ -89,6 +89,7 @@ export function StudentTechStackCard({ studentProfileId, onChanged }: StudentTec
     verificationStatus: 'SELF_DECLARED' as VerificationStatus,
     evidenceSource: '',
     notes: '',
+    assessedByName: user?.email ?? '',
   })
   const [roleForm, setRoleForm] = useState<{
     roleName: string
@@ -144,11 +145,21 @@ export function StudentTechStackCard({ studentProfileId, onChanged }: StudentTec
 
   const handleAddSkill = async () => {
     if (!skillForm.techSkillId) return
+    if (!skillForm.assessedByName.trim()) {
+      setError('Enter the trainer / interviewer name')
+      return
+    }
     setSaving(true)
     setError(null)
     try {
       await addStudentSkill(studentProfileId, skillForm)
-      setSkillForm((form) => ({ ...form, techSkillId: '', notes: '', evidenceSource: '' }))
+      setSkillForm((form) => ({
+        ...form,
+        techSkillId: '',
+        notes: '',
+        evidenceSource: '',
+        assessedByName: form.assessedByName || user?.email || '',
+      }))
       await refreshAfterChange('Skill saved.')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save skill')
@@ -297,6 +308,13 @@ export function StudentTechStackCard({ studentProfileId, onChanged }: StudentTec
                           placeholder="Evidence source"
                           onChange={(e) => void handleUpdateSkill(row, { evidenceSource: e.target.value })}
                         />
+                        <Input
+                          className="h-8 border-border bg-card text-xs sm:col-span-3"
+                          value={row.assessed_by_name ?? ''}
+                          disabled={!canManage || saving}
+                          placeholder="Trainer / interviewer name"
+                          onChange={(e) => void handleUpdateSkill(row, { assessedByName: e.target.value })}
+                        />
                       </div>
                       <textarea
                         className="mt-2 min-h-16 w-full rounded-lg border border-border bg-card px-3 py-2 text-xs"
@@ -306,7 +324,8 @@ export function StudentTechStackCard({ studentProfileId, onChanged }: StudentTec
                         onChange={(e) => void handleUpdateSkill(row, { notes: e.target.value })}
                       />
                       <p className="mt-2 text-[11px] text-muted-foreground">
-                        Added by {row.added_by?.full_name ?? '—'}
+                        Trainer / interviewer: {row.assessed_by_name || '—'}
+                        {' · '}Added by {row.added_by?.full_name ?? '—'}
                         {row.verified_by ? ` · Verified by ${row.verified_by.full_name}` : ''}
                         {row.verified_at ? ` · ${new Date(row.verified_at).toLocaleDateString()}` : ''}
                       </p>
@@ -334,6 +353,12 @@ export function StudentTechStackCard({ studentProfileId, onChanged }: StudentTec
                   {VERIFICATION_STATUSES.map((status) => <option key={status} value={status}>{pretty(status)}</option>)}
                 </select>
                 <Input className="h-8 border-border bg-card" placeholder="Evidence source" value={skillForm.evidenceSource} onChange={(e) => setSkillForm((form) => ({ ...form, evidenceSource: e.target.value }))} />
+                <Input
+                  className="h-8 border-border bg-card"
+                  placeholder="Trainer / interviewer name"
+                  value={skillForm.assessedByName}
+                  onChange={(e) => setSkillForm((form) => ({ ...form, assessedByName: e.target.value }))}
+                />
                 <textarea className="min-h-16 rounded-lg border border-border bg-card px-3 py-2 text-sm md:col-span-2" placeholder="Notes" value={skillForm.notes} onChange={(e) => setSkillForm((form) => ({ ...form, notes: e.target.value }))} />
                 <Button size="sm" className="md:w-fit" disabled={saving || !skillForm.techSkillId} onClick={() => void handleAddSkill()}>
                   {saving ? 'Saving…' : 'Add skill'}

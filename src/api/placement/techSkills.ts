@@ -63,6 +63,7 @@ export interface AddStudentSkillInput {
   verificationStatus?: VerificationStatus
   evidenceSource?: string
   notes?: string
+  assessedByName?: string
 }
 
 export interface UpdateStudentSkillInput {
@@ -70,6 +71,7 @@ export interface UpdateStudentSkillInput {
   verificationStatus?: VerificationStatus
   evidenceSource?: string
   notes?: string
+  assessedByName?: string
 }
 
 export interface UpsertRoleInterestInput {
@@ -210,6 +212,7 @@ export async function addStudentSkill(
       verification_status: verificationStatus,
       evidence_source: input.evidenceSource?.trim() ?? '',
       notes: input.notes?.trim() ?? '',
+      assessed_by_name: input.assessedByName?.trim() ?? '',
       added_by_user_id: auth.user?.id ?? null,
       verified_by_user_id: verified ? auth.user?.id ?? null : null,
       verified_at: verified ? new Date().toISOString() : null,
@@ -237,6 +240,7 @@ export async function updateStudentSkill(skillRowId: string, input: UpdateStuden
   if (input.verificationStatus !== undefined) update.verification_status = normalizeVerification(input.verificationStatus)
   if (input.evidenceSource !== undefined) update.evidence_source = input.evidenceSource.trim()
   if (input.notes !== undefined) update.notes = input.notes.trim()
+  if (input.assessedByName !== undefined) update.assessed_by_name = input.assessedByName.trim()
 
   const { data, error } = await client
     .from('student_tech_skills')

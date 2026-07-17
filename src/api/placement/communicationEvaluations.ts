@@ -167,6 +167,19 @@ export async function getLatestEvaluationForStudent(studentProfileId: string) {
   return data
 }
 
+/** All active communication evaluations for a student (newest first). Staff profile history. */
+export async function listEvaluationsForStudent(studentProfileId: string) {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('communication_evaluations')
+    .select('*')
+    .eq('student_profile_id', studentProfileId)
+    .eq('is_active', true)
+    .order('evaluation_date', { ascending: false })
+  if (error) throw formatError(error)
+  return (data ?? []) as CommunicationEvaluationRow[]
+}
+
 export async function getLatestEvaluationByRollNumber(rollNumber: string) {
   const client = requireSupabase()
   const { data, error } = await client

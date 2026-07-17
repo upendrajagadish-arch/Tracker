@@ -27,7 +27,7 @@ import {
   type StudentCodingSnapshotRow,
 } from '@/api/placement/studentCodingProfile'
 import { listStudentSkills, type StudentTechSkillWithMeta } from '@/api/placement/techSkills'
-import { getLatestEvaluationForStudent, type CommunicationEvaluationRow } from '@/api/placement/communicationEvaluations'
+import { getLatestEvaluationForStudent, listEvaluationsForStudent, type CommunicationEvaluationRow } from '@/api/placement/communicationEvaluations'
 import {
   classifyCommunicationBadge,
   formatCommunicationBadge,
@@ -96,6 +96,7 @@ export function StudentDetailPage() {
   const [student, setStudent] = useState<Awaited<ReturnType<typeof getStudent>>>(null)
   const [techSkills, setTechSkills] = useState<StudentTechSkillWithMeta[]>([])
   const [commEval, setCommEval] = useState<CommunicationEvaluationRow | null>(null)
+  const [commHistory, setCommHistory] = useState<CommunicationEvaluationRow[]>([])
   const [aptitude, setAptitude] = useState<AptitudeScoreRow | null>(null)
   const [verbal, setVerbal] = useState<VerbalScoreRow | null>(null)
   const [codeNow, setCodeNow] = useState<CodeNowProfileRow | null>(null)
@@ -115,11 +116,12 @@ export function StudentDetailPage() {
       if (!data) setError('Student not found')
       setStudent(data)
       if (data) {
-        const [skills, existingSnapshot, evaluation, apt, verb, cn, cnChallenges] =
+        const [skills, existingSnapshot, evaluation, evaluations, apt, verb, cn, cnChallenges] =
           await Promise.all([
             listStudentSkills(data.id),
             getStudentCodingSnapshot(data.id).catch(() => null),
             getLatestEvaluationForStudent(data.id).catch(() => null),
+            listEvaluationsForStudent(data.id).catch(() => []),
             getLatestAptitudeScore(data.id).catch(() => null),
             getLatestVerbalScore(data.id).catch(() => null),
             getCodeNowProfile(data.id).catch(() => null),
@@ -128,6 +130,7 @@ export function StudentDetailPage() {
         setTechSkills(skills)
         setSnapshot(existingSnapshot)
         setCommEval(evaluation)
+        setCommHistory(evaluations)
         setAptitude(apt)
         setVerbal(verb)
         setCodeNow(cn)
@@ -328,57 +331,97 @@ export function StudentDetailPage() {
                         href={`${base}/communication/$studentProfileId/edit`}
                         params={{ studentProfileId: student.id }}
                       >
-                        {commEval ? 'Edit evaluation' : 'Evaluate'}
+                        New evaluation
                       </PlacementLink>
                     </Button>
                   ) : null
                 }
               >
                 {commEval || student.communication_score != null ? (
-                  <dl>
-                    <DetailRow label="Communication Score">
-                      {commEval
-                        ? `${commEval.total_score}/250`
-                        : student.communication_score != null
-                          ? `${totalScoreFromPercentage(Number(student.communication_score)) ?? '—'}/250`
+                  <div className="space-y-4">
+                    <dl>
+                      <DetailRow label="Latest score">
+                        {commEval
+                          ? `${commEval.total_score}/250`
+                          : student.communication_score != null
+                            ? `${totalScoreFromPercentage(Number(student.communication_score)) ?? '—'}/250`
+                            : '—'}
+                      </DetailRow>
+                      <DetailRow label="Percentage">
+                        {commEval?.percentage ?? student.communication_score ?? '—'}%
+                      </DetailRow>
+                      <DetailRow label="Grade">
+                        {commEval?.grade ?? student.communication_grade ?? '—'}
+                      </DetailRow>
+                      <DetailRow label="Badge">
+                        {formatCommunicationBadge(
+                          classifyCommunicationBadge(
+                            commEval?.total_score ??
+                              totalScoreFromPercentage(
+                                student.communication_score != null
+                                  ? Number(student.communication_score)
+                                  : null,
+                              ),
+                          ),
+                        )}
+                      </DetailRow>
+                      <DetailRow label="Section totals">
+                        Proficiency {commEval?.communication_proficiency_total ?? '—'}/80 ·
+                        Presentation {commEval?.presentation_skills_total ?? '—'}/60 ·
+                        Behavioural {commEval?.behavioural_skills_total ?? '—'}/110
+                      </DetailRow>
+                      <DetailRow label="Last evaluated">
+                        {(commEval?.evaluation_date || student.last_communication_evaluation_at)
+                          ? new Date(
+                              commEval?.evaluation_date ||
+                                student.last_communication_evaluation_at ||
+                                '',
+                            ).toLocaleDateString()
                           : '—'}
-                    </DetailRow>
-                    <DetailRow label="Percentage">
-                      {commEval?.percentage ?? student.communication_score ?? '—'}%
-                    </DetailRow>
-                    <DetailRow label="Grade">
-                      {commEval?.grade ?? student.communication_grade ?? '—'}
-                    </DetailRow>
-                    <DetailRow label="Badge">
-                      {formatCommunicationBadge(
-                        classifyCommunicationBadge(
-                          commEval?.total_score ??
-                            totalScoreFromPercentage(
-                              student.communication_score != null
-                                ? Number(student.communication_score)
-                                : null,
-                            ),
-                        ),
-                      )}
-                    </DetailRow>
-                    <DetailRow label="Section totals">
-                      Proficiency {commEval?.communication_proficiency_total ?? '—'}/80 ·
-                      Presentation {commEval?.presentation_skills_total ?? '—'}/60 ·
-                      Behavioural {commEval?.behavioural_skills_total ?? '—'}/110
-                    </DetailRow>
-                    <DetailRow label="Last evaluated">
-                      {(commEval?.evaluation_date || student.last_communication_evaluation_at)
-                        ? new Date(
-                            commEval?.evaluation_date ||
-                              student.last_communication_evaluation_at ||
-                              '',
-                          ).toLocaleDateString()
-                        : '—'}
-                    </DetailRow>
-                    <DetailRow label="Evaluator">
-                      {commEval?.evaluator_name || commEval?.evaluator_role || '—'}
-                    </DetailRow>
-                  </dl>
+                      </DetailRow>
+                      <DetailRow label="Latest trainer / interviewer">
+                        {commEval?.evaluator_name || '—'}
+                      </DetailRow>
+                    </dl>
+
+                    {commHistory.length > 0 ? (
+                      <div>
+                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                          Interview history (staff only)
+                        </p>
+                        <div className="overflow-x-auto rounded-lg border border-border">
+                          <table className="w-full min-w-[520px] text-left text-sm">
+                            <thead className="border-b border-border bg-elevated/40 text-[11px] uppercase tracking-wide text-muted-foreground">
+                              <tr>
+                                <th className="px-3 py-2 font-medium">Date</th>
+                                <th className="px-3 py-2 font-medium">Trainer / Interviewer</th>
+                                <th className="px-3 py-2 font-medium">Score</th>
+                                <th className="px-3 py-2 font-medium">%</th>
+                                <th className="px-3 py-2 font-medium">Grade</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {commHistory.map((row) => (
+                                <tr key={row.id} className="border-b border-border/70 last:border-0">
+                                  <td className="px-3 py-2 text-secondary">
+                                    {row.evaluation_date
+                                      ? new Date(row.evaluation_date).toLocaleDateString()
+                                      : '—'}
+                                  </td>
+                                  <td className="px-3 py-2 font-medium text-foreground">
+                                    {row.evaluator_name || '—'}
+                                  </td>
+                                  <td className="tnum px-3 py-2">{row.total_score}/250</td>
+                                  <td className="tnum px-3 py-2">{row.percentage}%</td>
+                                  <td className="px-3 py-2">{row.grade}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">Not Available</p>
                 )}

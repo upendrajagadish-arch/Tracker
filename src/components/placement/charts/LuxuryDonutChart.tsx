@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Cell, Pie, PieChart, Sector, Tooltip } from 'recharts'
 import { ChartPanel, MeasuredChart } from '@/components/placement/charts/ChartShell'
 import {
@@ -103,6 +103,8 @@ export function LuxuryDonutChart({
   centerValue,
   className,
   onSliceClick,
+  actions,
+  hideLegend = false,
 }: {
   title: string
   subtitle?: string
@@ -112,6 +114,8 @@ export function LuxuryDonutChart({
   centerValue?: string | number
   className?: string
   onSliceClick?: (name: string) => void
+  actions?: ReactNode
+  hideLegend?: boolean
 }) {
   const colored = withChartColors(data.filter((d) => Number(d.value) > 0))
   const total = chartTotal(colored)
@@ -122,12 +126,17 @@ export function LuxuryDonutChart({
   const displayLabel = activeRow ? activeRow.name : centerLabel
 
   return (
-    <ChartPanel title={title} subtitle={subtitle} className={className}>
+    <ChartPanel title={title} subtitle={subtitle} className={className} actions={actions}>
       {colored.length === 0 ? (
         <p className="py-16 text-center text-sm text-secondary">No data to chart</p>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-          <MeasuredChart height={height}>
+        <div
+          className={cn(
+            'grid gap-4 lg:items-center',
+            hideLegend ? 'grid-cols-1 place-items-center' : 'lg:grid-cols-[1.2fr_0.8fr]',
+          )}
+        >
+          <MeasuredChart height={height} className={hideLegend ? 'w-full max-w-[280px]' : undefined}>
             {(width) => (
               <div className="relative">
                 <PieChart width={width} height={height}>
@@ -185,6 +194,7 @@ export function LuxuryDonutChart({
             )}
           </MeasuredChart>
 
+          {hideLegend ? null : (
           <ul className="space-y-2.5">
             {colored.map((row, index) => {
               const pct = total ? Math.round((Number(row.value) / total) * 100) : 0
@@ -227,6 +237,7 @@ export function LuxuryDonutChart({
               )
             })}
           </ul>
+          )}
         </div>
       )}
     </ChartPanel>
