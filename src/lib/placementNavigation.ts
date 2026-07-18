@@ -53,6 +53,10 @@ export function getPlacementNavLinks(role: PlacementRole | null | undefined): Pl
     links.push({ to: `${base}`, label: 'Dashboard', exact: true })
   }
 
+  if (role === 'admin' || role === 'tpo' || role === 'faculty' || role === 'interviewer') {
+    links.push({ to: `${base}/operations`, label: 'Placement Operations' })
+  }
+
   if (canViewStudents(role)) {
     links.push({
       to: `${base}/students`,
@@ -64,38 +68,12 @@ export function getPlacementNavLinks(role: PlacementRole | null | undefined): Pl
     links.push({ to: `${base}/student-update-campaigns`, label: 'Student Update Campaigns' })
   }
 
-  if (role === 'admin' || role === 'tpo') {
-    links.push({ to: `${base}/resumes`, label: 'Resumes' })
-  }
-
   if (canViewTechStack(role)) {
     links.push({ to: `${base}/tech-stack`, label: 'Tech Stack' })
   }
 
-  if (hasPermission(role, 'readiness:view') || role === 'admin' || role === 'tpo') {
-    links.push({ to: `${base}/readiness`, label: 'Readiness' })
-  }
-
   if (hasPermission(role, 'readiness:view') || role === 'admin' || role === 'tpo' || role === 'faculty') {
     links.push({ to: `${base}/communication`, label: 'Communication Evaluation' })
-  }
-
-  if (hasPermission(role, 'readiness:view') || role === 'admin' || role === 'tpo' || role === 'faculty') {
-    links.push({ to: `${base}/aptitude`, label: 'Aptitude' })
-    links.push({ to: `${base}/verbal`, label: 'Verbal' })
-    links.push({ to: `${base}/codenow`, label: 'CodeNow' })
-  }
-
-  if (role === 'admin' || role === 'tpo') {
-    links.push({ to: `${base}/requirements`, label: 'Requirements' })
-  }
-
-  if (role === 'admin' || role === 'tpo' || role === 'faculty') {
-    links.push({ to: `${base}/shared-students`, label: 'Shared Students' })
-  }
-
-  if (canExportResumeBooks(role) || (role === 'faculty' && canViewStudents(role))) {
-    links.push({ to: `${base}/resume-books`, label: 'Resume Books' })
   }
 
   if (canViewReports(role)) {

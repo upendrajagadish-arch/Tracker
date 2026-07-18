@@ -93,7 +93,8 @@ export interface CommunicationBadgeCsvRow {
 
 export function badgeStudentsToCsv(rows: CommunicationBadgeCsvRow[]): string {
   const escape = (value: unknown) => {
-    const s = String(value ?? '')
+    const raw = String(value ?? '')
+    const s = /^[=+\-@]/.test(raw) ? `'${raw}` : raw
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
   }
   const header = [

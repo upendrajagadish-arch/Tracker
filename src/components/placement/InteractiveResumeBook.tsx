@@ -73,7 +73,7 @@ function StudentSpread({
 
   const showLinks = !isPublic || shareSettings?.allowExternalLinks !== false
   const showResume = isPublic
-    ? Boolean(shareSettings?.allowResumeDownload && student.resumeId)
+    ? Boolean(shareSettings?.allowResumeDownload && student.resumeDownloadUrl)
     : Boolean(student.resumeDownloadUrl)
 
   return (
@@ -385,7 +385,13 @@ export function InteractiveResumeBook({
   }, [isOpen, goNext, goPrev, closeBook])
 
   const handleDownload = (student: ResumeBookStudent) => {
-    onDownloadResume?.(student)
+    if (onDownloadResume) {
+      onDownloadResume(student)
+      return
+    }
+    if (student.resumeDownloadUrl) {
+      window.open(student.resumeDownloadUrl, '_blank', 'noopener,noreferrer')
+    }
   }
 
   const currentStudent = cache[currentIndex]

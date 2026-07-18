@@ -24,7 +24,7 @@ function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
     <thead
       data-slot="table-header"
       className={cn(
-        "sticky top-0 z-10 bg-[#181A20] [&_tr]:border-b [&_tr]:border-soft",
+        "sticky top-0 z-10 bg-elevated [&_tr]:border-b [&_tr]:border-soft",
         className
       )}
       {...props}
@@ -47,7 +47,7 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
     <tfoot
       data-slot="table-footer"
       className={cn(
-        "border-t border-soft bg-[#181A20] font-semibold [&>tr]:last:border-b-0",
+        "border-t border-soft bg-elevated font-semibold [&>tr]:last:border-b-0",
         className
       )}
       {...props}

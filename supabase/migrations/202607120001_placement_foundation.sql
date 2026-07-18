@@ -506,9 +506,9 @@ begin
   select coalesce(jsonb_agg(
     case
       when (settings->>'allowExternalLinks')::boolean = false then
-        (s.snapshot - 'linkedinUrl' - 'githubUrl' - 'portfolioUrl' - 'email' - 'phone' - 'resumeDownloadUrl' - 'filePath')
+        (s.snapshot - 'linkedinUrl' - 'githubUrl' - 'portfolioUrl' - 'email' - 'phone' - 'resumeDownloadUrl' - 'filePath' - 'resumeId' - 'resumeStoragePath')
       else
-        (s.snapshot - 'email' - 'phone' - 'resumeDownloadUrl' - 'filePath')
+        (s.snapshot - 'email' - 'phone' - 'resumeDownloadUrl' - 'filePath' - 'resumeId' - 'resumeStoragePath')
     end
     order by s.order_index
   ), '[]'::jsonb) into rows

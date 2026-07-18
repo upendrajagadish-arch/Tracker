@@ -45,12 +45,18 @@ if (!url || !serviceKey) {
   process.exit(1)
 }
 
-const STAFF_PASSWORD = 'RCE_T&P'
+const STAFF_PASSWORD = env.PLACEMENT_STAFF_PASSWORD
+
+if (!STAFF_PASSWORD || STAFF_PASSWORD.length < 12) {
+  console.error('Missing or weak PLACEMENT_STAFF_PASSWORD (minimum 12 characters).')
+  process.exit(1)
+}
 
 const STAFF_USERS = [
   { email: 'admin@rcee.ac.in', fullName: 'RCEE Admin', role: 'admin' },
   { email: 'tpo@rcee.ac.in', fullName: 'RCEE TPO', role: 'tpo' },
   { email: 'faculty@rcee.ac.in', fullName: 'RCEE Faculty', role: 'faculty' },
+  { email: 'interviewer@rcee.ac.in', fullName: 'RCEE Interviewer', role: 'interviewer' },
 ]
 
 const RETIRED_EMAILS = [
@@ -153,7 +159,7 @@ for (const staff of STAFF_USERS) {
   await ensureUser(staff)
 }
 
-console.log('\nDone. Dedicated staff logins (password: RCE_T&P):')
+console.log('\nDone. Dedicated staff logins created with PLACEMENT_STAFF_PASSWORD:')
 for (const staff of STAFF_USERS) {
   console.log(`  ${staff.role.padEnd(8)} ${staff.email}`)
 }

@@ -1,10 +1,9 @@
-/** Dedicated placement staff accounts for RCEE. */
-export const STAFF_LOGIN_PASSWORD = 'RCE_T&P'
-
+/** Dedicated placement staff accounts for RCEE. Passwords are never stored in client code. */
 export const STAFF_LOGIN_ACCOUNTS = [
   { role: 'admin', email: 'admin@rcee.ac.in', fullName: 'RCEE Admin' },
   { role: 'tpo', email: 'tpo@rcee.ac.in', fullName: 'RCEE TPO' },
   { role: 'faculty', email: 'faculty@rcee.ac.in', fullName: 'RCEE Faculty' },
+  { role: 'interviewer', email: 'interviewer@rcee.ac.in', fullName: 'RCEE Interviewer' },
 ] as const
 
 const ALLOWED_STAFF_EMAILS = new Set(

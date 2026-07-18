@@ -54,13 +54,20 @@ Or the combined helper:
 npm run supabase:setup-hosted
 ```
 
-### Staff logins (password: `RCE_T&P`)
+### Staff logins
+
+Set a unique password of at least 12 characters before running the user setup:
+
+```powershell
+$env:PLACEMENT_STAFF_PASSWORD = "use-a-unique-password"
+```
 
 | Role | Email |
 |------|-------|
 | Admin | `admin@rcee.ac.in` |
 | TPO | `tpo@rcee.ac.in` |
 | Faculty | `faculty@rcee.ac.in` |
+| Interviewer | `interviewer@rcee.ac.in` |
 
 Only these dedicated RCEE accounts can sign in to the placement office portal.
 Legacy `*.tracker.local` demo accounts are retired by the setup script.

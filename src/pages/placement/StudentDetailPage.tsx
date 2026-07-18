@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from '@tanstack/react-router'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { PlacementLink } from '@/components/placement/PlacementLink'
@@ -111,7 +111,7 @@ export function StudentDetailPage() {
   const [downloadingPdf, setDownloadingPdf] = useState(false)
   const canShare = hasPermission(role, 'students:update')
 
-  const loadStudent = async () => {
+  const loadStudent = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -144,12 +144,11 @@ export function StudentDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
     void loadStudent()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id])
+  }, [loadStudent])
 
   const handleDownloadPdf = async () => {
     if (!student) return

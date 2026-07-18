@@ -1,182 +1,143 @@
-import { useCallback, useEffect, useState } from 'react'
-import { PlacementLink } from '@/components/placement/PlacementLink'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Download, FileSpreadsheet, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PlacementShell, usePlacementPaths } from '@/components/placement/PlacementShell'
 import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
 import {
   PlacementAlerts,
-  PlacementPageBody,
   PlacementPageStack,
+  PlacementSelect,
 } from '@/components/placement/PlacementUi'
 import { PlacementErrorAlert } from '@/components/placement/PlacementStates'
 import {
-  LuxuryAreaChart,
-  LuxuryBarChart,
-  LuxuryDonutChart,
-  LuxuryKpiStrip,
-} from '@/components/placement/charts'
-import { getManagementSummary } from '@/api/placement/reports'
-import { getTechStackDashboardStats } from '@/api/placement/techSkills'
+  PremiumDashboard,
+  PremiumDashboardSkeleton,
+} from '@/components/placement/dashboard/PremiumDashboard'
+import { getPremiumDashboard, type DashboardSnapshot } from '@/api/placement/premiumDashboard'
+import { exportDashboardPdf, exportDashboardXlsx } from '@/lib/dashboardExports'
+import { isSupabaseConfigured, requireSupabase } from '@/lib/supabase'
 
 export function PlacementDashboardPage() {
   const { base } = usePlacementPaths()
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [summary, setSummary] = useState<Awaited<ReturnType<typeof getManagementSummary>> | null>(null)
-  const [techStats, setTechStats] = useState<Awaited<ReturnType<typeof getTechStackDashboardStats>> | null>(null)
+  const [batch, setBatch] = useState('all')
+  const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null)
+  const requestSequence = useRef(0)
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (quiet = false) => {
+    const requestId = ++requestSequence.current
+    if (quiet) setRefreshing(true)
+    else setLoading(true)
     setError(null)
     try {
-      const [mgmt, tech] = await Promise.all([
-        getManagementSummary(),
-        getTechStackDashboardStats().catch(() => null),
-      ])
-      setSummary(mgmt)
-      setTechStats(tech)
+      const nextSnapshot = await getPremiumDashboard(batch)
+      if (requestId === requestSequence.current) setSnapshot(nextSnapshot)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load dashboard')
+      if (requestId === requestSequence.current) {
+        setError(e instanceof Error ? e.message : 'Failed to load dashboard')
+      }
     } finally {
-      setLoading(false)
+      if (requestId === requestSequence.current) {
+        setLoading(false)
+        setRefreshing(false)
+      }
     }
-  }, [])
+  }, [batch])
 
   useEffect(() => {
     void load()
   }, [load])
 
-  const pipelineDonut = summary
-    ? [
-        { name: 'Ready', value: summary.readyCount, color: '#0ECB81' },
-        { name: 'Placed', value: summary.placedCount, color: '#F0B90B' },
-        {
-          name: 'In pipeline',
-          value: Math.max(
-            0,
-            summary.activeStudents - summary.readyCount - summary.placedCount,
-          ),
-          color: '#3B82F6',
-        },
-      ]
-    : []
+  useEffect(() => {
+    if (!isSupabaseConfigured) return
+    const client = requireSupabase()
+    let timer = 0
+    const refresh = () => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => void load(true), 350)
+    }
+    const channel = client
+      .channel(`premium-dashboard-${batch}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'student_profiles' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'placement_events' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'company_share_links' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'communication_evaluations' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'student_tech_skills' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'student_coding_snapshots' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'aptitude_scores' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'verbal_scores' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'codenow_profiles' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'companies' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'audit_logs' }, refresh)
+      .subscribe()
+    return () => {
+      window.clearTimeout(timer)
+      void client.removeChannel(channel)
+    }
+  }, [batch, load])
 
-  const operationsBars = summary
-    ? [
-        { name: 'Active', value: summary.activeStudents },
-        { name: 'Eligible', value: summary.placementEligible },
-        { name: 'Ready', value: summary.readyCount },
-        { name: 'Placed', value: summary.placedCount },
-        { name: 'Pending resumes', value: summary.pendingResumes },
-      ]
-    : []
-
-  const readinessArea = summary
-    ? [
-        { name: 'Eligible', value: summary.placementEligible },
-        { name: 'Avg readiness', value: summary.averageReadiness },
-        { name: 'Ready', value: summary.readyCount },
-        { name: 'Placed', value: summary.placedCount },
-      ]
-    : []
-
-  const skillBars =
-    techStats?.topSkills.map((row) => ({
-      name: row.skill,
-      value: row.studentCount,
-    })) ?? []
-
-  const categoryDonut =
-    techStats?.categoryDistribution.map((row) => ({
-      name: row.category.replace(/_/g, ' '),
-      value: row.studentCount,
-    })) ?? []
+  const batchOptions = useMemo(() => {
+    const values = new Set(snapshot?.availableBatches ?? [])
+    values.add('2027')
+    values.add('2028')
+    return [...values].filter(Boolean).sort()
+  }, [snapshot?.availableBatches])
 
   return (
     <PlacementShell title="Dashboard">
       <PlacementPageHeader
         title="Placement Dashboard"
-        description="Luxury overview of students, readiness, resumes, and placement operations."
+        description="A live command center for student eligibility, placement progress, company engagement, and readiness."
         actions={
-          <>
-            <Button asChild variant="outline" size="sm">
-              <a href="/public/leaderboard" target="_blank" rel="noreferrer">
-                🏆 Hall of Fame
-              </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <PlacementSelect value={batch} onChange={setBatch} className="h-9 min-w-36">
+              <option value="all">All batches</option>
+              {batchOptions.map((value) => (
+                <option key={value} value={value}>{value} Batch</option>
+              ))}
+            </PlacementSelect>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={refreshing}
+              onClick={() => void load(true)}
+            >
+              <RefreshCw className={`size-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
             </Button>
-            {base ? (
-              <Button asChild variant="outline" size="sm">
-                <PlacementLink href={`${base}/students`}>Open student tracker</PlacementLink>
-              </Button>
-            ) : null}
-          </>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!snapshot}
+              onClick={() => snapshot && exportDashboardPdf(snapshot)}
+            >
+              <Download className="size-3.5" /> PDF
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={!snapshot}
+              onClick={() => {
+                if (snapshot) void exportDashboardXlsx(snapshot)
+              }}
+            >
+              <FileSpreadsheet className="size-3.5" /> Excel
+            </Button>
+          </div>
         }
       />
 
       <PlacementPageStack>
         <PlacementAlerts error={error} />
-
-        <PlacementPageBody loading={loading} loadingLabel="Loading dashboard…">
-          {summary ? (
-            <>
-              <LuxuryKpiStrip
-                items={[
-                  { label: 'Active students', value: summary.activeStudents },
-                  { label: 'Placement eligible', value: summary.placementEligible },
-                  { label: 'Average readiness', value: summary.averageReadiness },
-                  { label: 'Pending resumes', value: summary.pendingResumes, hint: 'Awaiting review' },
-                  { label: 'Ready students', value: summary.readyCount },
-                  { label: 'Placed students', value: summary.placedCount },
-                ]}
-                className="lg:grid-cols-3 xl:grid-cols-6"
-              />
-
-              <div className="grid gap-4 lg:grid-cols-2">
-                <LuxuryDonutChart
-                  title="Placement pipeline"
-                  subtitle="Ready · Placed · Remaining active cohort"
-                  data={pipelineDonut}
-                  centerLabel="Active"
-                  centerValue={summary.activeStudents}
-                />
-                <LuxuryBarChart
-                  title="Operations snapshot"
-                  subtitle="Key placement counts at a glance"
-                  data={operationsBars}
-                />
-              </div>
-
-              <LuxuryAreaChart
-                title="Readiness pulse"
-                subtitle="Eligible → readiness → ready → placed"
-                data={readinessArea}
-                color="#D27918"
-              />
-
-              {techStats ? (
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <LuxuryDonutChart
-                    title="Tech stack categories"
-                    subtitle="Students represented in each skill category"
-                    data={categoryDonut}
-                    centerLabel="With stack"
-                    centerValue={techStats.studentsWithTechStack}
-                  />
-                  <LuxuryBarChart
-                    title="Top skills"
-                    subtitle="Most declared skills across students"
-                    data={skillBars}
-                    layout="horizontal"
-                    height={320}
-                  />
-                </div>
-              ) : null}
-            </>
-          ) : null}
-        </PlacementPageBody>
+        {loading ? <PremiumDashboardSkeleton /> : snapshot ? <PremiumDashboard snapshot={snapshot} base={base} /> : null}
       </PlacementPageStack>
 
-      {!loading && !summary && !error ? (
+      {!loading && !snapshot && !error ? (
         <PlacementErrorAlert message="Dashboard data is unavailable." />
       ) : null}
     </PlacementShell>

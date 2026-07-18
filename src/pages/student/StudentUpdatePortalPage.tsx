@@ -62,39 +62,45 @@ function RegistrationFields({
   set,
   setPlatformHandle,
   setResumeFile,
+  fileInputKey = 0,
+  allowedFields,
 }: {
   form: RegistrationForm
   set: (key: keyof RegistrationForm, value: RegistrationForm[keyof RegistrationForm]) => void
   setPlatformHandle: (platform: Platform, value: string) => void
   setResumeFile: (file: File | null) => void
+  fileInputKey?: number
+  allowedFields?: string[]
 }) {
+  const fieldClass = (field: string, base = 'text-sm') =>
+    `${base} ${allowedFields?.length && !allowedFields.includes(field) ? 'hidden' : ''}`
   return (
     <>
-      <label className="text-sm">
+      <label className={fieldClass('email')}>
         <span className="text-muted-foreground">Roll number *</span>
         <Input className="mt-1 border-border bg-card" required value={form.rollNumber} onChange={(e) => set('rollNumber', e.target.value)} />
       </label>
-      <label className="text-sm">
+      <label className={fieldClass('phone')}>
         <span className="text-muted-foreground">Full name *</span>
         <Input className="mt-1 border-border bg-card" required value={form.fullName} onChange={(e) => set('fullName', e.target.value)} />
       </label>
-      <label className="text-sm">
+      <label className={fieldClass('branch')}>
         <span className="text-muted-foreground">Email</span>
         <Input type="email" className="mt-1 border-border bg-card" value={form.email} onChange={(e) => set('email', e.target.value)} />
       </label>
-      <label className="text-sm">
+      <label className={fieldClass('academic_batch')}>
         <span className="text-muted-foreground">Phone</span>
         <Input className="mt-1 border-border bg-card" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
       </label>
-      <label className="text-sm">
+      <label className={fieldClass('date_of_birth')}>
         <span className="text-muted-foreground">Branch</span>
         <Input className="mt-1 border-border bg-card" value={form.branch} onChange={(e) => set('branch', e.target.value)} />
       </label>
-      <label className="text-sm">
+      <label className={fieldClass('cgpa')}>
         <span className="text-muted-foreground">Academic Batch</span>
         <Input className="mt-1 border-border bg-card" value={form.batch} onChange={(e) => set('batch', e.target.value)} />
       </label>
-      <label className="text-sm">
+      <label className={fieldClass('active_backlogs')}>
         <span className="text-muted-foreground">Date of birth</span>
         <Input type="date" className="mt-1 border-border bg-card" value={form.dateOfBirth ?? ''} onChange={(e) => set('dateOfBirth', e.target.value || null)} />
       </label>
@@ -106,32 +112,32 @@ function RegistrationFields({
         <span className="text-muted-foreground">Active backlogs</span>
         <Input type="number" className="mt-1 border-border bg-card" value={form.activeBacklogs} onChange={(e) => set('activeBacklogs', Number(e.target.value))} />
       </label>
-      <label className="text-sm sm:col-span-2">
+      <label className={fieldClass('skills_summary', 'text-sm sm:col-span-2')}>
         <span className="text-muted-foreground">Skills summary</span>
         <Input className="mt-1 border-border bg-card" value={form.skillsSummary} onChange={(e) => set('skillsSummary', e.target.value)} />
       </label>
-      <label className="text-sm sm:col-span-2">
+      <label className={fieldClass('career_interest', 'text-sm sm:col-span-2')}>
         <span className="text-muted-foreground">Career interest</span>
         <Input className="mt-1 border-border bg-card" value={form.careerInterest} onChange={(e) => set('careerInterest', e.target.value)} />
       </label>
-      <label className="text-sm sm:col-span-2">
+      <label className={fieldClass('linkedin_url', 'text-sm sm:col-span-2')}>
         <span className="text-muted-foreground">LinkedIn URL</span>
         <Input className="mt-1 border-border bg-card" value={form.linkedinUrl} onChange={(e) => set('linkedinUrl', e.target.value)} />
       </label>
-      <label className="text-sm sm:col-span-2">
+      <label className={fieldClass('github_url', 'text-sm sm:col-span-2')}>
         <span className="text-muted-foreground">GitHub URL</span>
         <Input className="mt-1 border-border bg-card" value={form.githubUrl} onChange={(e) => set('githubUrl', e.target.value)} />
       </label>
-      <label className="text-sm sm:col-span-2">
+      <label className={fieldClass('portfolio_url', 'text-sm sm:col-span-2')}>
         <span className="text-muted-foreground">Portfolio URL</span>
         <Input className="mt-1 border-border bg-card" value={form.portfolioUrl} onChange={(e) => set('portfolioUrl', e.target.value)} />
       </label>
       <div className="sm:col-span-2 rounded-lg border border-border bg-background/30 p-4">
         <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Resume</p>
-        <Input type="file" accept=".pdf,.doc,.docx,application/pdf" onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)} />
+        <Input key={fileInputKey} type="file" accept=".pdf,.doc,.docx,application/pdf" onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)} />
         <p className="mt-2 text-xs text-muted-foreground">PDF preferred. Upload your resume with the registration form.</p>
       </div>
-      <div className="sm:col-span-2">
+      <div className={fieldClass('platform_handles', 'sm:col-span-2')}>
         <p className="mb-2 text-sm text-muted-foreground">Coding platform handles (for live trace)</p>
         <div className="grid gap-3 sm:grid-cols-2">
           {ALL_PLATFORMS.map((platform) => (
@@ -147,7 +153,7 @@ function RegistrationFields({
           ))}
         </div>
       </div>
-      <label className="text-sm sm:col-span-2">
+      <label className={fieldClass('projects_summary', 'text-sm sm:col-span-2')}>
         <span className="text-muted-foreground">Projects summary</span>
         <textarea
           className="mt-1 min-h-28 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
@@ -167,24 +173,31 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
   const [success, setSuccess] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [fileInputKey, setFileInputKey] = useState(0)
+  const [registeredStudentId, setRegisteredStudentId] = useState<string | null>(null)
 
   useEffect(() => {
+    let active = true
     void (async () => {
       setLoading(true)
       setError(null)
       try {
         const data = await getPublicCampaignRegistrationForm(campaignId)
+        if (!active) return
         if (!data) {
           setError('This registration link is invalid, expired, or has been turned off.')
           return
         }
         setMeta(data)
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load registration form')
+        if (active) setError(e instanceof Error ? e.message : 'Failed to load registration form')
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     })()
+    return () => {
+      active = false
+    }
   }, [campaignId])
 
   const set = (key: keyof RegistrationForm, value: RegistrationForm[keyof RegistrationForm]) => {
@@ -205,6 +218,18 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
     setError(null)
     setSuccess(null)
     try {
+      if (registeredStudentId) {
+        if (!resumeFile) {
+          setError('Choose the resume file again to retry the upload.')
+          return
+        }
+        await uploadPublicCampaignRegistrationResume(campaignId, registeredStudentId, resumeFile)
+        setSuccess('Resume uploaded successfully. Your registration is complete.')
+        setRegisteredStudentId(null)
+        setResumeFile(null)
+        setFileInputKey((key) => key + 1)
+        return
+      }
       const result = await submitPublicCampaignRegistration(campaignId, {
         rollNumber: form.rollNumber.trim(),
         fullName: form.fullName.trim(),
@@ -231,17 +256,20 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
         try {
           await uploadPublicCampaignRegistrationResume(campaignId, result.studentProfileId, resumeFile)
         } catch (resumeError) {
-          throw new Error(
+          setRegisteredStudentId(result.studentProfileId)
+          setError(
             `Your profile was registered, but resume upload failed: ${
               resumeError instanceof Error ? resumeError.message : 'unknown error'
-            }. Please ask placement staff to upload your resume.`,
+            }. Keep this page open and submit again to retry only the resume upload.`,
           )
+          return
         }
       }
 
       setSuccess('Registration successful. Your profile and resume (if uploaded) are now in the placement application.')
       setForm(emptyRegistrationForm)
       setResumeFile(null)
+      setFileInputKey((key) => key + 1)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to register')
     } finally {
@@ -301,6 +329,8 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
                 set={set}
                 setPlatformHandle={setPlatformHandle}
                 setResumeFile={setResumeFile}
+                fileInputKey={fileInputKey}
+                allowedFields={meta.allowlistedFields}
               />
               {error ? <p className="text-[14px] font-semibold text-[#F6465D] sm:col-span-2">{error}</p> : null}
               {success ? <p className="text-[14px] font-semibold text-[#0ECB81] sm:col-span-2">{success}</p> : null}
@@ -318,20 +348,23 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
 }
 
 function LegacyTokenUpdatePortal({ token }: { token: string }) {
-  const [meta, setMeta] = useState<Pick<PublicUpdateForm, 'campaignTitle' | 'campaignDescription' | 'expiresAt' | 'submittedAt' | 'resumeFileName'> | null>(null)
+  const [meta, setMeta] = useState<Pick<PublicUpdateForm, 'campaignTitle' | 'campaignDescription' | 'expiresAt' | 'submittedAt' | 'resumeFileName' | 'allowlistedFields'> | null>(null)
   const [form, setForm] = useState<RegistrationForm>(emptyRegistrationForm)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [resumeFile, setResumeFile] = useState<File | null>(null)
+  const [fileInputKey, setFileInputKey] = useState(0)
 
   useEffect(() => {
+    let active = true
     void (async () => {
       setLoading(true)
       setError(null)
       try {
         const data = await getPublicStudentUpdateForm(token)
+        if (!active) return
         if (!data) {
           setError('This update link is invalid, expired, or has been turned off.')
           return
@@ -342,6 +375,7 @@ function LegacyTokenUpdatePortal({ token }: { token: string }) {
           expiresAt: data.expiresAt,
           submittedAt: data.submittedAt,
           resumeFileName: data.resumeFileName,
+          allowlistedFields: data.allowlistedFields,
         })
         setForm({
           rollNumber: data.editable.rollNumber,
@@ -362,11 +396,14 @@ function LegacyTokenUpdatePortal({ token }: { token: string }) {
           projectsSummary: data.editable.projectsSummary,
         })
       } catch (e) {
-        setError(e instanceof Error ? e.message : 'Failed to load update form')
+        if (active) setError(e instanceof Error ? e.message : 'Failed to load update form')
       } finally {
-        setLoading(false)
+        if (active) setLoading(false)
       }
     })()
+    return () => {
+      active = false
+    }
   }, [token])
 
   const set = (key: keyof RegistrationForm, value: RegistrationForm[keyof RegistrationForm]) => {
@@ -392,6 +429,7 @@ function LegacyTokenUpdatePortal({ token }: { token: string }) {
       if (resumeFile) await uploadPublicCampaignResume(token, resumeFile)
       setSuccess('Your profile was updated successfully.')
       setResumeFile(null)
+      setFileInputKey((key) => key + 1)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save updates')
     } finally {
@@ -428,7 +466,14 @@ function LegacyTokenUpdatePortal({ token }: { token: string }) {
         <CardHeader><CardTitle>{meta.campaignTitle}</CardTitle></CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
-            <RegistrationFields form={form} set={set} setPlatformHandle={setPlatformHandle} setResumeFile={setResumeFile} />
+            <RegistrationFields
+              form={form}
+              set={set}
+              setPlatformHandle={setPlatformHandle}
+              setResumeFile={setResumeFile}
+              fileInputKey={fileInputKey}
+              allowedFields={meta.allowlistedFields}
+            />
             {error ? <p className="text-[14px] font-semibold text-[#F6465D] sm:col-span-2">{error}</p> : null}
             {success ? <p className="text-[14px] font-semibold text-[#0ECB81] sm:col-span-2">{success}</p> : null}
             <div className="sm:col-span-2">

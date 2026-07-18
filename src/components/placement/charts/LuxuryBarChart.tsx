@@ -14,6 +14,7 @@ import {
   withChartColors,
   type ChartDatum,
 } from '@/components/placement/charts/chartTheme'
+import { ChartDataDialog } from '@/components/placement/charts/ChartDataDialog'
 
 function BarTooltip({
   active,
@@ -123,7 +124,12 @@ export function LuxuryBarChart({
   }
 
   return (
-    <ChartPanel title={title} subtitle={subtitle} className={className}>
+    <ChartPanel
+      title={title}
+      subtitle={subtitle}
+      className={className}
+      actions={<ChartDataDialog title={title} data={colored} />}
+    >
       {colored.length === 0 ? (
         <p className="py-16 text-center text-sm text-secondary">No data to chart</p>
       ) : (

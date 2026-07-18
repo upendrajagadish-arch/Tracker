@@ -837,6 +837,134 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['resume_book_student_snapshots']['Insert']>
         Relationships: []
       }
+      placement_events: {
+        Row: {
+          id: string
+          company_id: string | null
+          requirement_id: string | null
+          title: string
+          event_type: string
+          mode: string
+          starts_at: string
+          ends_at: string | null
+          venue: string
+          meeting_url: string
+          status: string
+          audience_batches: string[]
+          audience_branches: string[]
+          notes: string
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id?: string | null
+          requirement_id?: string | null
+          title: string
+          event_type?: string
+          mode?: string
+          starts_at: string
+          ends_at?: string | null
+          venue?: string
+          meeting_url?: string
+          status?: string
+          audience_batches?: string[]
+          audience_branches?: string[]
+          notes?: string
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['placement_events']['Insert']>
+        Relationships: []
+      }
+      company_share_links: {
+        Row: {
+          id: string
+          company_id: string
+          requirement_id: string | null
+          label: string
+          url: string
+          audience_batches: string[]
+          audience_branches: string[]
+          shared_at: string
+          expires_at: string | null
+          is_active: boolean
+          click_count: number
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          company_id: string
+          requirement_id?: string | null
+          label?: string
+          url: string
+          audience_batches?: string[]
+          audience_branches?: string[]
+          shared_at?: string
+          expires_at?: string | null
+          is_active?: boolean
+          click_count?: number
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['company_share_links']['Insert']>
+        Relationships: []
+      }
+      placement_notifications: {
+        Row: {
+          id: string
+          recipient_user_id: string | null
+          audience_role: string | null
+          title: string
+          body: string
+          notification_type: string
+          entity_type: string
+          entity_id: string | null
+          action_url: string
+          read_at: string | null
+          created_by: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          recipient_user_id?: string | null
+          audience_role?: string | null
+          title: string
+          body?: string
+          notification_type?: string
+          entity_type?: string
+          entity_id?: string | null
+          action_url?: string
+          read_at?: string | null
+          created_by?: string | null
+          created_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['placement_notifications']['Insert']>
+        Relationships: []
+      }
+      placement_notification_reads: {
+        Row: {
+          notification_id: string
+          user_id: string
+          read_at: string
+        }
+        Insert: {
+          notification_id: string
+          user_id: string
+          read_at?: string
+        }
+        Update: {
+          notification_id?: string
+          user_id?: string
+          read_at?: string
+        }
+        Relationships: []
+      }
       student_update_campaigns: {
         Row: {
           id: string
@@ -900,6 +1028,30 @@ export interface Database {
     }
     Views: Record<string, never>
     Functions: {
+      get_placement_dashboard: { Args: { p_batch?: string }; Returns: Json }
+      log_placement_audit: {
+        Args: {
+          p_action: string
+          p_entity_type?: string
+          p_entity_id?: string
+          p_description?: string
+          p_metadata?: Json
+        }
+        Returns: undefined
+      }
+      schedule_placement_drive: {
+        Args: {
+          p_title: string
+          p_company_id: string | null
+          p_starts_at: string
+          p_venue?: string
+          p_mode?: string
+          p_audience_batches?: string[]
+          p_registration_url?: string | null
+          p_registration_label?: string | null
+        }
+        Returns: Json
+      }
       get_public_resume_book: { Args: { p_token: string }; Returns: Json }
       get_public_resume_book_students: {
         Args: { p_token: string; p_page?: number; p_limit?: number }

@@ -1,15 +1,15 @@
 /** Shared palette for placement luxury charts — aligned with Binance/Ramachandra theme. */
 export const CHART_PALETTE = [
-  '#D27918', // brand gold
-  '#F0B90B', // bright gold
-  '#0ECB81', // success green
-  '#3B82F6', // blue
-  '#A78BFA', // soft violet
-  '#F6465D', // coral red
-  '#22D3EE', // cyan
-  '#FB923C', // soft orange
-  '#84CC16', // lime
-  '#E879F9', // magenta
+  '#D27918',
+  '#E08A2A',
+  '#B56614',
+  '#F09A3E',
+  '#9A5810',
+  '#C96D12',
+  '#F3AE68',
+  '#7E460C',
+  '#D98A3D',
+  '#AD6418',
 ] as const
 
 export const BADGE_CHART_COLORS = {
@@ -21,9 +21,9 @@ export const BADGE_CHART_COLORS = {
 export const CHART_AXIS = {
   stroke: 'rgba(146, 154, 165, 0.45)',
   tick: '#929AA5',
-  grid: 'rgba(43, 49, 57, 0.9)',
-  tooltipBg: '#1E2329',
-  tooltipBorder: '#2B3139',
+  grid: 'rgba(41, 46, 53, 0.9)',
+  tooltipBg: '#111418',
+  tooltipBorder: '#292E35',
   tooltipText: '#EAECEF',
 } as const
 

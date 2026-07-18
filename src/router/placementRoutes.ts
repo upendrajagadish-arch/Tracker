@@ -37,6 +37,7 @@ import { PublicResumeBookPage } from '@/pages/public/PublicResumeBookPage'
 import { StudentUpdateCampaignsPage } from '@/pages/placement/StudentUpdateCampaignsPage'
 import { StudentUpdateCampaignCreatePage } from '@/pages/placement/StudentUpdateCampaignCreatePage'
 import { StudentUpdateCampaignDetailPage } from '@/pages/placement/StudentUpdateCampaignDetailPage'
+import { PlacementOperationsPage } from '@/pages/placement/PlacementOperationsPage'
 
 const REMOVED_PLACEMENT_PATHS = [
   'companies',
@@ -73,6 +74,11 @@ function createRolePlacementRoutes(parent: AnyRoute, prefix: 'admin' | 'tpo' | '
       getParentRoute: () => parent,
       path: `${prefix}/placement`,
       component: PlacementDashboardPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/operations`,
+      component: PlacementOperationsPage,
     }),
     createRoute({
       getParentRoute: () => parent,

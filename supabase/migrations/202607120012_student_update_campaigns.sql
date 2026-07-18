@@ -118,7 +118,7 @@ RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $$
 DECLARE
   t public.student_update_tokens%ROWTYPE;
   c public.student_update_campaigns%ROWTYPE;
@@ -182,14 +182,14 @@ BEGIN
     'resumeFileName', resume_name
   );
 END;
-$;
+$$;
 
 CREATE OR REPLACE FUNCTION public.submit_public_student_update(p_token text, p_payload jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
-AS $
+AS $$
 DECLARE
   t public.student_update_tokens%ROWTYPE;
   c public.student_update_campaigns%ROWTYPE;
@@ -424,7 +424,7 @@ BEGIN
 
   RETURN jsonb_build_object('ok', true, 'updatedFields', updated_cols);
 END;
-$;
+$$;
 
 CREATE OR REPLACE FUNCTION public.register_public_campaign_resume(
   p_token text,

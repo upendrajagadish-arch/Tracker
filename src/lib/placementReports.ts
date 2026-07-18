@@ -61,11 +61,20 @@ function applyStudentFilters<T extends { eq: (col: string, val: string | number 
 }
 
 async function fetchFilteredStudents(client: Client, filters: ReportFilters): Promise<StudentProfile[]> {
-  let query = client.from('student_profiles').select('*').eq('is_active', true)
-  query = applyStudentFilters(query, filters)
-  const { data, error } = await query
-  if (error) throw error
-  return data ?? []
+  const rows: StudentProfile[] = []
+  for (let from = 0; ; from += 1000) {
+    let query = client
+      .from('student_profiles')
+      .select('*')
+      .eq('is_active', true)
+      .order('id')
+      .range(from, from + 999)
+    query = applyStudentFilters(query, filters)
+    const { data, error } = await query
+    if (error) throw error
+    rows.push(...(data ?? []))
+    if (!data || data.length < 1000) return rows
+  }
 }
 
 export async function buildPlacementReport(
@@ -344,7 +353,8 @@ export function reportToCsv(report: ReportResult): string {
   if (!report.rows.length) return ''
   const headers = Object.keys(report.rows[0])
   const escape = (value: unknown) => {
-    const text = value == null ? '' : String(value)
+    const raw = value == null ? '' : String(value)
+    const text = /^[=+\-@]/.test(raw) ? `'${raw}` : raw
     if (text.includes(',') || text.includes('"') || text.includes('\n')) {
       return `"${text.replace(/"/g, '""')}"`
     }

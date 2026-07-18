@@ -6,8 +6,8 @@ import { LogOut } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { AppHeader } from '@/components/AppHeader'
 import { AppFooter } from '@/components/AppFooter'
+import { PlacementTopBar } from '@/components/placement/PlacementTopBar'
 import { useAuth } from '@/hooks/useAuth'
 import { signOut } from '@/api/savedProfiles'
 import { placementHomeForRole } from '@/lib/placementAuth'
@@ -57,8 +57,6 @@ export function PlacementShell({
   title,
   children,
   requireRole = true,
-  headerShareUrl,
-  headerShareTitle,
 }: PlacementShellProps) {
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
@@ -142,10 +140,10 @@ export function PlacementShell({
   }
 
   return (
-    <div className="placement-theme flex flex-1 flex-col">
-      <div className="flex flex-1 px-4 py-5 sm:px-6 sm:py-6 md:px-8">
-        <div className="mx-auto flex w-full max-w-[1280px] gap-5 lg:gap-6">
-          <aside className="sticky top-5 hidden w-56 shrink-0 self-start rounded-card border border-soft bg-card p-3 sm:flex sm:flex-col lg:top-6 lg:w-60">
+    <div className="placement-theme flex min-w-0 flex-1 flex-col overflow-x-clip">
+      <div className="flex min-w-0 flex-1 px-3 py-4 sm:px-5 sm:py-5 xl:px-7">
+        <div className="mx-auto flex min-w-0 w-full max-w-[1440px] gap-4 lg:gap-5">
+          <aside className="sticky top-5 hidden w-56 shrink-0 self-start rounded-card border border-soft bg-card p-3 lg:flex lg:flex-col lg:top-6 lg:w-60">
             <Link
               to={asPlacementPath(homePath)}
               className="mb-4 px-2 font-heading text-[16px] font-bold text-foreground transition-colors hover:text-binance"
@@ -198,18 +196,12 @@ export function PlacementShell({
             </div>
           </aside>
 
-          <div className="app-stack min-w-0 flex-1">
-            <AppHeader
-              backTo="/app"
-              backLabel="dashboard"
-              shareUrl={headerShareUrl ?? null}
-              shareTitle={headerShareTitle}
-              className="mb-0"
-            />
+          <main className="app-stack min-w-0 max-w-full flex-1">
+            <PlacementTopBar base={getRolePrefix(placementRole) ? `${getRolePrefix(placementRole)}/placement` : null} />
 
             <WorkspaceTabs active="placement" />
 
-            <div className="flex gap-2 overflow-x-auto rounded-card border border-soft bg-card p-2 sm:hidden">
+            <div className="flex max-w-full gap-2 overflow-x-auto rounded-card border border-soft bg-card p-2 lg:hidden">
               {navLinks.map((link) => (
                 <Link
                   key={link.to}
@@ -240,7 +232,7 @@ export function PlacementShell({
             >
               {children}
             </motion.div>
-          </div>
+          </main>
         </div>
       </div>
       <div className="border-t border-soft px-4 py-6 sm:px-6 md:px-8">

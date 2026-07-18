@@ -8,11 +8,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PlacementShell, usePlacementPaths } from '@/components/placement/PlacementShell'
 import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
 import { PLACEMENT_STATUSES } from '@/components/placement/PlacementBadges'
-import { PlacementErrorAlert, PlacementLoadingBlock } from '@/components/placement/PlacementStates'
+import { PlacementEmptyState, PlacementErrorAlert, PlacementLoadingBlock } from '@/components/placement/PlacementStates'
 import { createStudent, getStudent, updateStudent, type CreateStudentInput } from '@/api/placement/students'
 import { getActiveResume, getResumeDownloadUrl, uploadResume, type StudentResumeRow } from '@/api/placement/resumes'
 import { useAuth } from '@/hooks/useAuth'
-import { canManageResumes } from '@/lib/placementNavigation'
+import { canManageResumes, canManageStudents } from '@/lib/placementNavigation'
 import { ALL_PLATFORMS } from '@/api/unifiedClient'
 import type { PlatformHandles } from '@/lib/studentPlatformHandles'
 import type { Platform } from '@/types/api'
@@ -43,6 +43,7 @@ export function StudentFormPage() {
   const router = useRouter()
   const { user } = useAuth()
   const { base, role } = usePlacementPaths()
+  const canManage = canManageStudents(role)
   const canUploadResume = canManageResumes(role)
   const fileRef = useRef<HTMLInputElement>(null)
   const { id } = useParams({ strict: false }) as { id?: string }
@@ -158,6 +159,17 @@ export function StudentFormPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Resume download failed')
     }
+  }
+
+  if (!canManage) {
+    return (
+      <PlacementShell title="Students">
+        <PlacementEmptyState
+          title="Not allowed"
+          description="Only administrators and placement officers can create or edit student records."
+        />
+      </PlacementShell>
+    )
   }
 
   return (

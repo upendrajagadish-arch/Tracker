@@ -8,6 +8,7 @@ import {
 } from 'recharts'
 import { ChartPanel, MeasuredChart } from '@/components/placement/charts/ChartShell'
 import { CHART_AXIS, type ChartDatum } from '@/components/placement/charts/chartTheme'
+import { ChartDataDialog } from '@/components/placement/charts/ChartDataDialog'
 
 function AreaTooltip({
   active,
@@ -60,7 +61,12 @@ export function LuxuryAreaChart({
   const gradientId = `lux-area-${title.replace(/\s+/g, '-').toLowerCase()}`
 
   return (
-    <ChartPanel title={title} subtitle={subtitle} className={className}>
+    <ChartPanel
+      title={title}
+      subtitle={subtitle}
+      className={className}
+      actions={<ChartDataDialog title={title} data={data} />}
+    >
       {data.length === 0 ? (
         <p className="py-16 text-center text-sm text-secondary">No data to chart</p>
       ) : (

@@ -27,7 +27,7 @@ export function CommunicationModuleNav() {
   ]
 
   return (
-    <div className="mb-4 flex w-full gap-1 overflow-x-auto rounded-card border border-soft bg-[#181A20] p-1">
+    <div className="mb-4 flex w-full max-w-full gap-1 overflow-x-auto rounded-card border border-soft bg-elevated p-1">
       {links.map((link) => {
         const normalizedPath = pathname.replace(/\/$/, '')
         const normalizedTarget = link.to.replace(/\/$/, '')

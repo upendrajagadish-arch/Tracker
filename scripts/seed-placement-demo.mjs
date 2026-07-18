@@ -11,8 +11,6 @@
  *
  * To wipe students/demo data:
  *   node scripts/clear-placement-demo-data.mjs
- */
- *
  * Auth users cannot be created from SQL alone on hosted Supabase.
  * 1. Create users in Supabase Auth Dashboard (email/password).
  * 2. Link each user in placement_user_profiles (id = auth.users.id, role = admin|tpo|...).

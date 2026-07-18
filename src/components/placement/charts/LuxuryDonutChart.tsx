@@ -8,6 +8,7 @@ import {
   type ChartDatum,
 } from '@/components/placement/charts/chartTheme'
 import { cn } from '@/lib/utils'
+import { ChartDataDialog } from '@/components/placement/charts/ChartDataDialog'
 
 interface ActiveShapeProps {
   cx?: number
@@ -126,7 +127,17 @@ export function LuxuryDonutChart({
   const displayLabel = activeRow ? activeRow.name : centerLabel
 
   return (
-    <ChartPanel title={title} subtitle={subtitle} className={className} actions={actions}>
+    <ChartPanel
+      title={title}
+      subtitle={subtitle}
+      className={className}
+      actions={
+        <div className="flex items-center gap-1">
+          {actions}
+          <ChartDataDialog title={title} data={colored} />
+        </div>
+      }
+    >
       {colored.length === 0 ? (
         <p className="py-16 text-center text-sm text-secondary">No data to chart</p>
       ) : (

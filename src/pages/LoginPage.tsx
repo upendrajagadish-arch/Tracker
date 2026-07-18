@@ -8,10 +8,9 @@ import { Input } from '@/components/ui/input'
 import { AppFooter } from '@/components/AppFooter'
 import { PlatformIcon } from '@/components/PlatformIcon'
 import { useAuth } from '@/hooks/useAuth'
-import { signInWithPassword, signOut } from '@/api/savedProfiles'
+import { signInWithPassword } from '@/api/savedProfiles'
 import { fetchPlacementProfile, placementHomeForRole } from '@/lib/placementAuth'
 import { isStaffPlacementRole } from '@/lib/placementStaff'
-import { isAllowedStaffLogin } from '@/lib/placementStaffLogins'
 import { requireSupabase } from '@/lib/supabase'
 import { ALL_PLATFORMS } from '@/api/unifiedClient'
 import { CollegeBrandMark } from '@/components/CollegeBrand'
@@ -61,10 +60,6 @@ export function LoginPage() {
     event.preventDefault()
     setError(null)
     const normalizedEmail = email.trim().toLowerCase()
-    if (!isAllowedStaffLogin(normalizedEmail)) {
-      setError('This account is not authorized for placement office access.')
-      return
-    }
     setIsSigningIn(true)
     try {
       await signInWithPassword(normalizedEmail, password)
@@ -73,17 +68,7 @@ export function LoginPage() {
       const { data: auth } = await client.auth.getUser()
       if (auth.user) {
         const profile = await fetchPlacementProfile(auth.user.id)
-        if (profile?.role === 'student') {
-          await signOut()
-          setError('This portal is for placement staff only. Students do not sign in here.')
-          return
-        }
         if (profile?.role && isStaffPlacementRole(profile.role)) {
-          if (!isAllowedStaffLogin(profile.email)) {
-            await signOut()
-            setError('This account is not authorized for placement office access.')
-            return
-          }
           router.history.push(placementHomeForRole(profile.role))
           return
         }

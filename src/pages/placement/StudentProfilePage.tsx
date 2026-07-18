@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,9 +19,9 @@ import type { StudentProfile } from '@/types/supabase'
 
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-3 gap-2 border-b border-border py-2 text-sm last:border-0">
+    <div className="grid grid-cols-1 gap-1 border-b border-border py-2 text-sm last:border-0 sm:grid-cols-3 sm:gap-2">
       <dt className="font-medium text-muted-foreground">{label}</dt>
-      <dd className="col-span-2 text-foreground">{children ?? '—'}</dd>
+      <dd className="text-foreground sm:col-span-2">{children ?? '—'}</dd>
     </div>
   )
 }
@@ -37,7 +37,7 @@ export function StudentProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
     setError(null)
@@ -68,11 +68,11 @@ export function StudentProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
 
   useEffect(() => {
     void load()
-  }, [user?.id])
+  }, [load])
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

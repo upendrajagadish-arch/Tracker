@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HelmetProvider } from 'react-helmet-async'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/hooks/AuthProvider'
+import { PlacementThemeProvider } from '@/hooks/usePlacementTheme'
 import { router } from './router'
 import './index.css'
 import './lib/posthog'
@@ -20,9 +21,11 @@ createRoot(document.getElementById('root')!).render(
     <HelmetProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <TooltipProvider>
-            <RouterProvider router={router} />
-          </TooltipProvider>
+          <PlacementThemeProvider>
+            <TooltipProvider>
+              <RouterProvider router={router} />
+            </TooltipProvider>
+          </PlacementThemeProvider>
         </AuthProvider>
       </QueryClientProvider>
     </HelmetProvider>

@@ -240,15 +240,26 @@ export function CommunicationDashboardPage() {
                     }
                   }}
                   actions={
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs"
-                      onClick={(e) => void handleDownloadBadge(badge, e)}
-                    >
-                      ↓ Export
-                    </Button>
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => openBadge(badge)}
+                      >
+                        View students
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs"
+                        onClick={(e) => void handleDownloadBadge(badge, e)}
+                      >
+                        ↓ Export
+                      </Button>
+                    </>
                   }
                 />
               ))}

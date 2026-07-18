@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import * as XLSX from 'xlsx'
 import { Button } from '@/components/ui/button'
 import { PlacementLink } from '@/components/placement/PlacementLink'
 import { PlacementShell, usePlacementPaths } from '@/components/placement/PlacementShell'
@@ -30,15 +29,14 @@ import {
 import { parseCsvText, sheetRowsToRecords } from '@/lib/studentImport'
 import { canManageReadiness } from '@/lib/placementNavigation'
 import { useAuth } from '@/hooks/useAuth'
+import { readSpreadsheetRows } from '@/lib/spreadsheet'
 
 async function parseUploadFile(file: File): Promise<Record<string, string>[]> {
   const lower = file.name.toLowerCase()
-  if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
+  if (lower.endsWith('.xls')) throw new Error('Legacy .xls files are not supported. Save the file as .xlsx or .csv.')
+  if (lower.endsWith('.xlsx')) {
     const buffer = await file.arrayBuffer()
-    const workbook = XLSX.read(buffer, { type: 'array' })
-    const sheet = workbook.Sheets[workbook.SheetNames[0]]
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '' }) as unknown[][]
-    return sheetRowsToRecords(rows)
+    return sheetRowsToRecords(await readSpreadsheetRows(buffer))
   }
   return parseCsvText(await file.text())
 }
@@ -146,7 +144,7 @@ function AssessmentImportPage({ kind }: { kind: 'aptitude' | 'verbal' }) {
 
         <PlacementSectionCard title="Upload CSV / Excel">
           <PlacementField label="File">
-            <input type="file" accept=".csv,.xlsx,.xls" onChange={(e) => void handleFile(e)} />
+            <input type="file" accept=".csv,.xlsx" onChange={(e) => void handleFile(e)} />
           </PlacementField>
           <p className="mt-2 text-xs text-muted-foreground">
             Does not create new students. Max score defaults to 100 when omitted.

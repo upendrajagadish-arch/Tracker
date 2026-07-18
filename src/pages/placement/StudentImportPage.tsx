@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import * as XLSX from 'xlsx'
 import { PlacementLink } from '@/components/placement/PlacementLink'
 import { Button } from '@/components/ui/button'
 import { PlacementShell, usePlacementPaths } from '@/components/placement/PlacementShell'
@@ -35,21 +34,22 @@ import {
   parseCsvText,
   sheetRowsToRecords,
 } from '@/lib/studentImport'
+import { readSpreadsheetRows } from '@/lib/spreadsheet'
+import { canImportStudents } from '@/lib/placementNavigation'
 
 async function parseUploadFile(file: File): Promise<Record<string, string>[]> {
   const lower = file.name.toLowerCase()
-  if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) {
+  if (lower.endsWith('.xls')) throw new Error('Legacy .xls files are not supported. Save the file as .xlsx or .csv.')
+  if (lower.endsWith('.xlsx')) {
     const buffer = await file.arrayBuffer()
-    const workbook = XLSX.read(buffer, { type: 'array' })
-    const sheet = workbook.Sheets[workbook.SheetNames[0]]
-    const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: '' }) as unknown[][]
-    return sheetRowsToRecords(rows)
+    return sheetRowsToRecords(await readSpreadsheetRows(buffer))
   }
   return parseCsvText(await file.text())
 }
 
 export function StudentImportPage() {
-  const { base } = usePlacementPaths()
+  const { base, role } = usePlacementPaths()
+  const canImport = canImportStudents(role)
   const [mode, setMode] = useState<StudentImportMode>('full')
   const [fileName, setFileName] = useState<string | null>(null)
   const [preview, setPreview] = useState<ImportPreviewResult | null>(null)
@@ -116,6 +116,17 @@ export function StudentImportPage() {
     }
   }
 
+  if (!canImport) {
+    return (
+      <PlacementShell title="Import students">
+        <PlacementEmptyState
+          title="Not allowed"
+          description="Only administrators and placement officers can import students."
+        />
+      </PlacementShell>
+    )
+  }
+
   return (
     <PlacementShell title="Bulk add students">
       <PlacementPageHeader
@@ -148,10 +159,10 @@ export function StudentImportPage() {
                 <option value="quick">Quick bulk add (roll, name, email)</option>
               </PlacementSelect>
             </PlacementField>
-            <PlacementField label="Upload file" hint="Supports .xlsx, .xls, and .csv">
+            <PlacementField label="Upload file" hint="Supports .xlsx and .csv">
               <input
                 type="file"
-                accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 onChange={(e) => void handleFile(e.target.files?.[0] ?? null)}
                 className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border file:border-border file:bg-muted/30 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-muted-foreground"
               />

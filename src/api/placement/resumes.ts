@@ -72,6 +72,12 @@ export async function uploadResume(input: UploadResumeInput): Promise<StudentRes
   const client = requireSupabase()
   const safeName = sanitizeFileName(input.file.name)
   const storagePath = `${input.studentProfileId}/${Date.now()}-${safeName}`
+  const { data: previousActive, error: previousError } = await client
+    .from('student_resumes')
+    .select('id')
+    .eq('student_profile_id', input.studentProfileId)
+    .eq('is_active', true)
+  if (previousError) throw previousError
 
   const { error: uploadError } = await client.storage
     .from(RESUME_BUCKET)
@@ -81,11 +87,15 @@ export async function uploadResume(input: UploadResumeInput): Promise<StudentRes
     })
   if (uploadError) throw uploadError
 
-  await client
+  const { error: deactivateError } = await client
     .from('student_resumes')
     .update({ is_active: false })
     .eq('student_profile_id', input.studentProfileId)
     .eq('is_active', true)
+  if (deactivateError) {
+    await client.storage.from(RESUME_BUCKET).remove([storagePath])
+    throw deactivateError
+  }
 
   const { data, error } = await client
     .from('student_resumes')
@@ -101,7 +111,18 @@ export async function uploadResume(input: UploadResumeInput): Promise<StudentRes
     })
     .select()
     .single()
-  if (error) throw error
+  if (error) {
+    await Promise.all([
+      client.storage.from(RESUME_BUCKET).remove([storagePath]),
+      previousActive?.length
+        ? client
+            .from('student_resumes')
+            .update({ is_active: true })
+            .in('id', previousActive.map((resume) => resume.id))
+        : Promise.resolve(),
+    ])
+    throw error
+  }
 
   await logPlacementAudit({
     action: 'resume.upload',

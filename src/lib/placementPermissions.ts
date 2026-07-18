@@ -28,7 +28,7 @@ export const ROLE_PERMISSIONS: Record<PlacementRole, string[]> = {
     'campaigns:view',
     'campaigns:manage',
   ],
-  faculty: ['students:view', 'students:update', 'reports:view', 'companies:view', 'readiness:view', 'tech_stack:view', 'tech_stack:update', 'tech_stack:verify', 'campaigns:view'],
+  faculty: ['students:view', 'reports:view', 'companies:view', 'readiness:view', 'tech_stack:view', 'tech_stack:update', 'tech_stack:verify', 'campaigns:view'],
   interviewer: ['students:view'],
   hr: [],
   student: [],

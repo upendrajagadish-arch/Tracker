@@ -10,14 +10,14 @@ interface PlacementPageHeaderProps {
 
 export function PlacementPageHeader({ title, description, actions, className }: PlacementPageHeaderProps) {
   return (
-    <div className={cn('flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between', className)}>
-      <div className="max-w-2xl">
-        <h1 className="font-heading text-[40px] font-bold tracking-tight text-foreground">{title}</h1>
+    <div className={cn('flex min-w-0 flex-col gap-4 md:flex-row md:items-start md:justify-between', className)}>
+      <div className="min-w-0 max-w-2xl">
+        <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground sm:text-3xl lg:text-[40px]">{title}</h1>
         {description ? (
           <p className="mt-2 text-[14px] leading-relaxed text-secondary">{description}</p>
         ) : null}
       </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex w-full min-w-0 flex-wrap items-center gap-2 md:w-auto md:justify-end">{actions}</div> : null}
     </div>
   )
 }

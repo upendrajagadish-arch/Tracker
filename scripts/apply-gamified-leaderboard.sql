@@ -18,13 +18,6 @@ DECLARE
   v_total integer;
   v_rows jsonb;
 BEGIN
-  UPDATE public.student_profiles
-  SET share_token = md5(gen_random_uuid()::text || clock_timestamp()::text)
-                 || md5(clock_timestamp()::text || gen_random_uuid()::text),
-      is_shareable = true
-  WHERE is_active = true
-    AND (share_token IS NULL OR is_shareable = false);
-
   WITH scored AS (
     SELECT
       s.id,
@@ -68,6 +61,8 @@ BEGIN
     LEFT JOIN public.student_coding_snapshots snap
       ON snap.student_profile_id = s.id
     WHERE s.is_active = true
+      AND s.is_shareable = true
+      AND s.share_token IS NOT NULL
   ),
   ranked AS (
     SELECT

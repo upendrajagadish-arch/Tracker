@@ -16,7 +16,7 @@ export function WorkspaceTabs({ active }: WorkspaceTabsProps) {
   const placementHome = placementHomeForRole(placementRole)
 
   return (
-    <div className="flex w-full overflow-x-auto rounded-card border border-soft bg-[#181A20]">
+    <div className="flex w-full rounded-card border border-soft bg-elevated">
       <Link
         to={asPlacementPath(placementHome)}
         className={cn(

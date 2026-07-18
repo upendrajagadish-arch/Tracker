@@ -54,8 +54,8 @@
 
 :root,
 .dark {
-  --canvas: #0B0E11;
-  --elevated: #2B3139;
+  --canvas: #07090B;
+  --elevated: #1A1E23;
   /* Ramachandra Burnt Orange */
   --brand: #D27918;
   --brand-hover: #B56614;
@@ -63,23 +63,23 @@
   --brand-soft: #E08A2A;
   --binance-yellow: var(--brand);
   --binance-yellow-hover: var(--brand-hover);
-  --background: #0B0E11;
+  --background: #07090B;
   --foreground: #EAECEF;
-  --card: #1E2329;
+  --card: #111418;
   --card-foreground: #EAECEF;
-  --popover: #1E2329;
+  --popover: #111418;
   --popover-foreground: #EAECEF;
   --primary: #D27918;
   --primary-foreground: #FFFFFF;
-  --secondary: #2B3139;
+  --secondary: #1A1E23;
   --secondary-foreground: #EAECEF;
-  --muted: #2B3139;
+  --muted: #1A1E23;
   --muted-foreground: #929AA5;
-  --accent: #2B3139;
+  --accent: #24180D;
   --accent-foreground: #EAECEF;
   --destructive: #F6465D;
-  --border: #2B3139;
-  --input: #2B3139;
+  --border: #292E35;
+  --input: #292E35;
   --ring: #3B82F6;
   --success: #0ECB81;
   --success-foreground: #0B0E11;
@@ -100,27 +100,73 @@
   --platform-tuf: #ff7a3d;
 }
 
+.light {
+  --canvas: #f6f7f9;
+  --elevated: #eef0f3;
+  --background: #f6f7f9;
+  --foreground: #17191c;
+  --card: rgba(255, 255, 255, 0.88);
+  --card-foreground: #17191c;
+  --popover: #ffffff;
+  --popover-foreground: #17191c;
+  --primary: #b56614;
+  --primary-foreground: #ffffff;
+  --secondary: #eef0f3;
+  --secondary-foreground: #282c32;
+  --muted: #e4e7eb;
+  --muted-foreground: #667085;
+  --accent: #fff4e8;
+  --accent-foreground: #8a4b0f;
+  --destructive: #d92d45;
+  --border: #dfe3e8;
+  --input: #d4d9e0;
+  --ring: #3b82f6;
+  --success: #087c59;
+  --success-foreground: #ffffff;
+  --warning: #b56614;
+}
+
+.placement-theme {
+  min-width: 0;
+  color: var(--foreground);
+  background:
+    radial-gradient(circle at 85% 5%, color-mix(in srgb, var(--brand) 11%, transparent), transparent 28rem),
+    var(--canvas);
+}
+
+.placement-glass {
+  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
+  background: color-mix(in srgb, var(--card) 94%, transparent);
+  box-shadow: 0 18px 50px -34px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(18px);
+}
+
 @layer base {
   * {
     @apply border-border;
   }
   html {
     scroll-behavior: smooth;
+    max-width: 100%;
+    overflow-x: hidden;
   }
   body {
     @apply bg-canvas text-foreground font-sans antialiased;
     font-size: 14px;
     font-weight: 500;
     line-height: 1.5;
-    color: #EAECEF;
-    background-color: #0B0E11;
+    color: var(--foreground);
+    background-color: var(--canvas);
+    max-width: 100%;
+    overflow-x: hidden;
   }
+  #root { min-width: 0; max-width: 100%; overflow-x: hidden; }
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-heading);
     font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.2;
-    color: #EAECEF;
+    color: var(--foreground);
   }
   ::selection {
     background: rgba(210, 121, 24, 0.35);
@@ -129,15 +175,15 @@
 }
 
 @layer utilities {
-  .bg-canvas { background-color: #0B0E11; }
-  .bg-surface { background-color: #1E2329; }
-  .bg-elevated { background-color: #2B3139; }
-  .text-body { color: #EAECEF; }
-  .text-secondary { color: #929AA5; }
-  .text-muted { color: #707A8A; }
+  .bg-canvas { background-color: var(--canvas); }
+  .bg-surface { background-color: var(--card); }
+  .bg-elevated { background-color: var(--elevated); }
+  .text-body { color: var(--foreground); }
+  .text-secondary { color: var(--muted-foreground); }
+  .text-muted { color: color-mix(in srgb, var(--muted-foreground) 78%, transparent); }
   .text-binance,
-  .text-brand { color: #D27918; }
-  .border-soft { border-color: #2B3139; }
+  .text-brand { color: var(--brand); }
+  .border-soft { border-color: var(--border); }
   .rounded-button { border-radius: 6px; }
   .rounded-input { border-radius: 8px; }
   .rounded-card { border-radius: 12px; }
@@ -154,6 +200,7 @@
     flex-direction: column;
     gap: 1.5rem;
   }
+  .placement-theme .app-stack { gap: 1rem; }
   .module-gap {
     display: grid;
     gap: 1.5rem;
@@ -387,11 +434,18 @@
 }
 
 .placement-theme .resume-book-cover {
-  background: #1E2329;
-  border: 1px solid #2B3139;
+  width: 100%;
+  min-width: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 12px;
-  min-width: 280px;
   box-shadow: none;
+}
+
+@media (min-width: 640px) {
+  .placement-theme .resume-book-cover {
+    min-width: 280px;
+  }
 }
 
 .placement-theme .resume-book-cover-preview.resume-book-cover-ready {

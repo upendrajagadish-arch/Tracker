@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { PlacementLink } from '@/components/placement/PlacementLink'
 import { useParams } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
@@ -21,7 +21,7 @@ export function CompanyDetailPage() {
   const [roleTitle, setRoleTitle] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const load = async () => {
+  const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -34,11 +34,11 @@ export function CompanyDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [id])
 
   useEffect(() => {
     void load()
-  }, [id])
+  }, [load])
 
   const handleAddRequirement = async (e: React.FormEvent) => {
     e.preventDefault()
