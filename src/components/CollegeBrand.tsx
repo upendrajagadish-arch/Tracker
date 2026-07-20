@@ -35,10 +35,13 @@ export function CollegeLogo({
   className,
   height = 36,
   linkToHome = true,
+  bright = false,
 }: {
   className?: string
   height?: number
   linkToHome?: boolean
+  /** Brighten the logo so it reads clearly on dark surfaces. */
+  bright?: boolean
 }) {
   const img = (
     <img
@@ -46,7 +49,11 @@ export function CollegeLogo({
       alt={`${COLLEGE_NAME_SHORT} logo`}
       height={height}
       width={Math.round(height * 3.6)}
-      className={cn('block h-auto w-auto max-w-none shrink-0 object-contain object-left', className)}
+      className={cn(
+        'block h-auto w-auto max-w-none shrink-0 object-contain object-left',
+        bright && 'brightness-125 contrast-125 saturate-110',
+        className,
+      )}
       style={{ height, maxWidth: Math.round(height * 3.8) }}
       loading="eager"
       decoding="async"
@@ -74,18 +81,31 @@ export function CollegeBrandMark({
   className,
   showCollegeName = false,
   linkToHome = true,
+  framed = false,
 }: {
   size?: CollegeBrandSize
   className?: string
   /** Extra line under T&P — usually off because the logo already includes the college name. */
   showCollegeName?: boolean
   linkToHome?: boolean
+  /** Place the logo in the bright bordered box used in the placement chrome. */
+  framed?: boolean
 }) {
   const s = SIZE[size]
 
+  const logo = (
+    <CollegeLogo height={s.logo} linkToHome={linkToHome} bright={framed} />
+  )
+
   return (
     <div className={cn('flex min-w-0 items-center', s.gap, className)}>
-      <CollegeLogo height={s.logo} linkToHome={linkToHome} />
+      {framed ? (
+        <div className="flex h-11 shrink-0 items-center rounded-xl border border-primary/45 bg-[#0B0E11] px-2 shadow-[0_0_22px_-8px_rgba(210,121,24,0.85)] sm:px-2.5">
+          {logo}
+        </div>
+      ) : (
+        logo
+      )}
       <div className="min-w-0 leading-tight">
         <p
           className={cn(

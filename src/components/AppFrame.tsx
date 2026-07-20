@@ -21,7 +21,11 @@ export function AppFrame({ children, className }: AppFrameProps) {
         )}
       >
         <div className="flex shrink-0 items-center border-b border-soft/70 bg-card/40 px-3 py-2.5 sm:px-4 sm:py-3">
-          <CollegeBrandMark size="md" />
+          <CollegeBrandMark
+            size="md"
+            framed
+            className="min-w-0"
+          />
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>

@@ -137,7 +137,7 @@ export function PlacementTopBar({ base }: { base: string | null }) {
   return (
     <header className="placement-glass sticky top-3 z-40 flex min-h-16 max-w-full items-center gap-2 overflow-visible rounded-2xl px-2 py-2 sm:gap-3 sm:px-4">
       <div className="flex h-11 shrink-0 items-center rounded-xl border border-primary/45 bg-[#0B0E11] px-2 shadow-[0_0_22px_-8px_rgba(210,121,24,0.85)] sm:px-2.5">
-        <CollegeLogo height={28} linkToHome={false} className="contrast-125" />
+        <CollegeLogo height={28} linkToHome={false} bright />
       </div>
 
       <div className="relative min-w-0 flex-1">
