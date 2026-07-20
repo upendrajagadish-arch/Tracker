@@ -678,10 +678,12 @@ export interface CommunicationDashboardSummary {
   goldCount: number
   silverCount: number
   bronzeCount: number
+  poorCount: number
   filteredTotal: number
   goldPercent: number
   silverPercent: number
   bronzePercent: number
+  poorPercent: number
 }
 
 export interface CommunicationBadgeStudentRow {
@@ -786,6 +788,7 @@ export async function getCommunicationDashboard(
   const goldCount = rows.filter((r) => r.badge === 'gold').length
   const silverCount = rows.filter((r) => r.badge === 'silver').length
   const bronzeCount = rows.filter((r) => r.badge === 'bronze').length
+  const poorCount = rows.filter((r) => r.badge === 'poor').length
   const filteredTotal = rows.length
 
   if (options.audit !== false) {
@@ -793,7 +796,7 @@ export async function getCommunicationDashboard(
       action: 'COMMUNICATION_DASHBOARD_VIEWED',
       entityType: 'communication_dashboard',
       description: 'Communication dashboard viewed',
-      metadata: { ...filters, filteredTotal, goldCount, silverCount, bronzeCount },
+      metadata: { ...filters, filteredTotal, goldCount, silverCount, bronzeCount, poorCount },
     })
   }
 
@@ -801,10 +804,12 @@ export async function getCommunicationDashboard(
     goldCount,
     silverCount,
     bronzeCount,
+    poorCount,
     filteredTotal,
     goldPercent: communicationBadgePercent(goldCount, filteredTotal),
     silverPercent: communicationBadgePercent(silverCount, filteredTotal),
     bronzePercent: communicationBadgePercent(bronzeCount, filteredTotal),
+    poorPercent: communicationBadgePercent(poorCount, filteredTotal),
   }
 }
 
@@ -813,7 +818,7 @@ export async function listCommunicationBadgeStudents(
   filters: CommunicationDashboardFilters & { page?: number; limit?: number } = {},
 ) {
   if (!isCommunicationBadge(badge)) {
-    throw new Error('Invalid badge. Use gold, silver, or bronze.')
+    throw new Error('Invalid badge. Use gold, silver, bronze, or poor.')
   }
 
   const { page, limit, from, to } = normalizePagination(filters.page, filters.limit)
@@ -845,7 +850,7 @@ export async function exportCommunicationBadgeStudents(
   filters: CommunicationDashboardFilters = {},
 ) {
   if (!isCommunicationBadge(badge)) {
-    throw new Error('Invalid badge. Use gold, silver, or bronze.')
+    throw new Error('Invalid badge. Use gold, silver, bronze, or poor.')
   }
   const all = await loadLatestEvaluatedStudents(filters)
   const data = all.filter((r) => r.badge === badge)

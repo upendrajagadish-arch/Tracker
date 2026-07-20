@@ -30,10 +30,16 @@ describe('communication badge thresholds', () => {
     expect(classifyCommunicationBadge(199)).toBe('silver')
   })
 
-  it('classifies bronze 0–149', () => {
-    expect(classifyCommunicationBadge(0)).toBe('bronze')
+  it('classifies bronze 100–149', () => {
     expect(classifyCommunicationBadge(100)).toBe('bronze')
+    expect(classifyCommunicationBadge(125)).toBe('bronze')
     expect(classifyCommunicationBadge(149)).toBe('bronze')
+  })
+
+  it('classifies poor 0–99', () => {
+    expect(classifyCommunicationBadge(0)).toBe('poor')
+    expect(classifyCommunicationBadge(50)).toBe('poor')
+    expect(classifyCommunicationBadge(99)).toBe('poor')
   })
 
   it('rejects invalid scores', () => {
@@ -45,6 +51,7 @@ describe('communication badge thresholds', () => {
 
   it('validates badge ids', () => {
     expect(isCommunicationBadge('gold')).toBe(true)
+    expect(isCommunicationBadge('poor')).toBe(true)
     expect(isCommunicationBadge('platinum')).toBe(false)
   })
 
@@ -128,28 +135,34 @@ describe('communication dashboard API response shape', () => {
       { badge: 'gold' as const },
       { badge: 'silver' as const },
       { badge: 'bronze' as const },
+      { badge: 'poor' as const },
     ]
     const goldCount = rows.filter((r) => r.badge === 'gold').length
     const silverCount = rows.filter((r) => r.badge === 'silver').length
     const bronzeCount = rows.filter((r) => r.badge === 'bronze').length
+    const poorCount = rows.filter((r) => r.badge === 'poor').length
     const filteredTotal = rows.length
     const response = {
       goldCount,
       silverCount,
       bronzeCount,
+      poorCount,
       filteredTotal,
       goldPercent: communicationBadgePercent(goldCount, filteredTotal),
       silverPercent: communicationBadgePercent(silverCount, filteredTotal),
       bronzePercent: communicationBadgePercent(bronzeCount, filteredTotal),
+      poorPercent: communicationBadgePercent(poorCount, filteredTotal),
     }
     expect(response).toEqual({
       goldCount: 2,
       silverCount: 1,
       bronzeCount: 1,
-      filteredTotal: 4,
-      goldPercent: 50,
-      silverPercent: 25,
-      bronzePercent: 25,
+      poorCount: 1,
+      filteredTotal: 5,
+      goldPercent: 40,
+      silverPercent: 20,
+      bronzePercent: 20,
+      poorPercent: 20,
     })
   })
 

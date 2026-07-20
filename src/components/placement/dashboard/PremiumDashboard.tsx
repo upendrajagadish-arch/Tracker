@@ -32,7 +32,247 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { PlacementLink } from '@/components/placement/PlacementLink'
 import { MeasuredChart } from '@/components/placement/charts/ChartShell'
 import type { DashboardSnapshot } from '@/api/placement/premiumDashboard'
+import { BADGE_CHART_COLORS } from '@/components/placement/charts/chartTheme'
+import {
+  TECH_STACK_BADGE_EMOJI,
+  TECH_STACK_BADGE_LABELS,
+  TECH_STACK_BADGE_ORDER,
+  type BadgeCountMap,
+  type TechStackBadge,
+} from '@/lib/techStackBadge'
 import { cn } from '@/lib/utils'
+
+function badgeRows(counts: BadgeCountMap): Array<{ badge: TechStackBadge; count: number; color: string }> {
+  return TECH_STACK_BADGE_ORDER.map((badge) => ({
+    badge,
+    count: counts[badge],
+    color: BADGE_CHART_COLORS[badge],
+  }))
+}
+
+function SkillsBadgeYearModal({
+  skillBadges,
+  onClose,
+}: {
+  skillBadges: DashboardSnapshot['skillBadges']
+  onClose: () => void
+}) {
+  const years = skillBadges.byYear.map((row) => row.year)
+  const [year, setYear] = useState(years[0] ?? 'All')
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const selected =
+    skillBadges.byYear.find((row) => row.year === year) ??
+    ({
+      year: 'All',
+      tech: skillBadges.tech,
+      communication: skillBadges.communication,
+      techAvg: 0,
+      communicationAvg: 0,
+      studentCount: skillBadges.techTotal,
+    } as DashboardSnapshot['skillBadges']['byYear'][number])
+
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const close = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', close)
+    requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLElement>('button')?.focus())
+    return () => {
+      window.removeEventListener('keydown', close)
+      document.body.style.overflow = previousOverflow
+      previousFocus?.focus()
+    }
+  }, [onClose])
+
+  const techRows = badgeRows(selected.tech)
+  const communicationRows = badgeRows(selected.communication)
+  const maxTech = Math.max(...techRows.map((row) => row.count), 1)
+  const maxComm = Math.max(...communicationRows.map((row) => row.count), 1)
+
+  return (
+    <div
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Tech and communication badge dashboard"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose()
+      }}
+    >
+      <div
+        ref={dialogRef}
+        className="flex max-h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-primary/35 bg-[#0B0E11] shadow-[0_0_55px_-22px_rgba(210,121,24,0.9)]"
+      >
+        <div className="flex flex-wrap items-center gap-3 border-b border-border px-4 py-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-heading text-xl font-bold text-primary">Skills badge dashboard</h3>
+            <p className="text-xs text-muted-foreground">
+              Year-wise Gold / Silver / Bronze / Poor for Tech Stack and Communication
+            </p>
+          </div>
+          <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close skills badge dashboard">
+            <X className="size-4" />
+          </Button>
+        </div>
+
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+          <div className="flex w-full gap-1 overflow-x-auto rounded-card border border-soft bg-elevated p-1">
+            {years.map((tabYear) => (
+              <button
+                key={tabYear}
+                type="button"
+                onClick={() => setYear(tabYear)}
+                className={`min-w-[5rem] flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                  year === tabYear
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-background/60 hover:text-foreground'
+                }`}
+              >
+                {tabYear}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-xl border border-border bg-background/40 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Students</p>
+              <p className="tnum mt-1 text-2xl font-bold text-primary">{selected.studentCount}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-background/40 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Avg tech score</p>
+              <p className="tnum mt-1 text-2xl font-bold text-primary">{selected.techAvg}%</p>
+            </div>
+            <div className="rounded-xl border border-border bg-background/40 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">Avg communication</p>
+              <p className="tnum mt-1 text-2xl font-bold text-primary">{selected.communicationAvg}%</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-soft bg-card/80 p-4">
+              <h4 className="mb-3 font-heading text-base font-bold">Tech Stack badges · {selected.year}</h4>
+              <div className="space-y-3">
+                {techRows.map((row) => (
+                  <div key={`tech-${row.badge}`}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span>
+                        {TECH_STACK_BADGE_EMOJI[row.badge]} {TECH_STACK_BADGE_LABELS[row.badge]}
+                      </span>
+                      <span className="tnum font-bold" style={{ color: row.color }}>
+                        {row.count}
+                      </span>
+                    </div>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${(row.count / maxTech) * 100}%`, background: row.color }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-soft bg-card/80 p-4">
+              <h4 className="mb-3 font-heading text-base font-bold">Communication badges · {selected.year}</h4>
+              <div className="space-y-3">
+                {communicationRows.map((row) => (
+                  <div key={`comm-${row.badge}`}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span>
+                        {TECH_STACK_BADGE_EMOJI[row.badge]} {TECH_STACK_BADGE_LABELS[row.badge]}
+                      </span>
+                      <span className="tnum font-bold" style={{ color: row.color }}>
+                        {row.count}
+                      </span>
+                    </div>
+                    <div className="h-2.5 overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{ width: `${(row.count / maxComm) * 100}%`, background: row.color }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ConsolidatedSkillsBadgeCard({
+  skillBadges,
+  onOpen,
+}: {
+  skillBadges: DashboardSnapshot['skillBadges']
+  onOpen: () => void
+}) {
+  const techTotal = Math.max(skillBadges.techTotal, 1)
+  const communicationTotal = Math.max(skillBadges.communicationTotal, 1)
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="placement-glass group w-full rounded-2xl border border-soft p-5 text-left transition hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+    >
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span className="rounded-xl bg-primary/10 p-2.5 text-primary">
+            <Sparkles className="size-5" />
+          </span>
+          <div>
+            <h2 className="text-base font-bold">Tech + Communication badges</h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Consolidated Gold / Silver / Bronze / Poor · click for year-wise graphical details
+            </p>
+          </div>
+        </div>
+        <span className="text-xs font-medium text-primary">Open year dashboard →</span>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tech Stack</p>
+          <div className="grid grid-cols-4 gap-2">
+            {TECH_STACK_BADGE_ORDER.map((badge) => (
+              <div key={`tech-sum-${badge}`} className="rounded-xl border border-border bg-background/40 px-2 py-2 text-center">
+                <p className="text-lg">{TECH_STACK_BADGE_EMOJI[badge]}</p>
+                <p className="tnum text-sm font-bold" style={{ color: BADGE_CHART_COLORS[badge] }}>
+                  {skillBadges.tech[badge]}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {Math.round((skillBadges.tech[badge] / techTotal) * 100)}%
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Communication</p>
+          <div className="grid grid-cols-4 gap-2">
+            {TECH_STACK_BADGE_ORDER.map((badge) => (
+              <div key={`comm-sum-${badge}`} className="rounded-xl border border-border bg-background/40 px-2 py-2 text-center">
+                <p className="text-lg">{TECH_STACK_BADGE_EMOJI[badge]}</p>
+                <p className="tnum text-sm font-bold" style={{ color: BADGE_CHART_COLORS[badge] }}>
+                  {skillBadges.communication[badge]}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  {Math.round((skillBadges.communication[badge] / communicationTotal) * 100)}%
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </button>
+  )
+}
 
 function useAnimatedNumber(value: number, duration = 650) {
   const [display, setDisplay] = useState(0)
@@ -432,6 +672,7 @@ export function PremiumDashboard({
   base: string | null
 }) {
   const [detail, setDetail] = useState<DetailState | null>(null)
+  const [skillsOpen, setSkillsOpen] = useState(false)
   const { overview, management } = snapshot
   const managementHref = base ? `${base}/operations` : undefined
   const readinessSpark = snapshot.overview.readinessDistribution
@@ -470,6 +711,9 @@ export function PremiumDashboard({
   return (
     <div className="space-y-5">
       {detail ? <DetailModal detail={detail} onClose={() => setDetail(null)} /> : null}
+      {skillsOpen && snapshot.skillBadges ? (
+        <SkillsBadgeYearModal skillBadges={snapshot.skillBadges} onClose={() => setSkillsOpen(false)} />
+      ) : null}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <MetricCard
           title="Total Students"
@@ -612,6 +856,13 @@ export function PremiumDashboard({
           onClick={() => openStudents('Unplaced students', 'Students who are not yet placed or offered.', (student) => !['PLACED', 'OFFERED'].includes(student.placementStatus.toUpperCase()))}
         />
       </section>
+
+      {snapshot.skillBadges ? (
+        <ConsolidatedSkillsBadgeCard
+          skillBadges={snapshot.skillBadges}
+          onOpen={() => setSkillsOpen(true)}
+        />
+      ) : null}
 
       <section className="grid gap-4 xl:grid-cols-3">
         <Panel

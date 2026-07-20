@@ -147,7 +147,7 @@ export function CommunicationBadgeStudentsPage() {
       ) : !badge ? (
         <PlacementEmptyState
           title="Invalid badge"
-          description="Use gold, silver, or bronze."
+          description="Use gold, silver, bronze, or poor."
           action={
             base ? (
               <Button asChild variant="outline" size="sm">

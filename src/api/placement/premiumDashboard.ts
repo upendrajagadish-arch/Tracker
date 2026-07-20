@@ -1,4 +1,17 @@
 import { requireSupabase } from '@/lib/supabase'
+import {
+  classifyCommunicationBadge,
+  totalScoreFromPercentage,
+  type CommunicationBadge,
+} from '@/lib/communicationBadge'
+import {
+  classifyTechStackBadge,
+  computeTechStackScore,
+  emptyBadgeCounts,
+  tallyBadge,
+  type BadgeCountMap,
+  type TechStackBadge,
+} from '@/lib/techStackBadge'
 import type { Database, PlacementRole } from '@/types/supabase'
 
 export type PlacementEventRow = Database['public']['Tables']['placement_events']['Row']
@@ -74,6 +87,20 @@ export interface DashboardSnapshot {
     url: string
     batches: string[]
   }>
+  skillBadges: {
+    tech: BadgeCountMap
+    communication: BadgeCountMap
+    techTotal: number
+    communicationTotal: number
+    byYear: Array<{
+      year: string
+      tech: BadgeCountMap
+      communication: BadgeCountMap
+      techAvg: number
+      communicationAvg: number
+      studentCount: number
+    }>
+  }
 }
 
 const TECH_GROUPS: Array<{ name: string; keys: string[] }> = [
@@ -393,6 +420,75 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
       ? (leaderboardResult.data as { rows?: Array<Record<string, unknown>> })
       : {}
 
+  const skillsByStudent = new Map<string, Array<{ proficiency_level: string }>>()
+  for (const row of filteredSkills) {
+    const list = skillsByStudent.get(row.student_profile_id) ?? []
+    list.push({ proficiency_level: row.proficiency_level })
+    skillsByStudent.set(row.student_profile_id, list)
+  }
+
+  const techBadges = emptyBadgeCounts()
+  const communicationBadges = emptyBadgeCounts()
+  const yearBuckets = new Map<
+    string,
+    {
+      tech: BadgeCountMap
+      communication: BadgeCountMap
+      techScores: number[]
+      communicationScores: number[]
+      studentCount: number
+    }
+  >()
+
+  const ensureYear = (year: string) => {
+    const existing = yearBuckets.get(year)
+    if (existing) return existing
+    const created = {
+      tech: emptyBadgeCounts(),
+      communication: emptyBadgeCounts(),
+      techScores: [] as number[],
+      communicationScores: [] as number[],
+      studentCount: 0,
+    }
+    yearBuckets.set(year, created)
+    return created
+  }
+
+  for (const student of students) {
+    const year = resolveStudentGraduationBatch(student) || 'Unknown'
+    const bucket = ensureYear(year)
+    bucket.studentCount += 1
+
+    const techScoreValue = computeTechStackScore(skillsByStudent.get(student.id) ?? [])
+    const techBadge = classifyTechStackBadge(techScoreValue) as TechStackBadge
+    tallyBadge(techBadges, techBadge)
+    tallyBadge(bucket.tech, techBadge)
+    bucket.techScores.push(techScoreValue)
+
+    const evalRow = latestCommunication.get(student.id)
+    if (evalRow) {
+      const communicationBadge = classifyCommunicationBadge(
+        totalScoreFromPercentage(evalRow.percentage),
+      ) as CommunicationBadge | null
+      if (communicationBadge) {
+        tallyBadge(communicationBadges, communicationBadge)
+        tallyBadge(bucket.communication, communicationBadge)
+      }
+      bucket.communicationScores.push(Number(evalRow.percentage) || 0)
+    }
+  }
+
+  const byYear = [...yearBuckets.entries()]
+    .map(([year, bucket]) => ({
+      year,
+      tech: bucket.tech,
+      communication: bucket.communication,
+      techAvg: average(bucket.techScores),
+      communicationAvg: average(bucket.communicationScores),
+      studentCount: bucket.studentCount,
+    }))
+    .sort((a, b) => a.year.localeCompare(b.year))
+
   return {
     batch,
     availableBatches,
@@ -460,6 +556,13 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
         url: link.url,
         batches: link.audience_batches,
       })),
+    skillBadges: {
+      tech: techBadges,
+      communication: communicationBadges,
+      techTotal: students.length,
+      communicationTotal: Object.values(communicationBadges).reduce((sum, value) => sum + value, 0),
+      byYear,
+    },
   }
 }
 

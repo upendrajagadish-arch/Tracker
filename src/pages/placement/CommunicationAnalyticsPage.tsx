@@ -34,10 +34,12 @@ export function CommunicationAnalyticsPage() {
     goldCount: 0,
     silverCount: 0,
     bronzeCount: 0,
+    poorCount: 0,
     filteredTotal: 0,
     goldPercent: 0,
     silverPercent: 0,
     bronzePercent: 0,
+    poorPercent: 0,
   })
   const [gradeBars, setGradeBars] = useState<Array<{ name: string; value: number }>>([])
 
@@ -79,6 +81,7 @@ export function CommunicationAnalyticsPage() {
     { name: 'Gold', value: badges.goldCount, color: BADGE_CHART_COLORS.gold },
     { name: 'Silver', value: badges.silverCount, color: BADGE_CHART_COLORS.silver },
     { name: 'Bronze', value: badges.bronzeCount, color: BADGE_CHART_COLORS.bronze },
+    { name: 'Poor', value: badges.poorCount, color: BADGE_CHART_COLORS.poor },
   ]
 
   const performanceArea = [
@@ -118,6 +121,7 @@ export function CommunicationAnalyticsPage() {
                   { label: 'Gold students', value: badges.goldCount, hint: `${badges.goldPercent}%` },
                   { label: 'Silver students', value: badges.silverCount, hint: `${badges.silverPercent}%` },
                   { label: 'Bronze students', value: badges.bronzeCount, hint: `${badges.bronzePercent}%` },
+                  { label: 'Poor students', value: badges.poorCount, hint: `${badges.poorPercent}%` },
                   { label: 'Badge cohort', value: badges.filteredTotal },
                 ]}
               />
@@ -125,7 +129,7 @@ export function CommunicationAnalyticsPage() {
               <div className="grid gap-4 lg:grid-cols-2">
                 <LuxuryDonutChart
                   title="Badge mix"
-                  subtitle="Gold / Silver / Bronze cohort share"
+                  subtitle="Gold / Silver / Bronze / Poor cohort share"
                   data={badgeDonut}
                   centerLabel="Total"
                   centerValue={badges.filteredTotal}

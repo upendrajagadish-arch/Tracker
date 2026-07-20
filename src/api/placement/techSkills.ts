@@ -1,5 +1,9 @@
 import { requireSupabase } from '@/lib/supabase'
 import { logPlacementAudit } from '@/lib/placementAudit'
+import {
+  classifyTechStackBadgeFromSkills,
+  techStackBadgePercent,
+} from '@/lib/techStackBadge'
 import type { Database } from '@/types/supabase'
 
 export type TechSkillRow = Database['public']['Tables']['tech_skills']['Row']
@@ -108,6 +112,19 @@ export interface TechStackDashboardStats {
   averageVerifiedSkillsPerStudent: number
   topSkills: Array<{ skill: string; studentCount: number }>
   categoryDistribution: Array<{ category: string; studentCount: number }>
+  badgeCounts: {
+    gold: number
+    silver: number
+    bronze: number
+    poor: number
+  }
+  badgePercents: {
+    gold: number
+    silver: number
+    bronze: number
+    poor: number
+  }
+  filteredTotal: number
 }
 
 export async function listTechSkills(activeOnly = true): Promise<TechSkillRow[]> {
@@ -499,8 +516,11 @@ export async function getTechStackDashboardStats(): Promise<TechStackDashboardSt
   const rowsWithSkills = rows.filter((row) => row.skillsCount > 0)
   const skillCounts = new Map<string, number>()
   const categoryCounts = new Map<string, Set<string>>()
+  const badgeCounts = { gold: 0, silver: 0, bronze: 0, poor: 0 }
 
   for (const row of rows) {
+    const badge = classifyTechStackBadgeFromSkills(row.skills)
+    badgeCounts[badge] += 1
     for (const skill of row.skills) {
       const skillName = skill.tech_skill?.name ?? skill.tech_skill_id
       skillCounts.set(skillName, (skillCounts.get(skillName) ?? 0) + 1)
@@ -512,6 +532,7 @@ export async function getTechStackDashboardStats(): Promise<TechStackDashboardSt
   }
 
   const verifiedTotal = rows.reduce((sum, row) => sum + row.verifiedSkillsCount, 0)
+  const filteredTotal = rows.length
 
   return {
     studentsWithTechStack: rowsWithSkills.length,
@@ -523,5 +544,13 @@ export async function getTechStackDashboardStats(): Promise<TechStackDashboardSt
     categoryDistribution: [...categoryCounts.entries()]
       .map(([category, studentIds]) => ({ category, studentCount: studentIds.size }))
       .sort((a, b) => b.studentCount - a.studentCount),
+    badgeCounts,
+    badgePercents: {
+      gold: techStackBadgePercent(badgeCounts.gold, filteredTotal),
+      silver: techStackBadgePercent(badgeCounts.silver, filteredTotal),
+      bronze: techStackBadgePercent(badgeCounts.bronze, filteredTotal),
+      poor: techStackBadgePercent(badgeCounts.poor, filteredTotal),
+    },
+    filteredTotal,
   }
 }

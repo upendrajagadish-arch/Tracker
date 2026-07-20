@@ -20,6 +20,7 @@ export interface StudentListFilters {
   batch?: string
   academicBatch?: string
   section?: string
+  graduationYear?: number
   placementStatus?: string
   readinessStatus?: string
   isPlacementEligible?: boolean
@@ -192,7 +193,29 @@ export async function listStudents(filters: StudentListFilters = {}): Promise<Pa
   if (batchValue) {
     query = query.or(`academic_batch.eq.${batchValue},batch.eq.${batchValue}`)
   }
-  if (filters.section) query = query.eq('section', filters.section)
+  if (filters.section) {
+    const section = filters.section.trim()
+    const batchNumber = section.match(/\b([1-4])\b/)?.[1]
+    if (/batch|pinnacle/i.test(section) && batchNumber) {
+      query = query.or(
+        [
+          `section.eq.${batchNumber}`,
+          `section.ilike."Batch ${batchNumber}"`,
+          `section.ilike."%Batch ${batchNumber}%"`,
+          `section.ilike."%Pinnacle-${batchNumber}%"`,
+          `section.ilike."%Pinnacle ${batchNumber}%"`,
+        ].join(','),
+      )
+    } else if (/^(ignite|connect)$/i.test(section)) {
+      query = query.ilike('section', `%${section}%`)
+    } else {
+      query = query.eq('section', section)
+    }
+  }
+  if (filters.graduationYear != null) {
+    const year = filters.graduationYear
+    query = query.or(`graduation_year.eq.${year},academic_batch.ilike.%-${year},batch.eq.${year}`)
+  }
   if (filters.placementStatus) query = query.eq('placement_status', filters.placementStatus)
   if (filters.readinessStatus) query = query.eq('readiness_status', filters.readinessStatus)
   if (filters.isPlacementEligible !== undefined) query = query.eq('is_placement_eligible', filters.isPlacementEligible)
@@ -259,6 +282,97 @@ export async function getStudent(studentId: string): Promise<StudentProfileRow |
     .maybeSingle()
   if (error) throw error
   return data
+}
+
+export type ProgramBatchStudent = Pick<
+  StudentProfileRow,
+  | 'id'
+  | 'roll_number'
+  | 'full_name'
+  | 'email'
+  | 'branch'
+  | 'batch'
+  | 'academic_batch'
+  | 'graduation_year'
+  | 'section'
+  | 'cgpa'
+  | 'placement_status'
+  | 'readiness_score'
+  | 'readiness_status'
+  | 'profile_completeness'
+>
+
+/** Active students for training-year dashboards (filtered by graduation year). */
+export async function listStudentsForTrainingYears(years: number[]): Promise<ProgramBatchStudent[]> {
+  const uniqueYears = [...new Set(years.filter((year) => Number.isFinite(year)))]
+  if (!uniqueYears.length) return []
+
+  const client = requireSupabase()
+  const rows: ProgramBatchStudent[] = []
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await client
+      .from('student_profiles')
+      .select(
+        'id,roll_number,full_name,email,branch,batch,academic_batch,graduation_year,section,cgpa,placement_status,readiness_score,readiness_status,profile_completeness',
+      )
+      .eq('is_active', true)
+      .order('roll_number')
+      .range(from, from + 999)
+    if (error) throw error
+    rows.push(...(data ?? []))
+    if (!data || data.length < 1000) break
+  }
+
+  return rows.filter((student) => {
+    if (student.graduation_year != null && uniqueYears.includes(student.graduation_year)) return true
+    const academic = String(student.academic_batch || student.batch || '').trim()
+    const range = academic.match(/^(\d{4})\s*[-–]\s*(\d{4})$/)
+    if (range && uniqueYears.includes(Number(range[2]))) return true
+    const yearOnly = academic.match(/^(\d{4})$/)
+    return Boolean(yearOnly && uniqueYears.includes(Number(yearOnly[1])))
+  })
+}
+
+export function programBatchStudentsToCsv(students: ProgramBatchStudent[]): string {
+  const escape = (value: unknown) => {
+    const raw = value == null ? '' : String(value)
+    const text = /^[=+\-@]/.test(raw) ? `'${raw}` : raw
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+  }
+  const header = [
+    'Roll Number',
+    'Name',
+    'Email',
+    'Branch',
+    'Academic Batch',
+    'Graduation Year',
+    'Section / Program Batch',
+    'CGPA',
+    'Placement Status',
+    'Readiness Score',
+    'Readiness Status',
+    'Profile Completeness',
+  ]
+  const lines = [header.join(',')]
+  for (const student of students) {
+    lines.push(
+      [
+        escape(student.roll_number),
+        escape(student.full_name),
+        escape(student.email),
+        escape(student.branch),
+        escape(student.academic_batch || student.batch),
+        escape(student.graduation_year),
+        escape(student.section),
+        escape(student.cgpa),
+        escape(student.placement_status),
+        escape(student.readiness_score),
+        escape(student.readiness_status),
+        escape(student.profile_completeness),
+      ].join(','),
+    )
+  }
+  return lines.join('\n')
 }
 
 export async function createStudent(input: CreateStudentInput): Promise<StudentProfileRow> {

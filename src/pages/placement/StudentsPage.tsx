@@ -52,6 +52,7 @@ import {
   canImportStudents,
   canManageStudents,
 } from '@/lib/placementNavigation'
+import { TrainingProgramCards } from '@/components/placement/TrainingProgramCards'
 
 export function StudentsPage() {
   const { base, role } = usePlacementPaths()
@@ -259,6 +260,24 @@ export function StudentsPage() {
         {pdfProgress ? (
           <p className="text-sm text-muted-foreground">{pdfProgress}</p>
         ) : null}
+
+        <TrainingProgramCards
+          onFilter={(filter) => {
+            setDraft((current) => ({
+              ...current,
+              batch: String(filter.year),
+            }))
+            setFilters({
+              page: 1,
+              limit: 20,
+              q: draft.q || undefined,
+              branch: draft.branch || undefined,
+              graduationYear: filter.year,
+              section: filter.section,
+              placementStatus: draft.placementStatus || undefined,
+            })
+          }}
+        />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <PlacementStatCard label="Total students" value={result?.pagination.total ?? '—'} hint="Matching filters" />

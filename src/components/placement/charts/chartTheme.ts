@@ -16,6 +16,7 @@ export const BADGE_CHART_COLORS = {
   gold: '#F0B90B',
   silver: '#C0C7D1',
   bronze: '#CD7F32',
+  poor: '#F6465D',
 } as const
 
 export const CHART_AXIS = {

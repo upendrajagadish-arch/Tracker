@@ -1,4 +1,4 @@
-/** Communication performance badges (Gold / Silver / Bronze). Score is out of 250. */
+/** Communication performance badges (Gold / Silver / Bronze / Poor). Score is out of 250. */
 
 export const COMMUNICATION_MAX_SCORE = 250
 
@@ -6,23 +6,26 @@ export const COMMUNICATION_MAX_SCORE = 250
 export const COMMUNICATION_BADGE_THRESHOLDS = {
   gold: { min: 200, max: 250 },
   silver: { min: 150, max: 199 },
-  bronze: { min: 0, max: 149 },
+  bronze: { min: 100, max: 149 },
+  poor: { min: 0, max: 99 },
 } as const
 
 export type CommunicationBadge = keyof typeof COMMUNICATION_BADGE_THRESHOLDS
 
-export const COMMUNICATION_BADGE_ORDER: CommunicationBadge[] = ['gold', 'silver', 'bronze']
+export const COMMUNICATION_BADGE_ORDER: CommunicationBadge[] = ['gold', 'silver', 'bronze', 'poor']
 
 export const COMMUNICATION_BADGE_LABELS: Record<CommunicationBadge, string> = {
   gold: 'Gold',
   silver: 'Silver',
   bronze: 'Bronze',
+  poor: 'Poor',
 }
 
 export const COMMUNICATION_BADGE_EMOJI: Record<CommunicationBadge, string> = {
   gold: '🥇',
   silver: '🥈',
   bronze: '🥉',
+  poor: '📉',
 }
 
 /** Academic batch dropdown values (no free text). Easy to extend. */
@@ -48,7 +51,7 @@ export const COMMUNICATION_BRANCH_OPTIONS = [
 ] as const
 
 export function isCommunicationBadge(value: string): value is CommunicationBadge {
-  return value === 'gold' || value === 'silver' || value === 'bronze'
+  return value === 'gold' || value === 'silver' || value === 'bronze' || value === 'poor'
 }
 
 /** Classify a raw communication total score (0–250). */
@@ -57,10 +60,11 @@ export function classifyCommunicationBadge(totalScore: number | null | undefined
   const score = Number(totalScore)
   if (score < 0 || score > COMMUNICATION_MAX_SCORE) return null
 
-  const { gold, silver, bronze } = COMMUNICATION_BADGE_THRESHOLDS
+  const { gold, silver, bronze, poor } = COMMUNICATION_BADGE_THRESHOLDS
   if (score >= gold.min && score <= gold.max) return 'gold'
   if (score >= silver.min && score <= silver.max) return 'silver'
   if (score >= bronze.min && score <= bronze.max) return 'bronze'
+  if (score >= poor.min && score <= poor.max) return 'poor'
   return null
 }
 

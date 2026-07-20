@@ -15,10 +15,6 @@ import { PlacementShell, usePlacementPaths } from '@/components/placement/Placem
 import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
 import { PlacementEmptyState, PlacementStatCard } from '@/components/placement/PlacementStates'
 import {
-  LuxuryBarChart,
-  LuxuryDonutChart,
-} from '@/components/placement/charts'
-import {
   PlacementAlerts,
   PlacementField,
   PlacementFilterCard,
@@ -29,6 +25,16 @@ import {
   PlacementTableCard,
   formatEnumLabel,
 } from '@/components/placement/PlacementUi'
+import {
+  BADGE_CHART_COLORS,
+  LuxuryBarChart,
+  LuxuryDonutChart,
+} from '@/components/placement/charts'
+import {
+  TECH_STACK_BADGE_EMOJI,
+  TECH_STACK_BADGE_LABELS,
+  TECH_STACK_BADGE_ORDER,
+} from '@/lib/techStackBadge'
 import {
   DEFAULT_ROLE_INTERESTS,
   PROFICIENCY_LEVELS,
@@ -145,6 +151,40 @@ export function TechStackPage() {
 
           <PlacementPageBody loading={loading} loadingLabel="Loading tech stack…">
             <div className="space-y-6">
+              {stats ? (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:items-stretch">
+                  {TECH_STACK_BADGE_ORDER.map((badge) => {
+                    const count = stats.badgeCounts[badge]
+                    const percent = stats.badgePercents[badge]
+                    const data = [
+                      {
+                        name: TECH_STACK_BADGE_LABELS[badge],
+                        value: count,
+                        color: BADGE_CHART_COLORS[badge],
+                      },
+                      {
+                        name: 'Others',
+                        value: Math.max(0, stats.filteredTotal - count),
+                        color: 'rgba(146, 154, 165, 0.25)',
+                      },
+                    ]
+                    return (
+                      <LuxuryDonutChart
+                        key={badge}
+                        className="h-full"
+                        title={`${TECH_STACK_BADGE_EMOJI[badge]} ${TECH_STACK_BADGE_LABELS[badge]}`}
+                        subtitle={`${count} Students · ${percent}% of cohort`}
+                        data={data}
+                        height={220}
+                        hideLegend
+                        centerValue={`${percent}%`}
+                        centerLabel={`${count} Students`}
+                      />
+                    )
+                  })}
+                </div>
+              ) : null}
+
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <PlacementStatCard label="Students with tech stack" value={stats?.studentsWithTechStack ?? 0} />
                 <PlacementStatCard label="Avg verified skills" value={stats?.averageVerifiedSkillsPerStudent ?? 0} />

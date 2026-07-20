@@ -26,13 +26,14 @@ import {
   COMMUNICATION_ACADEMIC_BATCH_OPTIONS,
   COMMUNICATION_BADGE_EMOJI,
   COMMUNICATION_BADGE_LABELS,
+  COMMUNICATION_BADGE_ORDER,
   COMMUNICATION_BRANCH_OPTIONS,
   type CommunicationBadge,
 } from '@/lib/communicationBadge'
 import { canViewCommunicationModule } from '@/lib/placementNavigation'
 import { useAuth } from '@/hooks/useAuth'
 
-const BADGE_CARDS: CommunicationBadge[] = ['gold', 'silver', 'bronze']
+const BADGE_CARDS: CommunicationBadge[] = COMMUNICATION_BADGE_ORDER
 
 function downloadCsv(csv: string, filename: string) {
   const blob = new Blob([csv], { type: 'text/csv' })
@@ -125,6 +126,7 @@ export function CommunicationDashboardPage() {
     gold: { count: summary?.goldCount ?? 0, percent: summary?.goldPercent ?? 0 },
     silver: { count: summary?.silverCount ?? 0, percent: summary?.silverPercent ?? 0 },
     bronze: { count: summary?.bronzeCount ?? 0, percent: summary?.bronzePercent ?? 0 },
+    poor: { count: summary?.poorCount ?? 0, percent: summary?.poorPercent ?? 0 },
   }
 
   const filteredTotal = summary?.filteredTotal ?? 0
@@ -151,8 +153,8 @@ export function CommunicationDashboardPage() {
         title="Communication Dashboard"
         description={
           loading
-            ? 'Gold / Silver / Bronze analytics for Communication Evaluation.'
-            : `${filteredTotal} evaluated students · Gold / Silver / Bronze performance breakdown.`
+            ? 'Gold / Silver / Bronze / Poor analytics for Communication Evaluation.'
+            : `${filteredTotal} evaluated students · Gold / Silver / Bronze / Poor performance breakdown.`
         }
         actions={
           canView ? (
@@ -222,7 +224,7 @@ export function CommunicationDashboardPage() {
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
           ) : (
-            <div className="grid gap-4 md:grid-cols-3 md:items-stretch">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:items-stretch">
               {badgeDonuts.map(({ badge, data }) => (
                 <LuxuryDonutChart
                   key={badge}
