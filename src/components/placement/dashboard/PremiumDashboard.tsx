@@ -1008,25 +1008,33 @@ export function PremiumDashboard({
         </Panel>
 
         <Panel
-          title="Hall of Fame"
+          title="Leaderboard"
           description="Top performers by live Fame XP"
           icon={<Trophy className="size-5" />}
         >
           <div className="space-y-2">
-            {snapshot.leaderboard.map((row) => (
-              <div key={row.rollNumber} className="flex items-center gap-3 rounded-xl border border-border p-3">
-                <span className="tnum flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                  {row.rank}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold">{row.fullName}</p>
-                  <p className="truncate text-xs text-muted-foreground">{row.rollNumber}</p>
+            {snapshot.leaderboard.length ? (
+              snapshot.leaderboard.map((row) => (
+                <div key={row.rollNumber} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                  <span className="tnum flex size-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+                    {row.rank}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{row.fullName}</p>
+                    <p className="truncate text-xs text-muted-foreground">{row.rollNumber}</p>
+                  </div>
+                  <span className="tnum text-sm font-bold text-primary">{row.fameXp} XP</span>
                 </div>
-                <span className="tnum text-sm font-bold text-primary">{row.fameXp} XP</span>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                No ranked students yet. Open Leaderboard after students have evaluation scores.
+              </p>
+            )}
             <Button asChild variant="outline" size="sm" className="mt-2 w-full">
-              <a href="/public/leaderboard" target="_blank" rel="noreferrer">Open Hall of Fame</a>
+              <a href="/public/leaderboard" target="_blank" rel="noreferrer">
+                Open Leaderboard
+              </a>
             </Button>
           </div>
         </Panel>

@@ -39,6 +39,7 @@ BEGIN
       s.codenow_grade,
       s.cgpa,
       s.share_token,
+      s.is_shareable,
       COALESCE(snap.total_solved, 0) AS total_solved,
       COALESCE(snap.linked_count, 0) AS linked_count,
       GREATEST(
@@ -61,8 +62,6 @@ BEGIN
     LEFT JOIN public.student_coding_snapshots snap
       ON snap.student_profile_id = s.id
     WHERE s.is_active = true
-      AND s.is_shareable = true
-      AND s.share_token IS NOT NULL
   ),
   ranked AS (
     SELECT
@@ -124,7 +123,10 @@ BEGIN
         'cgpa', cgpa,
         'totalSolved', total_solved,
         'linkedCount', linked_count,
-        'shareToken', share_token
+        'shareToken', CASE
+          WHEN is_shareable = true AND share_token IS NOT NULL THEN share_token
+          ELSE NULL
+        END
       ) AS row_data
     FROM filtered
     ORDER BY rank, roll_number

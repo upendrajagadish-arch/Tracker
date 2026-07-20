@@ -307,8 +307,8 @@ BEGIN
 END;
 $$;
 
--- Public leaderboard is read-only and includes only students who explicitly
--- opted in and already have a public share token.
+-- Public leaderboard ranks all active students by Fame XP.
+-- Profile deep-links only expose shareToken when the student opted into sharing.
 CREATE OR REPLACE FUNCTION public.get_public_leaderboard(
   p_search text DEFAULT NULL,
   p_limit integer DEFAULT 100,
@@ -342,8 +342,6 @@ BEGIN
     FROM public.student_profiles s
     LEFT JOIN public.student_coding_snapshots snap ON snap.student_profile_id = s.id
     WHERE s.is_active = true
-      AND s.is_shareable = true
-      AND s.share_token IS NOT NULL
   ),
   ranked AS (
     SELECT
@@ -398,7 +396,10 @@ BEGIN
         'cgpa', cgpa,
         'totalSolved', total_solved,
         'linkedCount', linked_count,
-        'shareToken', share_token
+        'shareToken', CASE
+          WHEN is_shareable = true AND share_token IS NOT NULL THEN share_token
+          ELSE NULL
+        END
       ) AS row_data
     FROM filtered
     ORDER BY rank, roll_number

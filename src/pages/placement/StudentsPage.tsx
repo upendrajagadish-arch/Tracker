@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -213,6 +214,12 @@ export function StudentsPage() {
         actions={
           base ? (
             <>
+              <Button asChild variant="outline" size="sm" className="gap-1.5 border-[#D27918]/40 text-[#D27918] hover:bg-[#D27918]/10">
+                <a href="/public/leaderboard" target="_blank" rel="noreferrer">
+                  <Trophy className="size-3.5" strokeWidth={2} />
+                  Leaderboard
+                </a>
+              </Button>
               {canAssign ? (
                 <Button asChild variant="outline" size="sm">
                   <PlacementLink href={`${base}/students/bulk-assign`}>Assign branch & year</PlacementLink>

@@ -69,6 +69,12 @@ export function MarketPage() {
 
           <div className="flex shrink-0 items-center gap-1">
             <Link
+              to="/public/leaderboard"
+              className="rounded-button px-3 py-2 text-[14px] font-semibold text-secondary transition-colors hover:text-foreground"
+            >
+              Leaderboard
+            </Link>
+            <Link
               to="/app"
               className="rounded-button px-3 py-2 text-[14px] font-semibold text-secondary transition-colors hover:text-foreground"
             >

@@ -16,6 +16,8 @@ export interface PlacementNavLink {
   label: string
   /** When true, only highlight on an exact path match (used for dashboard). */
   exact?: boolean
+  /** Open as a public absolute path (e.g. Leaderboard). */
+  external?: boolean
 }
 
 export function isPlacementNavActive(pathname: string, link: PlacementNavLink): boolean {

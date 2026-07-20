@@ -157,7 +157,20 @@ export function PlacementShell({
 
             <nav className="flex-1 space-y-0.5 overflow-y-auto">
               {navLinks.map((link) => {
-                const active = isPlacementNavActive(pathname, link)
+                const active = !link.external && isPlacementNavActive(pathname, link)
+                if (link.external) {
+                  return (
+                    <a
+                      key={link.to}
+                      href={link.to}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="placement-nav-link"
+                    >
+                      {link.label}
+                    </a>
+                  )
+                }
                 return (
                   <Link
                     key={link.to}
@@ -202,20 +215,32 @@ export function PlacementShell({
             <WorkspaceTabs active="placement" />
 
             <div className="flex max-w-full gap-2 overflow-x-auto rounded-card border border-soft bg-card p-2 lg:hidden">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.to}
-                  to={asPlacementPath(link.to)}
-                  className={cn(
-                    'shrink-0 rounded-button border px-3 py-1.5 text-[12px] font-semibold',
-                    isPlacementNavActive(pathname, link)
-                      ? 'border-primary/40 bg-primary/10 text-binance'
-                      : 'border-soft text-secondary',
-                  )}
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {navLinks.map((link) =>
+                link.external ? (
+                  <a
+                    key={link.to}
+                    href={link.to}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="shrink-0 rounded-button border border-soft px-3 py-1.5 text-[12px] font-semibold text-secondary"
+                  >
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link
+                    key={link.to}
+                    to={asPlacementPath(link.to)}
+                    className={cn(
+                      'shrink-0 rounded-button border px-3 py-1.5 text-[12px] font-semibold',
+                      isPlacementNavActive(pathname, link)
+                        ? 'border-primary/40 bg-primary/10 text-binance'
+                        : 'border-soft text-secondary',
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                ),
+              )}
             </div>
 
             {title ? (

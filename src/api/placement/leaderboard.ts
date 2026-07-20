@@ -69,7 +69,7 @@ function toRow(raw: Record<string, unknown>): LeaderboardRow {
   }
 }
 
-/** Open (anonymous) Hall of Fame — ranks live by fame XP from all evaluations. */
+/** Open (anonymous) Leaderboard — ranks live by fame XP from all evaluations. */
 export async function getPublicLeaderboard(options: {
   search?: string
   limit?: number
@@ -95,8 +95,12 @@ export async function getPublicLeaderboard(options: {
   }
 }
 
-/** Playful pixel-character avatar derived from the roll number. */
+/** Playful funny-mode avatar derived from the roll number. */
 export function leaderboardAvatarUrl(rollNumber: string): string {
   const seed = encodeURIComponent(rollNumber.trim().toUpperCase() || 'student')
-  return `https://api.dicebear.com/9.x/adventurer-neutral/svg?seed=${seed}&radius=50&backgroundColor=1e2329`
+  const backgrounds = ['1e2329', '2b1d12', '14261c', '1a2030', '2a1f2e', '231a12']
+  let hash = 0
+  for (let i = 0; i < seed.length; i += 1) hash = (hash * 31 + seed.charCodeAt(i)) >>> 0
+  const bg = backgrounds[hash % backgrounds.length]
+  return `https://api.dicebear.com/9.x/fun-emoji/svg?seed=${seed}&radius=50&backgroundColor=${bg}&scale=90`
 }
