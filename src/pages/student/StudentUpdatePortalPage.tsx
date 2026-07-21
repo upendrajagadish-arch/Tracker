@@ -431,6 +431,7 @@ function LegacyTokenUpdatePortal({ token }: { token: string }) {
           careerInterest: data.editable.careerInterest,
           platformHandles: data.editable.platformHandles,
           projectsSummary: data.editable.projectsSummary,
+          certificationsSummary: '',
         })
       } catch (e) {
         if (active) setError(e instanceof Error ? e.message : 'Failed to load update form')
