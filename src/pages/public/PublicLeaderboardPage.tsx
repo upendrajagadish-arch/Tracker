@@ -284,15 +284,20 @@ export function PublicLeaderboardPage() {
     setSearch(searchDraft.trim())
   }
 
-  const podium = useMemo(
-    () => (search ? [] : rows.filter((r) => r.rank <= 3).slice(0, 3)),
-    [rows, search],
-  )
+  const rankedRows = useMemo<Array<LeaderboardRow & { displayRank: number }>>(() => {
+    const sorted = [...rows].sort((a, b) => {
+      const avgDiff = (b.avgScore ?? 0) - (a.avgScore ?? 0)
+      if (avgDiff !== 0) return avgDiff
+      const fameDiff = (b.fameXp ?? 0) - (a.fameXp ?? 0)
+      if (fameDiff !== 0) return fameDiff
+      return a.rollNumber.localeCompare(b.rollNumber, undefined, { numeric: true })
+    })
+    return sorted.map((row, index) => ({ ...row, displayRank: index + 1 }))
+  }, [rows])
+
+  const podium = useMemo(() => (search ? [] : rankedRows.filter((r) => r.displayRank <= 3).slice(0, 3)), [rankedRows, search])
   const podiumRolls = useMemo(() => new Set(podium.map((r) => r.rollNumber)), [podium])
-  const listRows = useMemo(
-    () => rows.filter((r) => !podiumRolls.has(r.rollNumber)),
-    [rows, podiumRolls],
-  )
+  const listRows = useMemo(() => rankedRows.filter((r) => !podiumRolls.has(r.rollNumber)), [rankedRows, podiumRolls])
 
   return (
     <>
@@ -559,17 +564,9 @@ export function PublicLeaderboardPage() {
                                       : '—'
                                   }
                                 />
-                                <StatChip
-                                  label="Apt"
-                                  value={
-                                    row.aptitudeScore != null ? `${row.aptitudeScore}%` : '—'
-                                  }
-                                />
-                                <StatChip
-                                  label="Verbal"
-                                  value={row.verbalScore != null ? `${row.verbalScore}%` : '—'}
-                                />
+                                <StatChip label="Tech" value={`${row.readinessScore}%`} />
                                 <StatChip label="Solved" value={String(row.totalSolved)} />
+                                <StatChip label="Avg" value={`${row.avgScore}`} />
                               </div>
                               <div className="shrink-0 text-right">
                                 <p className="tnum text-[11px] uppercase tracking-wide text-secondary">

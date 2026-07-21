@@ -34,7 +34,7 @@ export function WorkspaceTabs({ active }: WorkspaceTabsProps) {
           active === 'coding' ? 'text-binance' : 'text-secondary hover:text-foreground',
         )}
       >
-        Coding platform
+        Student Performance
         {active === 'coding' ? <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" /> : null}
       </Link>
     </div>

@@ -4,7 +4,6 @@ import {
   canManageCompanies,
   canRunMatching,
   canViewTechStack,
-  canViewReports,
   canViewStudents,
   getPlacementPrefix,
   hasPermission,
@@ -76,10 +75,6 @@ export function getPlacementNavLinks(role: PlacementRole | null | undefined): Pl
 
   if (hasPermission(role, 'readiness:view') || role === 'admin' || role === 'tpo' || role === 'faculty') {
     links.push({ to: `${base}/communication`, label: 'Communication Evaluation' })
-  }
-
-  if (canViewReports(role)) {
-    links.push({ to: `${base}/reports`, label: 'Analytics' })
   }
 
   return links

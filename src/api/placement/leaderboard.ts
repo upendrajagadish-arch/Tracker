@@ -15,6 +15,7 @@ export interface LeaderboardRow {
   placementStatus: string
   communicationScore: number | null
   communicationGrade: string | null
+  avgScore: number
   aptitudeScore: number | null
   aptitudeGrade: string | null
   verbalScore: number | null
@@ -41,6 +42,13 @@ function toRow(raw: Record<string, unknown>): LeaderboardRow {
     raw.fameLevel == null || raw.fameLevel === ''
       ? fameLevelFromXp(fameXp).name
       : String(raw.fameLevel)
+  const communicationScore = raw.communicationScore == null ? null : Number(raw.communicationScore)
+  const readinessScore = Number(raw.readinessScore ?? 0)
+  const techScore = Number.isFinite(readinessScore) ? readinessScore : 0
+  const codingSolved = Number(raw.totalSolved ?? 0)
+  const avgScore = Math.round(
+    ((communicationScore ?? 0) + techScore + Math.min(codingSolved, 100)) / 3,
+  )
 
   return {
     rank: Number(raw.rank ?? 0),
@@ -54,8 +62,9 @@ function toRow(raw: Record<string, unknown>): LeaderboardRow {
     readinessScore: Number(raw.readinessScore ?? 0),
     readinessStatus: String(raw.readinessStatus ?? ''),
     placementStatus: String(raw.placementStatus ?? ''),
-    communicationScore: raw.communicationScore == null ? null : Number(raw.communicationScore),
+    communicationScore,
     communicationGrade: raw.communicationGrade == null ? null : String(raw.communicationGrade),
+    avgScore,
     aptitudeScore: raw.aptitudeScore == null ? null : Number(raw.aptitudeScore),
     aptitudeGrade: raw.aptitudeGrade == null ? null : String(raw.aptitudeGrade),
     verbalScore: raw.verbalScore == null ? null : Number(raw.verbalScore),

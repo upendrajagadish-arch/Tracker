@@ -23,7 +23,6 @@ export function CommunicationModuleNav() {
           { to: `${base}/communication/import`, label: 'Bulk Upload' },
         ]
       : []),
-    { to: `${base}/communication/analytics`, label: 'Analytics' },
   ]
 
   return (

@@ -391,7 +391,16 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
     ]),
   )
   const filteredSkills = techRows.filter((row) => studentIds.has(row.student_profile_id))
-  const techReadiness = TECH_GROUPS.map((group) => {
+  const fallbackSkillNames = techCatalog
+    .filter((skill) => !TECH_GROUPS.some((group) => group.keys.some((key) => `${skill.name} ${skill.category}`.toLowerCase().includes(key))))
+    .map((skill) => skill.name)
+  const readinessGroups = [
+    ...TECH_GROUPS,
+    ...(fallbackSkillNames.length
+      ? [{ name: 'Other skills', keys: fallbackSkillNames.map((name) => name.toLowerCase()) }]
+      : []),
+  ]
+  const techReadiness = readinessGroups.map((group) => {
     const matching = filteredSkills.filter((row) => {
       const skill = skillNameById.get(row.tech_skill_id) ?? ''
       return group.keys.some((key) => skill.includes(key))

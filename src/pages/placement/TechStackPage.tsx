@@ -64,6 +64,7 @@ export function TechStackPage() {
   const [filters, setFilters] = useState<TechStackFilters>({})
   const [draft, setDraft] = useState<TechStackFilters>({})
   const [masterForm, setMasterForm] = useState({ name: '', category: 'OTHER' as SkillCategory })
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'students' | 'skill-master'>('dashboard')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -218,187 +219,188 @@ export function TechStackPage() {
                 </div>
               ) : null}
 
-              <PlacementFilterCard>
-                <form onSubmit={applyFilters} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                  <PlacementField label="Search" hint="Student name or roll number">
-                    <Input placeholder="e.g. CS21B1001" className="border-border bg-card" value={draft.q ?? ''} onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))} />
-                  </PlacementField>
-                  <PlacementField label="Branch">
-                    <Input placeholder="e.g. CSE" className="border-border bg-card" value={draft.branch ?? ''} onChange={(e) => setDraft((d) => ({ ...d, branch: e.target.value }))} />
-                  </PlacementField>
-                  <PlacementField label="Batch">
-                    <Input placeholder="e.g. 2026" className="border-border bg-card" value={draft.batch ?? ''} onChange={(e) => setDraft((d) => ({ ...d, batch: e.target.value }))} />
-                  </PlacementField>
-                  <PlacementField label="Skill">
-                    <PlacementSelect value={draft.skillId ?? ''} onChange={(value) => setDraft((d) => ({ ...d, skillId: value }))}>
-                      <option value="">All skills</option>
-                      {skills.filter((skill) => skill.is_active).map((skill) => <option key={skill.id} value={skill.id}>{skill.name}</option>)}
-                    </PlacementSelect>
-                  </PlacementField>
-                  <PlacementField label="Category">
-                    <PlacementSelect value={draft.category ?? ''} onChange={(value) => setDraft((d) => ({ ...d, category: value }))}>
-                      <option value="">All categories</option>
-                      {SKILL_CATEGORIES.map((category) => <option key={category} value={category}>{formatEnumLabel(category)}</option>)}
-                    </PlacementSelect>
-                  </PlacementField>
-                  <PlacementField label="Proficiency">
-                    <PlacementSelect value={draft.proficiencyLevel ?? ''} onChange={(value) => setDraft((d) => ({ ...d, proficiencyLevel: value }))}>
-                      <option value="">All proficiency levels</option>
-                      {PROFICIENCY_LEVELS.map((level) => <option key={level} value={level}>{formatEnumLabel(level)}</option>)}
-                    </PlacementSelect>
-                  </PlacementField>
-                  <PlacementField label="Verification">
-                    <PlacementSelect value={draft.verificationStatus ?? ''} onChange={(value) => setDraft((d) => ({ ...d, verificationStatus: value }))}>
-                      <option value="">All verification statuses</option>
-                      {VERIFICATION_STATUSES.map((status) => <option key={status} value={status}>{formatEnumLabel(status)}</option>)}
-                    </PlacementSelect>
-                  </PlacementField>
-                  <PlacementField label="Role interest">
-                    <PlacementSelect value={draft.roleInterest ?? ''} onChange={(value) => setDraft((d) => ({ ...d, roleInterest: value }))}>
-                      <option value="">All role interests</option>
-                      {DEFAULT_ROLE_INTERESTS.map((role) => <option key={role} value={role}>{role}</option>)}
-                    </PlacementSelect>
-                  </PlacementField>
-                  <div className="flex items-end gap-2 sm:col-span-2">
-                    <Button type="submit" size="sm">Apply filters</Button>
-                    <Button type="button" size="sm" variant="outline" onClick={() => { setDraft({}); setFilters({}) }}>Clear</Button>
-                  </div>
-                </form>
-              </PlacementFilterCard>
+              <div className="flex flex-wrap gap-1 rounded-card border border-soft bg-elevated p-1">
+                {[
+                  { id: 'dashboard', label: 'Dashboard' },
+                  { id: 'students', label: 'Students' },
+                  { id: 'skill-master', label: 'Skill Master' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
+                    className={`rounded-md px-3 py-2 text-sm font-semibold transition ${activeTab === tab.id ? 'bg-card text-binance' : 'text-secondary hover:text-foreground'}`}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
 
-              {rows.length ? (
-                <PlacementTableCard
-                  title="Student-wise tracking"
-                  count={rows.length}
-                  exportSection={tableSectionExport(
-                    'Student-wise tracking',
-                    [
-                      'Student',
-                      'Roll number',
-                      'Branch',
-                      'Batch',
-                      'Skills',
-                      'Top skills',
-                      'Verified',
-                      'Role interests',
-                      'Last updated',
-                    ],
-                    [...rows]
-                      .sort((a, b) => {
-                        const skillDiff = b.skillsCount - a.skillsCount
-                        if (skillDiff !== 0) return skillDiff
-                        return String(a.student.roll_number).localeCompare(
-                          String(b.student.roll_number),
-                          undefined,
-                          { numeric: true },
-                        )
-                      })
-                      .map((row) => [
-                        row.student.full_name,
-                        row.student.roll_number,
-                        row.student.branch || '',
-                        row.student.batch || '',
-                        String(row.skillsCount),
-                        row.topSkills.join(', '),
-                        String(row.verifiedSkillsCount),
-                        row.roleInterests.map((interest) => interest.role_name).join(', '),
-                        row.lastUpdated ? new Date(row.lastUpdated).toLocaleDateString() : '',
-                      ]),
-                    { fileBase: 'tech_stack_students' },
-                  )}
-                >
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="bg-muted/30 hover:bg-muted/40">
-                        <TableHead>Student</TableHead>
-                        <TableHead>Roll number</TableHead>
-                        <TableHead>Branch</TableHead>
-                        <TableHead>Batch</TableHead>
-                        <TableHead>Skills</TableHead>
-                        <TableHead>Top skills</TableHead>
-                        <TableHead>Verified</TableHead>
-                        <TableHead>Role interests</TableHead>
-                        <TableHead>Last updated</TableHead>
-                        <TableHead />
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {rows.map((row) => (
-                        <TableRow key={row.student.id} className="hover:bg-muted/40">
-                          <TableCell className="font-medium">{row.student.full_name}</TableCell>
-                          <TableCell>{row.student.roll_number}</TableCell>
-                          <TableCell>{row.student.branch || '—'}</TableCell>
-                          <TableCell>{row.student.batch || '—'}</TableCell>
-                          <TableCell>{row.skillsCount}</TableCell>
-                          <TableCell>
-                            <div className="flex max-w-xs flex-wrap gap-1">
-                              {row.topSkills.length ? row.topSkills.map((skill) => <Badge key={skill} variant="outline" className="font-mono text-[10px]">{skill}</Badge>) : '—'}
-                            </div>
-                          </TableCell>
-                          <TableCell>{row.verifiedSkillsCount}</TableCell>
-                          <TableCell>
-                            <div className="max-w-xs text-xs text-muted-foreground">
-                              {row.roleInterests.map((interest) => interest.role_name).join(', ') || '—'}
-                            </div>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
-                            {row.lastUpdated ? new Date(row.lastUpdated).toLocaleDateString() : '—'}
-                          </TableCell>
-                          <TableCell>
-                            {base ? (
-                              <Button asChild size="sm" variant="outline">
-                                <PlacementLink href={`${base}/students/$id`} params={{ id: row.student.id }}>View</PlacementLink>
-                              </Button>
-                            ) : null}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </PlacementTableCard>
-              ) : (
-                <PlacementEmptyState title="No students match filters" description="Clear filters or add tech stack data to student profiles." />
-              )}
-
-              <PlacementSectionCard
-                title="Skill master"
-                description={canManageMaster ? 'Create and manage the canonical skill catalog.' : 'Faculty can use existing skills but cannot create or deactivate master skills.'}
-                actions={<span className="font-mono text-xs text-muted-foreground">{skills.length} skills</span>}
-              >
-                {canManageMaster ? (
-                  <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_220px_auto]">
-                    <PlacementField label="Skill name">
-                      <Input className="border-border bg-card" placeholder="e.g. React" value={masterForm.name} onChange={(e) => setMasterForm((form) => ({ ...form, name: e.target.value }))} />
-                    </PlacementField>
-                    <PlacementField label="Category">
-                      <PlacementSelect value={masterForm.category} onChange={(value) => setMasterForm((form) => ({ ...form, category: value as SkillCategory }))}>
-                        {SKILL_CATEGORIES.map((category) => <option key={category} value={category}>{formatEnumLabel(category)}</option>)}
-                      </PlacementSelect>
-                    </PlacementField>
-                    <div className="flex items-end">
-                      <Button size="sm" disabled={saving || !masterForm.name.trim()} onClick={() => void handleCreateSkill()}>
-                        {saving ? 'Saving…' : 'Create skill'}
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
-
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {skills.map((skill) => (
-                    <div key={skill.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background/30 px-3 py-2">
-                      <div>
-                        <p className="font-medium text-foreground">{skill.name}</p>
-                        <p className="text-xs text-muted-foreground">{formatEnumLabel(skill.category)} · {skill.is_active ? 'Active' : 'Inactive'}</p>
+              {activeTab === 'dashboard' ? (
+                <div className="space-y-6">
+                  <PlacementFilterCard>
+                    <form onSubmit={applyFilters} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <PlacementField label="Search" hint="Student name or roll number">
+                        <Input placeholder="e.g. CS21B1001" className="border-border bg-card" value={draft.q ?? ''} onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))} />
+                      </PlacementField>
+                      <PlacementField label="Branch">
+                        <Input placeholder="e.g. CSE" className="border-border bg-card" value={draft.branch ?? ''} onChange={(e) => setDraft((d) => ({ ...d, branch: e.target.value }))} />
+                      </PlacementField>
+                      <PlacementField label="Batch">
+                        <Input placeholder="e.g. 2026" className="border-border bg-card" value={draft.batch ?? ''} onChange={(e) => setDraft((d) => ({ ...d, batch: e.target.value }))} />
+                      </PlacementField>
+                      <PlacementField label="Skill">
+                        <PlacementSelect value={draft.skillId ?? ''} onChange={(value) => setDraft((d) => ({ ...d, skillId: value }))}>
+                          <option value="">All skills</option>
+                          {skills.filter((skill) => skill.is_active).map((skill) => <option key={skill.id} value={skill.id}>{skill.name}</option>)}
+                        </PlacementSelect>
+                      </PlacementField>
+                      <PlacementField label="Category">
+                        <PlacementSelect value={draft.category ?? ''} onChange={(value) => setDraft((d) => ({ ...d, category: value }))}>
+                          <option value="">All categories</option>
+                          {SKILL_CATEGORIES.map((category) => <option key={category} value={category}>{formatEnumLabel(category)}</option>)}
+                        </PlacementSelect>
+                      </PlacementField>
+                      <PlacementField label="Proficiency">
+                        <PlacementSelect value={draft.proficiencyLevel ?? ''} onChange={(value) => setDraft((d) => ({ ...d, proficiencyLevel: value }))}>
+                          <option value="">All proficiency levels</option>
+                          {PROFICIENCY_LEVELS.map((level) => <option key={level} value={level}>{formatEnumLabel(level)}</option>)}
+                        </PlacementSelect>
+                      </PlacementField>
+                      <PlacementField label="Verification">
+                        <PlacementSelect value={draft.verificationStatus ?? ''} onChange={(value) => setDraft((d) => ({ ...d, verificationStatus: value }))}>
+                          <option value="">All verification statuses</option>
+                          {VERIFICATION_STATUSES.map((status) => <option key={status} value={status}>{formatEnumLabel(status)}</option>)}
+                        </PlacementSelect>
+                      </PlacementField>
+                      <PlacementField label="Role interest">
+                        <PlacementSelect value={draft.roleInterest ?? ''} onChange={(value) => setDraft((d) => ({ ...d, roleInterest: value }))}>
+                          <option value="">All role interests</option>
+                          {DEFAULT_ROLE_INTERESTS.map((role) => <option key={role} value={role}>{role}</option>)}
+                        </PlacementSelect>
+                      </PlacementField>
+                      <div className="flex items-end gap-2 sm:col-span-2">
+                        <Button type="submit" size="sm">Apply filters</Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => { setDraft({}); setFilters({}) }}>Clear</Button>
                       </div>
-                      {canManageMaster ? (
-                        <Button size="sm" variant="outline" disabled={saving} onClick={() => void handleToggleSkill(skill.id, !skill.is_active)}>
-                          {skill.is_active ? 'Deactivate' : 'Activate'}
-                        </Button>
-                      ) : null}
-                    </div>
-                  ))}
+                    </form>
+                  </PlacementFilterCard>
                 </div>
-              </PlacementSectionCard>
+              ) : null}
+
+              {activeTab === 'students' ? (
+                <div className="space-y-4">
+                  <PlacementFilterCard>
+                    <form onSubmit={applyFilters} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                      <PlacementField label="Search" hint="Student name or roll number">
+                        <Input placeholder="e.g. CS21B1001" className="border-border bg-card" value={draft.q ?? ''} onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))} />
+                      </PlacementField>
+                      <PlacementField label="Branch">
+                        <Input placeholder="e.g. CSE" className="border-border bg-card" value={draft.branch ?? ''} onChange={(e) => setDraft((d) => ({ ...d, branch: e.target.value }))} />
+                      </PlacementField>
+                      <PlacementField label="Batch">
+                        <Input placeholder="e.g. 2026" className="border-border bg-card" value={draft.batch ?? ''} onChange={(e) => setDraft((d) => ({ ...d, batch: e.target.value }))} />
+                      </PlacementField>
+                      <PlacementField label="Skill">
+                        <PlacementSelect value={draft.skillId ?? ''} onChange={(value) => setDraft((d) => ({ ...d, skillId: value }))}>
+                          <option value="">All skills</option>
+                          {skills.filter((skill) => skill.is_active).map((skill) => <option key={skill.id} value={skill.id}>{skill.name}</option>)}
+                        </PlacementSelect>
+                      </PlacementField>
+                      <PlacementField label="Category">
+                        <PlacementSelect value={draft.category ?? ''} onChange={(value) => setDraft((d) => ({ ...d, category: value }))}>
+                          <option value="">All categories</option>
+                          {SKILL_CATEGORIES.map((category) => <option key={category} value={category}>{formatEnumLabel(category)}</option>)}
+                        </PlacementSelect>
+                      </PlacementField>
+                      <PlacementField label="Proficiency">
+                        <PlacementSelect value={draft.proficiencyLevel ?? ''} onChange={(value) => setDraft((d) => ({ ...d, proficiencyLevel: value }))}>
+                          <option value="">All proficiency levels</option>
+                          {PROFICIENCY_LEVELS.map((level) => <option key={level} value={level}>{formatEnumLabel(level)}</option>)}
+                        </PlacementSelect>
+                      </PlacementField>
+                      <PlacementField label="Verification">
+                        <PlacementSelect value={draft.verificationStatus ?? ''} onChange={(value) => setDraft((d) => ({ ...d, verificationStatus: value }))}>
+                          <option value="">All verification statuses</option>
+                          {VERIFICATION_STATUSES.map((status) => <option key={status} value={status}>{formatEnumLabel(status)}</option>)}
+                        </PlacementSelect>
+                      </PlacementField>
+                      <PlacementField label="Role interest">
+                        <PlacementSelect value={draft.roleInterest ?? ''} onChange={(value) => setDraft((d) => ({ ...d, roleInterest: value }))}>
+                          <option value="">All role interests</option>
+                          {DEFAULT_ROLE_INTERESTS.map((role) => <option key={role} value={role}>{role}</option>)}
+                        </PlacementSelect>
+                      </PlacementField>
+                      <div className="flex items-end gap-2 sm:col-span-2">
+                        <Button type="submit" size="sm">Apply filters</Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => { setDraft({}); setFilters({}) }}>Clear</Button>
+                      </div>
+                    </form>
+                  </PlacementFilterCard>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <PlacementStatCard label="Visible students" value={rows.length} />
+                    <PlacementStatCard label="Verified skills" value={rows.reduce((sum, row) => sum + row.verifiedSkillsCount, 0)} />
+                  </div>
+
+                  {rows.length ? (
+                    <PlacementSectionCard title="Filtered cohort snapshot" description="The student-wise table has been removed; use this summary to review the filtered cohort quickly.">
+                      <div className="flex flex-wrap gap-2">
+                        {rows.slice(0, 12).map((row) => (
+                          <div key={row.student.id} className="rounded-lg border border-border bg-background/30 px-3 py-2">
+                            <p className="font-medium text-foreground">{row.student.full_name}</p>
+                            <p className="text-xs text-muted-foreground">{row.student.roll_number} · {row.skillsCount} skills</p>
+                          </div>
+                        ))}
+                      </div>
+                    </PlacementSectionCard>
+                  ) : (
+                    <PlacementEmptyState title="No students match filters" description="Clear filters or add tech stack data to student profiles." />
+                  )}
+                </div>
+              ) : null}
+
+              {activeTab === 'skill-master' ? (
+                <PlacementSectionCard
+                  title="Skill master"
+                  description={canManageMaster ? 'Create and manage the canonical skill catalog.' : 'Faculty can use existing skills but cannot create or deactivate master skills.'}
+                  actions={<span className="font-mono text-xs text-muted-foreground">{skills.length} skills</span>}
+                >
+                  {canManageMaster ? (
+                    <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_220px_auto]">
+                      <PlacementField label="Skill name">
+                        <Input className="border-border bg-card" placeholder="e.g. React" value={masterForm.name} onChange={(e) => setMasterForm((form) => ({ ...form, name: e.target.value }))} />
+                      </PlacementField>
+                      <PlacementField label="Category">
+                        <PlacementSelect value={masterForm.category} onChange={(value) => setMasterForm((form) => ({ ...form, category: value as SkillCategory }))}>
+                          {SKILL_CATEGORIES.map((category) => <option key={category} value={category}>{formatEnumLabel(category)}</option>)}
+                        </PlacementSelect>
+                      </PlacementField>
+                      <div className="flex items-end">
+                        <Button size="sm" disabled={saving || !masterForm.name.trim()} onClick={() => void handleCreateSkill()}>
+                          {saving ? 'Saving…' : 'Create skill'}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {skills.map((skill) => (
+                      <div key={skill.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-background/30 px-3 py-2">
+                        <div>
+                          <p className="font-medium text-foreground">{skill.name}</p>
+                          <p className="text-xs text-muted-foreground">{formatEnumLabel(skill.category)} · {skill.is_active ? 'Active' : 'Inactive'}</p>
+                        </div>
+                        {canManageMaster ? (
+                          <Button size="sm" variant="outline" disabled={saving} onClick={() => void handleToggleSkill(skill.id, !skill.is_active)}>
+                            {skill.is_active ? 'Deactivate' : 'Activate'}
+                          </Button>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </PlacementSectionCard>
+              ) : null}
             </div>
           </PlacementPageBody>
         </PlacementPageStack>
