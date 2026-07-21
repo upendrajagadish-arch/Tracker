@@ -9,22 +9,14 @@ import {
   ExternalLink,
   GraduationCap,
   Link2,
-  MessageSquareText,
   Sparkles,
   Target,
   Trophy,
   UserCheck,
   Users,
   UserX,
-  Wrench,
   X,
 } from 'lucide-react'
-import {
-  Cell,
-  PolarAngleAxis,
-  RadialBar,
-  RadialBarChart,
-} from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PlacementLink } from '@/components/placement/PlacementLink'
@@ -42,7 +34,6 @@ import {
   classifyCommunicationBadge,
   formatCommunicationBadge,
 } from '@/lib/communicationBadge'
-import { tableSectionExport } from '@/lib/analyticsExports'
 import { SectionExportActions } from '@/components/placement/SectionExportActions'
 import { cn } from '@/lib/utils'
 

@@ -1,17 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { PlacementLink } from '@/components/placement/PlacementLink'
-import { PlacementShell, usePlacementPaths } from '@/components/placement/PlacementShell'
+import { PlacementShell } from '@/components/placement/PlacementShell'
 import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
 import { PlacementEmptyState, PlacementStatCard } from '@/components/placement/PlacementStates'
 import {
@@ -22,10 +12,8 @@ import {
   PlacementPageStack,
   PlacementSectionCard,
   PlacementSelect,
-  PlacementTableCard,
   formatEnumLabel,
 } from '@/components/placement/PlacementUi'
-import { tableSectionExport } from '@/lib/analyticsExports'
 import {
   BADGE_CHART_COLORS,
   LuxuryBarChart,
@@ -54,7 +42,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { canManageSkillMaster, canViewTechStack } from '@/lib/placementPermissions'
 
 export function TechStackPage() {
-  const { base } = usePlacementPaths()
   const { placementRole } = useAuth()
   const canView = canViewTechStack(placementRole)
   const canManageMaster = canManageSkillMaster(placementRole)
