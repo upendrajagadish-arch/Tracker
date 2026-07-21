@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouterState } from '@tanstack/react-router'
-import { Bell, Building2, CalendarDays, Link2, Plus } from 'lucide-react'
+import { Building2, CalendarDays, Copy, Link2, Plus, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { PlacementShell, usePlacementPaths } from '@/components/placement/PlacementShell'
@@ -11,30 +11,34 @@ import {
   PlacementPageStack,
   PlacementSectionCard,
   PlacementSelect,
+  CompanyNameCombo,
 } from '@/components/placement/PlacementUi'
-import { listCompanies, type CompanyRow } from '@/api/placement/companies'
+import { listCompanies, createCompany, type CompanyRow } from '@/api/placement/companies'
 import {
   campaignRegistrationUrl,
   listCampaigns,
   type StudentUpdateCampaignRow,
 } from '@/api/placement/studentUpdateCampaigns'
 import {
+  companyDriveRegistrationUrl,
+  countDriveRegistrationsByEvent,
+  listPlacementDriveLinks,
+  scheduleCompanyDriveWithRegistration,
+  type PlacementDriveLinkRow,
+} from '@/api/placement/placementDriveRegistrations'
+import { DriveRegistrationsDialog } from '@/components/placement/DriveRegistrationsDialog'
+import {
   createCompanyShareLink,
   canManagePlacementOperations,
-  schedulePlacementDrive,
-  createPlacementNotification,
   listCompanyShareLinks,
   listPlacementEvents,
-  listPlacementNotificationHistory,
-  listPlacementNotifications,
   updateCompanyShareLink,
   updatePlacementEvent,
   type CompanyShareLinkRow,
   type PlacementEventRow,
-  type PlacementNotificationRow,
 } from '@/api/placement/premiumDashboard'
 
-type Tab = 'drives' | 'links' | 'notifications'
+type Tab = 'drives' | 'links'
 
 export function PlacementOperationsPage() {
   const { role } = usePlacementPaths()
@@ -45,9 +49,15 @@ export function PlacementOperationsPage() {
   const [tab, setTab] = useState<Tab>('drives')
   const [events, setEvents] = useState<PlacementEventRow[]>([])
   const [links, setLinks] = useState<CompanyShareLinkRow[]>([])
-  const [notifications, setNotifications] = useState<PlacementNotificationRow[]>([])
   const [companies, setCompanies] = useState<CompanyRow[]>([])
   const [campaigns, setCampaigns] = useState<StudentUpdateCampaignRow[]>([])
+  const [driveLinks, setDriveLinks] = useState<PlacementDriveLinkRow[]>([])
+  const [registrationCounts, setRegistrationCounts] = useState<Record<string, number>>({})
+  const [registrationsView, setRegistrationsView] = useState<{
+    eventId: string
+    companyName: string
+    driveTitle: string
+  } | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -55,55 +65,55 @@ export function PlacementOperationsPage() {
   const [eventForm, setEventForm] = useState({
     title: '',
     companyId: '',
+    companyName: '',
     startDate: '',
     startTime: '',
     venue: '',
     mode: 'on_campus',
     batches: '2027, 2028',
-    campaignId: '',
+    registrationCloseDate: '',
+    registrationCloseTime: '',
   })
   const [linkForm, setLinkForm] = useState({
     companyId: '',
+    companyName: '',
     label: '',
     url: '',
     batches: '2027, 2028',
     campaignId: '',
   })
-  const [notificationForm, setNotificationForm] = useState({
-    title: '',
-    body: '',
-    role: 'faculty',
-  })
-
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const [eventRows, linkRows, notificationRows, companyRows, campaignRows] = await Promise.all([
+      const [eventRows, linkRows, companyRows, campaignRows, driveLinkRows, regCounts] =
+        await Promise.all([
         listPlacementEvents(),
         listCompanyShareLinks(),
-        canManage ? listPlacementNotificationHistory() : listPlacementNotifications(role),
         listCompanies(),
         listCampaigns().catch(() => []),
+        listPlacementDriveLinks().catch(() => []),
+        countDriveRegistrationsByEvent().catch(() => ({})),
       ])
       setEvents(eventRows)
       setLinks(linkRows)
-      setNotifications(notificationRows)
       setCompanies(companyRows)
       setCampaigns(campaignRows.filter((campaign) => campaign.status === 'active'))
+      setDriveLinks(driveLinkRows)
+      setRegistrationCounts(regCounts)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load placement operations')
     } finally {
       setLoading(false)
     }
-  }, [role, canManage])
+  }, [])
 
   useEffect(() => {
     void load()
   }, [load])
 
   useEffect(() => {
-    if (requestedTab === 'drives' || requestedTab === 'links' || requestedTab === 'notifications') {
+    if (requestedTab === 'drives' || requestedTab === 'links') {
       setTab(requestedTab)
     }
   }, [requestedTab])
@@ -111,45 +121,94 @@ export function PlacementOperationsPage() {
   const parseList = (value: string) =>
     value.split(',').map((item) => item.trim()).filter(Boolean)
 
+  const resolveCompanyId = async (companyId: string, companyName: string): Promise<string> => {
+    if (companyId) return companyId
+    const trimmed = companyName.trim()
+    if (!trimmed) {
+      throw new Error('Select a company from the list or type a new company name.')
+    }
+    const existing = companies.find((company) => company.name.toLowerCase() === trimmed.toLowerCase())
+    if (existing) return existing.id
+    const created = await createCompany({ name: trimmed })
+    setCompanies((current) => [...current, created].sort((a, b) => a.name.localeCompare(b.name)))
+    return created.id
+  }
+
+  const companyNameById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const company of companies) map.set(company.id, company.name)
+    return map
+  }, [companies])
+
+  const driveLinkByEventId = useMemo(() => {
+    const map = new Map<string, PlacementDriveLinkRow>()
+    for (const link of driveLinks) {
+      if (!map.has(link.placement_event_id)) map.set(link.placement_event_id, link)
+    }
+    return map
+  }, [driveLinks])
+
+  const copyRegistrationLink = async (token: string) => {
+    const url = companyDriveRegistrationUrl(token)
+    await navigator.clipboard.writeText(url)
+    setMessage('Registration link copied to clipboard.')
+  }
+
   const saveEvent = async () => {
     if (!eventForm.title.trim() || !eventForm.startDate || !eventForm.startTime) {
       setError('Drive title, start date, and start time are required.')
       return
     }
-    if (eventForm.campaignId && !eventForm.companyId) {
-      setError('Select a company to share the drive registration link.')
-      return
-    }
     setSaving(true)
     setError(null)
     try {
-      const registrationUrl = eventForm.campaignId
-        ? campaignRegistrationUrl(eventForm.campaignId)
-        : null
-      await schedulePlacementDrive({
+      const companyId = await resolveCompanyId(eventForm.companyId, eventForm.companyName)
+
+      const registrationClosesAt =
+        eventForm.registrationCloseDate && eventForm.registrationCloseTime
+          ? new Date(`${eventForm.registrationCloseDate}T${eventForm.registrationCloseTime}`).toISOString()
+          : eventForm.registrationCloseDate
+            ? new Date(`${eventForm.registrationCloseDate}T23:59`).toISOString()
+            : null
+
+      const scheduled = await scheduleCompanyDriveWithRegistration({
         title: eventForm.title.trim(),
-        companyId: eventForm.companyId || null,
+        companyId,
         startsAt: new Date(`${eventForm.startDate}T${eventForm.startTime}`).toISOString(),
+        registrationClosesAt,
         venue: eventForm.venue.trim(),
         mode: eventForm.mode,
         audienceBatches: parseList(eventForm.batches),
-        registrationUrl,
-        registrationLabel: registrationUrl
-          ? `${eventForm.title.trim()} — Student registration`
-          : null,
       })
+
+      await createCompanyShareLink({
+        company_id: companyId,
+        label: scheduled.label,
+        url: scheduled.registrationUrl,
+        audience_batches: parseList(eventForm.batches),
+        expires_at: registrationClosesAt,
+      })
+
+      // Carry the drive company into Company Links so staff can add more links
+      // for the same company without selecting it again.
+      setLinkForm((current) => ({
+        ...current,
+        companyId,
+        companyName: scheduled.companyName,
+      }))
       setEventForm((current) => ({
         ...current,
         title: '',
+        companyId: '',
+        companyName: '',
         startDate: '',
         startTime: '',
         venue: '',
-        campaignId: '',
+        registrationCloseDate: '',
+        registrationCloseTime: '',
       }))
       setMessage(
-        eventForm.campaignId
-          ? 'Drive scheduled and its portal registration link was shared in Company Links.'
-          : 'Drive scheduled.',
+        `${scheduled.companyName} drive scheduled and its student registration link was shared automatically.`,
       )
       await load()
     } catch (e) {
@@ -163,48 +222,32 @@ export function PlacementOperationsPage() {
     const registrationUrl = linkForm.campaignId
       ? campaignRegistrationUrl(linkForm.campaignId)
       : linkForm.url.trim()
-    if (!linkForm.companyId || !registrationUrl) {
-      setError('Company and URL are required.')
+    if (!registrationUrl) {
+      setError('Registration URL or campaign is required.')
       return
     }
     setSaving(true)
     setError(null)
     try {
+      const companyId = await resolveCompanyId(linkForm.companyId, linkForm.companyName)
       await createCompanyShareLink({
-        company_id: linkForm.companyId,
+        company_id: companyId,
         label: linkForm.label.trim(),
         url: registrationUrl,
         audience_batches: parseList(linkForm.batches),
       })
-      setLinkForm((current) => ({ ...current, label: '', url: '', campaignId: '' }))
+      setLinkForm((current) => ({
+        ...current,
+        companyId: '',
+        companyName: '',
+        label: '',
+        url: '',
+        campaignId: '',
+      }))
       setMessage('Company link shared.')
       await load()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to share company link')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const saveNotification = async () => {
-    if (!notificationForm.title.trim()) {
-      setError('Notification title is required.')
-      return
-    }
-    setSaving(true)
-    setError(null)
-    try {
-      await createPlacementNotification({
-        title: notificationForm.title.trim(),
-        body: notificationForm.body.trim(),
-        audience_role: notificationForm.role,
-        notification_type: 'info',
-      })
-      setNotificationForm((current) => ({ ...current, title: '', body: '' }))
-      setMessage('Notification published.')
-      await load()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to publish notification')
     } finally {
       setSaving(false)
     }
@@ -242,7 +285,7 @@ export function PlacementOperationsPage() {
     <PlacementShell title="Placement Operations">
       <PlacementPageHeader
         title="Placement Operations"
-        description="Manage campus drives, company links shared with students, and staff notifications."
+        description="Schedule company drives with calendar date/time, share registration links, and export student registrations."
       />
       <PlacementPageStack>
         <PlacementAlerts error={error} success={message} />
@@ -250,7 +293,6 @@ export function PlacementOperationsPage() {
           {([
             ['drives', 'Drives', CalendarDays],
             ['links', 'Company Links', Link2],
-            ['notifications', 'Notifications', Bell],
           ] as const).map(([value, label, Icon]) => (
             <Button
               key={value}
@@ -269,19 +311,26 @@ export function PlacementOperationsPage() {
         {tab === 'drives' ? (
           <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
             {canManage ? (
-              <PlacementSectionCard title="Schedule drive">
+              <PlacementSectionCard title="Schedule company drive">
                 <div className="grid gap-4">
                   <PlacementField label="Drive title">
                     <Input value={eventForm.title} onChange={(e) => setEventForm((f) => ({ ...f, title: e.target.value }))} placeholder="Campus recruitment drive" />
                   </PlacementField>
-                  <PlacementField label="Company">
-                    <PlacementSelect value={eventForm.companyId} onChange={(value) => setEventForm((f) => ({ ...f, companyId: value }))}>
-                      <option value="">No company selected</option>
-                      {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
-                    </PlacementSelect>
+                  <PlacementField
+                    label="Company"
+                    hint="Choose from the dropdown or type a new company name if it is not listed"
+                  >
+                    <CompanyNameCombo
+                      companies={companies}
+                      companyId={eventForm.companyId}
+                      companyName={eventForm.companyName}
+                      onChange={({ companyId, companyName }) =>
+                        setEventForm((f) => ({ ...f, companyId, companyName }))
+                      }
+                    />
                   </PlacementField>
                   <div className="grid gap-3 sm:grid-cols-2">
-                    <PlacementField label="Start date">
+                    <PlacementField label="Drive date">
                       <Input
                         type="date"
                         value={eventForm.startDate}
@@ -289,12 +338,30 @@ export function PlacementOperationsPage() {
                         onChange={(e) => setEventForm((form) => ({ ...form, startDate: e.target.value }))}
                       />
                     </PlacementField>
-                    <PlacementField label="Start time">
+                    <PlacementField label="Drive time">
                       <Input
                         type="time"
                         value={eventForm.startTime}
                         className="[color-scheme:dark]"
                         onChange={(e) => setEventForm((form) => ({ ...form, startTime: e.target.value }))}
+                      />
+                    </PlacementField>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <PlacementField label="Registration closes (date)">
+                      <Input
+                        type="date"
+                        value={eventForm.registrationCloseDate}
+                        className="[color-scheme:dark]"
+                        onChange={(e) => setEventForm((form) => ({ ...form, registrationCloseDate: e.target.value }))}
+                      />
+                    </PlacementField>
+                    <PlacementField label="Registration closes (time)">
+                      <Input
+                        type="time"
+                        value={eventForm.registrationCloseTime}
+                        className="[color-scheme:dark]"
+                        onChange={(e) => setEventForm((form) => ({ ...form, registrationCloseTime: e.target.value }))}
                       />
                     </PlacementField>
                   </div>
@@ -313,39 +380,56 @@ export function PlacementOperationsPage() {
                   <PlacementField label="Audience batches" hint="Comma-separated graduation years">
                     <Input value={eventForm.batches} onChange={(e) => setEventForm((f) => ({ ...f, batches: e.target.value }))} />
                   </PlacementField>
-                  <PlacementField
-                    label="Student registration link"
-                    hint="Optional: selecting a portal registration campaign automatically shares its link in Company Links."
-                  >
-                    <PlacementSelect
-                      value={eventForm.campaignId}
-                      onChange={(value) => setEventForm((form) => ({ ...form, campaignId: value }))}
-                    >
-                      <option value="">Do not attach a registration link</option>
-                      {campaigns.map((campaign) => (
-                        <option key={campaign.id} value={campaign.id}>{campaign.title}</option>
-                      ))}
-                    </PlacementSelect>
-                  </PlacementField>
-                  <Button disabled={saving} onClick={() => void saveEvent()}><Plus className="size-4" /> Schedule drive</Button>
+                  <p className="text-xs text-secondary">
+                    Creates a company-branded registration form (name, roll number, email, mobile, 10th/12th marks, CGPA, backlogs, resume link) and shares the link automatically.
+                  </p>
+                  <Button disabled={saving} onClick={() => void saveEvent()}><Plus className="size-4" /> Create drive & registration link</Button>
                 </div>
               </PlacementSectionCard>
             ) : null}
-            <PlacementSectionCard title="All drives">
+            <PlacementSectionCard title="All company drives">
               <div className="space-y-3">
-                {events.map((event) => (
+                {events.map((event) => {
+                  const driveLink = driveLinkByEventId.get(event.id)
+                  const companyName = event.company_id ? companyNameById.get(event.company_id) ?? 'Company' : 'Company'
+                  const count = registrationCounts[event.id] ?? 0
+                  return (
                   <div key={event.id} className="rounded-xl border border-border p-4">
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div>
-                        <p className="font-semibold">{event.title}</p>
+                        <p className="font-semibold">{companyName} · {event.title}</p>
                         <p className="mt-1 text-xs text-muted-foreground">{new Date(event.starts_at).toLocaleString()} · {event.mode.replace(/_/g, ' ')} · {event.venue || 'Venue pending'}</p>
+                        <p className="mt-2 text-xs font-semibold text-[#D27918]">{count} registration{count === 1 ? '' : 's'}</p>
                       </div>
-                      {canManage && event.status !== 'cancelled' ? (
-                        <Button size="sm" variant="ghost" disabled={saving} onClick={() => void cancelEvent(event.id)}>Cancel</Button>
-                      ) : <span className="text-xs uppercase text-muted-foreground">{event.status}</span>}
+                      <div className="flex flex-wrap gap-2">
+                        {driveLink ? (
+                          <Button size="sm" variant="outline" disabled={saving} onClick={() => void copyRegistrationLink(driveLink.token)}>
+                            <Copy className="size-3.5" /> Copy link
+                          </Button>
+                        ) : null}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={saving}
+                          onClick={() =>
+                            setRegistrationsView({
+                              eventId: event.id,
+                              companyName,
+                              driveTitle: event.title,
+                            })
+                          }
+                        >
+                          <Users className="size-3.5" /> View / Excel
+                        </Button>
+                        {canManage && event.status !== 'cancelled' ? (
+                          <Button size="sm" variant="ghost" disabled={saving} onClick={() => void cancelEvent(event.id)}>Cancel</Button>
+                        ) : (
+                          <span className="self-center text-xs uppercase text-muted-foreground">{event.status}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                ))}
+                )})}
                 {!events.length ? <p className="py-8 text-center text-sm text-muted-foreground">No drives scheduled.</p> : null}
               </div>
             </PlacementSectionCard>
@@ -357,11 +441,25 @@ export function PlacementOperationsPage() {
             {canManage ? (
               <PlacementSectionCard title="Share company link">
                 <div className="grid gap-4">
-                  <PlacementField label="Company">
-                    <PlacementSelect value={linkForm.companyId} onChange={(value) => setLinkForm((f) => ({ ...f, companyId: value }))}>
-                      <option value="">Select company</option>
-                      {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
-                    </PlacementSelect>
+                  <PlacementField
+                    label="Company"
+                    hint="Dropdown lists saved companies; type a name to add a new one"
+                  >
+                    <CompanyNameCombo
+                      companies={companies}
+                      companyId={linkForm.companyId}
+                      companyName={linkForm.companyName}
+                      onChange={({ companyId, companyName }) =>
+                        setLinkForm((f) => ({
+                          ...f,
+                          companyId,
+                          companyName,
+                          label:
+                            f.label ||
+                            (companyName.trim() ? `${companyName.trim()} — Student registration` : f.label),
+                        }))
+                      }
+                    />
                   </PlacementField>
                   <PlacementField label="Link label">
                     <Input value={linkForm.label} onChange={(e) => setLinkForm((f) => ({ ...f, label: e.target.value }))} placeholder="Job description / registration" />
@@ -409,6 +507,9 @@ export function PlacementOperationsPage() {
                   <div key={link.id} className="flex items-center gap-3 rounded-xl border border-border p-4">
                     <Building2 className="size-5 text-primary" />
                     <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-[#D27918]">
+                        {companyNameById.get(link.company_id) ?? 'Company'}
+                      </p>
                       <p className="truncate font-semibold">{link.label || 'Company opportunity'}</p>
                       <a href={link.url} target="_blank" rel="noreferrer" className="block truncate text-xs text-primary hover:underline">{link.url}</a>
                       <p className="mt-1 text-[11px] text-muted-foreground">{link.audience_batches.join(', ') || 'All batches'} · shared {new Date(link.shared_at).toLocaleDateString()}</p>
@@ -422,44 +523,15 @@ export function PlacementOperationsPage() {
           </div>
         ) : null}
 
-        {tab === 'notifications' ? (
-          <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
-            {canManage ? (
-              <PlacementSectionCard title="Publish notification">
-                <div className="grid gap-4">
-                  <PlacementField label="Title">
-                    <Input value={notificationForm.title} onChange={(e) => setNotificationForm((f) => ({ ...f, title: e.target.value }))} />
-                  </PlacementField>
-                  <PlacementField label="Message">
-                    <textarea className="min-h-24 rounded-md border border-input bg-transparent px-3 py-2 text-sm" value={notificationForm.body} onChange={(e) => setNotificationForm((f) => ({ ...f, body: e.target.value }))} />
-                  </PlacementField>
-                  <PlacementField label="Audience role">
-                    <PlacementSelect value={notificationForm.role} onChange={(value) => setNotificationForm((f) => ({ ...f, role: value }))}>
-                      <option value="admin">Admin</option>
-                      <option value="tpo">TPO</option>
-                      <option value="faculty">Faculty</option>
-                      <option value="interviewer">Interviewer</option>
-                    </PlacementSelect>
-                  </PlacementField>
-                  <Button disabled={saving} onClick={() => void saveNotification()}><Bell className="size-4" /> Publish</Button>
-                </div>
-              </PlacementSectionCard>
-            ) : null}
-            <PlacementSectionCard title="Notification history">
-              <div className="space-y-3">
-                {notifications.map((notification) => (
-                  <div key={notification.id} className="rounded-xl border border-border p-4">
-                    <p className="font-semibold">{notification.title}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{notification.body}</p>
-                    <p className="mt-2 text-[11px] uppercase text-muted-foreground">{notification.audience_role || 'Direct'} · {new Date(notification.created_at).toLocaleString()}</p>
-                  </div>
-                ))}
-                {!notifications.length ? <p className="py-8 text-center text-sm text-muted-foreground">No notifications.</p> : null}
-              </div>
-            </PlacementSectionCard>
-          </div>
-        ) : null}
       </PlacementPageStack>
+
+      <DriveRegistrationsDialog
+        open={registrationsView != null}
+        onClose={() => setRegistrationsView(null)}
+        placementEventId={registrationsView?.eventId ?? null}
+        companyName={registrationsView?.companyName ?? ''}
+        driveTitle={registrationsView?.driveTitle ?? ''}
+      />
     </PlacementShell>
   )
 }

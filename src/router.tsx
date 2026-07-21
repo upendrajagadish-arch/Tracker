@@ -19,6 +19,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PublicStudentPerformancePage } from '@/pages/public/PublicStudentPerformancePage'
 import { PublicLeaderboardPage } from '@/pages/public/PublicLeaderboardPage'
 import { StudentUpdatePortalPage } from '@/pages/student/StudentUpdatePortalPage'
+import { CompanyDriveRegistrationPage } from '@/pages/student/CompanyDriveRegistrationPage'
 import { createPlacementRoutes } from '@/router/placementRoutes'
 import { RequireAuth } from '@/components/RequireAuth'
 
@@ -170,6 +171,12 @@ export const studentUpdateCampaignPortalRoute = createRoute({
   component: StudentUpdatePortalPage,
 })
 
+export const studentDriveRegistrationRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/student/drive/$token',
+  component: CompanyDriveRegistrationPage,
+})
+
 export const publicProfileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/$profileUsername',
@@ -195,6 +202,7 @@ const routeTree = rootRoute.addChildren([
   publicLeaderboardRoute,
   studentUpdatePortalRoute,
   studentUpdateCampaignPortalRoute,
+  studentDriveRegistrationRoute,
   publicProfileRoute,
 ])
 

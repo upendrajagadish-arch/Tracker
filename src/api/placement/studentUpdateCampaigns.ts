@@ -27,6 +27,8 @@ export const DEFAULT_CAMPAIGN_ALLOWLIST = [
   'career_interest',
   'platform_handles',
   'projects_summary',
+  'certifications_summary',
+  'resume',
 ] as const
 
 export interface CampaignRecipientRow extends StudentUpdateTokenRow {

@@ -16,6 +16,7 @@ import {
 import { getPremiumDashboard, type DashboardSnapshot } from '@/api/placement/premiumDashboard'
 import { exportDashboardPdf, exportDashboardXlsx } from '@/lib/dashboardExports'
 import { isSupabaseConfigured, requireSupabase } from '@/lib/supabase'
+import { WorkspaceTabs } from '@/components/placement/WorkspaceTabs'
 
 export function PlacementDashboardPage() {
   const { base } = usePlacementPaths()
@@ -87,6 +88,8 @@ export function PlacementDashboardPage() {
 
   return (
     <PlacementShell title="Dashboard">
+      <WorkspaceTabs active="placement" />
+
       <PlacementPageHeader
         title="Placement Dashboard"
         description="A live command center for student eligibility, placement progress, company engagement, and readiness."

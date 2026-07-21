@@ -36,6 +36,7 @@ type RegistrationForm = {
   careerInterest: string
   platformHandles: Record<string, string>
   projectsSummary: string
+  certificationsSummary: string
 }
 
 const emptyRegistrationForm: RegistrationForm = {
@@ -55,6 +56,7 @@ const emptyRegistrationForm: RegistrationForm = {
   careerInterest: '',
   platformHandles: {},
   projectsSummary: '',
+  certificationsSummary: '',
 }
 
 function RegistrationFields({
@@ -72,43 +74,49 @@ function RegistrationFields({
   fileInputKey?: number
   allowedFields?: string[]
 }) {
+  const isAllowed = (field: string) => !allowedFields || allowedFields.includes(field)
   const fieldClass = (field: string, base = 'text-sm') =>
-    `${base} ${allowedFields?.length && !allowedFields.includes(field) ? 'hidden' : ''}`
+    `${base} ${isAllowed(field) ? '' : 'hidden'}`
+  const visiblePlatforms = ALL_PLATFORMS.filter(
+    (platform) => isAllowed('platform_handles') || isAllowed(`platform_handles.${platform}`),
+  )
+  const resumeAllowed = isAllowed('resume') || Boolean(allowedFields?.includes('platform_handles'))
+
   return (
     <>
-      <label className={fieldClass('email')}>
+      <label className={fieldClass('roll_number')}>
         <span className="text-muted-foreground">Roll number *</span>
         <Input className="mt-1 border-border bg-card" required value={form.rollNumber} onChange={(e) => set('rollNumber', e.target.value)} />
       </label>
-      <label className={fieldClass('phone')}>
+      <label className={fieldClass('full_name')}>
         <span className="text-muted-foreground">Full name *</span>
         <Input className="mt-1 border-border bg-card" required value={form.fullName} onChange={(e) => set('fullName', e.target.value)} />
       </label>
-      <label className={fieldClass('branch')}>
+      <label className={fieldClass('email')}>
         <span className="text-muted-foreground">Email</span>
         <Input type="email" className="mt-1 border-border bg-card" value={form.email} onChange={(e) => set('email', e.target.value)} />
       </label>
-      <label className={fieldClass('academic_batch')}>
+      <label className={fieldClass('phone')}>
         <span className="text-muted-foreground">Phone</span>
         <Input className="mt-1 border-border bg-card" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
       </label>
-      <label className={fieldClass('date_of_birth')}>
+      <label className={fieldClass('branch')}>
         <span className="text-muted-foreground">Branch</span>
         <Input className="mt-1 border-border bg-card" value={form.branch} onChange={(e) => set('branch', e.target.value)} />
       </label>
-      <label className={fieldClass('cgpa')}>
+      <label className={fieldClass('batch')}>
         <span className="text-muted-foreground">Academic Batch</span>
         <Input className="mt-1 border-border bg-card" value={form.batch} onChange={(e) => set('batch', e.target.value)} />
       </label>
-      <label className={fieldClass('active_backlogs')}>
+      <label className={fieldClass('date_of_birth')}>
         <span className="text-muted-foreground">Date of birth</span>
         <Input type="date" className="mt-1 border-border bg-card" value={form.dateOfBirth ?? ''} onChange={(e) => set('dateOfBirth', e.target.value || null)} />
       </label>
-      <label className="text-sm">
+      <label className={fieldClass('cgpa')}>
         <span className="text-muted-foreground">CGPA</span>
         <Input type="number" step="0.01" className="mt-1 border-border bg-card" value={form.cgpa ?? ''} onChange={(e) => set('cgpa', e.target.value ? Number(e.target.value) : null)} />
       </label>
-      <label className="text-sm">
+      <label className={fieldClass('active_backlogs')}>
         <span className="text-muted-foreground">Active backlogs</span>
         <Input type="number" className="mt-1 border-border bg-card" value={form.activeBacklogs} onChange={(e) => set('activeBacklogs', Number(e.target.value))} />
       </label>
@@ -132,15 +140,18 @@ function RegistrationFields({
         <span className="text-muted-foreground">Portfolio URL</span>
         <Input className="mt-1 border-border bg-card" value={form.portfolioUrl} onChange={(e) => set('portfolioUrl', e.target.value)} />
       </label>
-      <div className="sm:col-span-2 rounded-lg border border-border bg-background/30 p-4">
-        <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Resume</p>
-        <Input key={fileInputKey} type="file" accept=".pdf,.doc,.docx,application/pdf" onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)} />
-        <p className="mt-2 text-xs text-muted-foreground">PDF preferred. Upload your resume with the registration form.</p>
-      </div>
-      <div className={fieldClass('platform_handles', 'sm:col-span-2')}>
+      {resumeAllowed ? (
+        <div className="sm:col-span-2 rounded-lg border border-border bg-background/30 p-4">
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Resume</p>
+          <Input key={fileInputKey} type="file" accept=".pdf,.doc,.docx,application/pdf" onChange={(e) => setResumeFile(e.target.files?.[0] ?? null)} />
+          <p className="mt-2 text-xs text-muted-foreground">PDF preferred. Upload your resume with the registration form.</p>
+        </div>
+      ) : null}
+      {visiblePlatforms.length ? (
+      <div className="sm:col-span-2">
         <p className="mb-2 text-sm text-muted-foreground">Coding platform handles (for live trace)</p>
         <div className="grid gap-3 sm:grid-cols-2">
-          {ALL_PLATFORMS.map((platform) => (
+          {visiblePlatforms.map((platform) => (
             <label key={platform} className="text-sm">
               <span className="capitalize text-muted-foreground">{platform}</span>
               <Input
@@ -153,6 +164,7 @@ function RegistrationFields({
           ))}
         </div>
       </div>
+      ) : null}
       <label className={fieldClass('projects_summary', 'text-sm sm:col-span-2')}>
         <span className="text-muted-foreground">Projects summary</span>
         <textarea
@@ -160,6 +172,18 @@ function RegistrationFields({
           value={form.projectsSummary}
           onChange={(e) => set('projectsSummary', e.target.value)}
         />
+      </label>
+      <label className={fieldClass('certifications_summary', 'text-sm sm:col-span-2')}>
+        <span className="text-muted-foreground">Certification links</span>
+        <textarea
+          className="mt-1 min-h-28 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+          value={form.certificationsSummary}
+          onChange={(e) => set('certificationsSummary', e.target.value)}
+          placeholder={'Add one certification link per line\nhttps://example.com/certificate/123'}
+        />
+        <span className="mt-1 block text-xs text-muted-foreground">
+          Add multiple certificate or credential URLs, one per line.
+        </span>
       </label>
     </>
   )
@@ -230,24 +254,37 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
         setFileInputKey((key) => key + 1)
         return
       }
+      const allowed = new Set(meta.allowlistedFields)
+      const has = (field: string) => allowed.has(field)
+      const selectedPlatformHandles = Object.fromEntries(
+        Object.entries(form.platformHandles).filter(
+          ([platform]) => has('platform_handles') || has(`platform_handles.${platform}`),
+        ),
+      )
       const result = await submitPublicCampaignRegistration(campaignId, {
         rollNumber: form.rollNumber.trim(),
         fullName: form.fullName.trim(),
-        email: form.email.trim(),
-        phone: form.phone,
-        branch: form.branch,
-        batch: form.batch,
-        academicBatch: form.batch,
-        dateOfBirth: form.dateOfBirth,
-        cgpa: form.cgpa,
-        activeBacklogs: form.activeBacklogs,
-        linkedinUrl: form.linkedinUrl,
-        githubUrl: form.githubUrl,
-        portfolioUrl: form.portfolioUrl,
-        skillsSummary: form.skillsSummary,
-        careerInterest: form.careerInterest,
-        platformHandles: form.platformHandles,
-        projectsSummary: form.projectsSummary,
+        ...(has('email') ? { email: form.email.trim() } : {}),
+        ...(has('phone') ? { phone: form.phone } : {}),
+        ...(has('branch') ? { branch: form.branch } : {}),
+        ...(has('batch') || has('academic_batch')
+          ? { batch: form.batch, academicBatch: form.batch }
+          : {}),
+        ...(has('date_of_birth') ? { dateOfBirth: form.dateOfBirth } : {}),
+        ...(has('cgpa') ? { cgpa: form.cgpa } : {}),
+        ...(has('active_backlogs') ? { activeBacklogs: form.activeBacklogs } : {}),
+        ...(has('linkedin_url') ? { linkedinUrl: form.linkedinUrl } : {}),
+        ...(has('github_url') ? { githubUrl: form.githubUrl } : {}),
+        ...(has('portfolio_url') ? { portfolioUrl: form.portfolioUrl } : {}),
+        ...(has('skills_summary') ? { skillsSummary: form.skillsSummary } : {}),
+        ...(has('career_interest') ? { careerInterest: form.careerInterest } : {}),
+        ...(Object.keys(selectedPlatformHandles).length
+          ? { platformHandles: selectedPlatformHandles }
+          : {}),
+        ...(has('projects_summary') ? { projectsSummary: form.projectsSummary } : {}),
+        ...(has('certifications_summary')
+          ? { certificationsSummary: form.certificationsSummary }
+          : {}),
       })
       if (!result.ok) throw new Error(result.error || 'Registration failed')
       if (!result.studentProfileId) throw new Error('Registration succeeded but student id was missing')

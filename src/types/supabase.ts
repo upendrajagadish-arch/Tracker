@@ -915,6 +915,72 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['company_share_links']['Insert']>
         Relationships: []
       }
+      placement_drive_links: {
+        Row: {
+          id: string
+          placement_event_id: string
+          company_id: string
+          token: string
+          label: string
+          expires_at: string | null
+          is_active: boolean
+          created_by: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          placement_event_id: string
+          company_id: string
+          token: string
+          label?: string
+          expires_at?: string | null
+          is_active?: boolean
+          created_by?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['placement_drive_links']['Insert']>
+        Relationships: []
+      }
+      placement_drive_registrations: {
+        Row: {
+          id: string
+          placement_event_id: string
+          company_id: string
+          drive_link_id: string | null
+          student_profile_id: string | null
+          full_name: string
+          roll_number: string
+          email: string
+          mobile: string
+          tenth_percentage: number | null
+          twelfth_percentage: number | null
+          btech_cgpa: number | null
+          active_backlogs: number
+          resume_url: string
+          submitted_at: string
+        }
+        Insert: {
+          id?: string
+          placement_event_id: string
+          company_id: string
+          drive_link_id?: string | null
+          student_profile_id?: string | null
+          full_name: string
+          roll_number: string
+          email?: string
+          mobile?: string
+          tenth_percentage?: number | null
+          twelfth_percentage?: number | null
+          btech_cgpa?: number | null
+          active_backlogs?: number
+          resume_url?: string
+          submitted_at?: string
+        }
+        Update: Partial<Database['public']['Tables']['placement_drive_registrations']['Insert']>
+        Relationships: []
+      }
       placement_notifications: {
         Row: {
           id: string
@@ -1052,6 +1118,20 @@ export interface Database {
         }
         Returns: Json
       }
+      schedule_company_drive_with_registration: {
+        Args: {
+          p_title: string
+          p_company_id: string
+          p_starts_at: string
+          p_registration_closes_at?: string | null
+          p_venue?: string
+          p_mode?: string
+          p_audience_batches?: string[]
+        }
+        Returns: Json
+      }
+      get_public_drive_registration_form: { Args: { p_token: string }; Returns: Json }
+      submit_public_drive_registration: { Args: { p_token: string; p_payload: Json }; Returns: Json }
       get_public_resume_book: { Args: { p_token: string }; Returns: Json }
       get_public_resume_book_students: {
         Args: { p_token: string; p_page?: number; p_limit?: number }

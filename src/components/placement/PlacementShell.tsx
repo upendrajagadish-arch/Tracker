@@ -14,7 +14,6 @@ import { placementHomeForRole } from '@/lib/placementAuth'
 import { getPlacementNavLinks, getRolePrefix, isPlacementNavActive } from '@/lib/placementNavigation'
 import { isStaffPlacementRole } from '@/lib/placementStaff'
 import { isAllowedStaffLogin } from '@/lib/placementStaffLogins'
-import { WorkspaceTabs } from '@/components/placement/WorkspaceTabs'
 import { cn } from '@/lib/utils'
 import { BRAND_NAME } from '@/lib/brand'
 
@@ -211,8 +210,6 @@ export function PlacementShell({
 
           <main className="app-stack min-w-0 max-w-full flex-1">
             <PlacementTopBar base={getRolePrefix(placementRole) ? `${getRolePrefix(placementRole)}/placement` : null} />
-
-            <WorkspaceTabs active="placement" />
 
             <div className="flex max-w-full gap-2 overflow-x-auto rounded-card border border-soft bg-card p-2 lg:hidden">
               {navLinks.map((link) =>

@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react'
+import { useId, type ReactNode } from 'react'
+import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { PlacementErrorAlert, PlacementLoadingBlock } from '@/components/placement/PlacementStates'
@@ -168,6 +169,54 @@ export function PlacementSelect({
     >
       {children}
     </select>
+  )
+}
+
+/** Pick an existing company from the list or type a new company name. */
+export function CompanyNameCombo({
+  companies,
+  companyId,
+  companyName,
+  onChange,
+  placeholder = 'Select or type company name',
+  className,
+  disabled,
+}: {
+  companies: Array<{ id: string; name: string }>
+  companyId: string
+  companyName: string
+  onChange: (next: { companyId: string; companyName: string }) => void
+  placeholder?: string
+  className?: string
+  disabled?: boolean
+}) {
+  const listId = useId()
+  const selected = companyId ? companies.find((company) => company.id === companyId) : null
+  const displayValue = selected?.name ?? companyName
+
+  return (
+    <>
+      <Input
+        list={listId}
+        className={className}
+        disabled={disabled}
+        value={displayValue}
+        placeholder={placeholder}
+        onChange={(event) => {
+          const text = event.target.value
+          const match = companies.find(
+            (company) => company.name.toLowerCase() === text.trim().toLowerCase(),
+          )
+          if (match) onChange({ companyId: match.id, companyName: match.name })
+          else onChange({ companyId: '', companyName: text })
+        }}
+      />
+      <datalist id={listId}>
+        {companies.map((company) => (
+          <option key={company.id} value={company.name} />
+        ))}
+      </datalist>
+    </>
   )
 }
 

@@ -1,7 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import {
-  Bell,
   Building2,
   CalendarDays,
   LogOut,
@@ -22,13 +21,9 @@ import { listStudents } from '@/api/placement/students'
 import { listCompanies } from '@/api/placement/companies'
 import {
   listPlacementEvents,
-  listPlacementNotifications,
-  markPlacementNotificationRead,
-  type PlacementNotificationRow,
 } from '@/api/placement/premiumDashboard'
 import { signOut } from '@/api/savedProfiles'
 import { useAuth } from '@/hooks/useAuth'
-import { requireSupabase } from '@/lib/supabase'
 
 interface SearchResult {
   id: string
@@ -45,25 +40,6 @@ export function PlacementTopBar({ base }: { base: string | null }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [results, setResults] = useState<SearchResult[]>([])
   const [searchError, setSearchError] = useState<string | null>(null)
-  const [notifications, setNotifications] = useState<PlacementNotificationRow[]>([])
-
-  useEffect(() => {
-    const client = requireSupabase()
-    const refresh = () => {
-      void listPlacementNotifications(placementRole)
-        .then(setNotifications)
-        .catch(() => setNotifications([]))
-    }
-    refresh()
-    const channel = client
-      .channel('placement-topbar-notifications')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'placement_notifications' }, refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'placement_notification_reads' }, refresh)
-      .subscribe()
-    return () => {
-      void client.removeChannel(channel)
-    }
-  }, [placementRole])
 
   useEffect(() => {
     if (query.trim().length < 2) {
@@ -123,11 +99,6 @@ export function PlacementTopBar({ base }: { base: string | null }) {
       window.clearTimeout(timer)
     }
   }, [query, base])
-
-  const unread = useMemo(
-    () => notifications.filter((notification) => !notification.read_at).length,
-    [notifications],
-  )
 
   const handleSignOut = async () => {
     await signOut()
@@ -198,69 +169,6 @@ export function PlacementTopBar({ base }: { base: string | null }) {
           </div>
         ) : null}
       </div>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="relative rounded-xl"
-            aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'}
-          >
-            <Bell className="size-4.5" />
-            {unread ? (
-              <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-destructive text-[9px] font-bold text-white">
-                {Math.min(unread, 9)}
-              </span>
-            ) : null}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-80">
-          <DropdownMenuLabel className="flex items-center justify-between">
-            Notifications
-            <span className="text-xs font-normal text-muted-foreground">{unread} unread</span>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {notifications.length ? (
-            notifications.slice(0, 8).map((notification) => (
-              <DropdownMenuItem
-                key={notification.id}
-                className="items-start gap-2 py-2"
-                onSelect={() => {
-                  if (!notification.read_at) {
-                    void markPlacementNotificationRead(notification.id).then(() =>
-                      setNotifications((current) =>
-                        current.map((item) =>
-                          item.id === notification.id
-                            ? { ...item, read_at: new Date().toISOString() }
-                            : item,
-                        ),
-                      ),
-                    )
-                  }
-                  if (notification.action_url) {
-                    void navigate({ to: notification.action_url as never })
-                  }
-                }}
-              >
-                <span
-                  className={`mt-1 size-2 shrink-0 rounded-full ${notification.read_at ? 'bg-muted' : 'bg-primary'}`}
-                />
-                <span>
-                  <span className="block text-sm font-semibold">{notification.title}</span>
-                  <span className="mt-0.5 block text-xs text-muted-foreground">
-                    {notification.body}
-                  </span>
-                </span>
-              </DropdownMenuItem>
-            ))
-          ) : (
-            <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-              You are all caught up
-            </p>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
