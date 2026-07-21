@@ -20,7 +20,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PlacementLink } from '@/components/placement/PlacementLink'
-import { MeasuredChart } from '@/components/placement/charts/ChartShell'
 import type { DashboardSnapshot } from '@/api/placement/premiumDashboard'
 import { BADGE_CHART_COLORS } from '@/components/placement/charts/chartTheme'
 import {
@@ -30,10 +29,6 @@ import {
   type BadgeCountMap,
   type TechStackBadge,
 } from '@/lib/techStackBadge'
-import {
-  classifyCommunicationBadge,
-  formatCommunicationBadge,
-} from '@/lib/communicationBadge'
 import { SectionExportActions } from '@/components/placement/SectionExportActions'
 import { tableSectionExport } from '@/lib/analyticsExports'
 import { cn } from '@/lib/utils'
