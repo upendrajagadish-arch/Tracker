@@ -1354,7 +1354,6 @@ export function PremiumDashboard({
               <Button asChild variant="outline"><PlacementLink href={`${base}/students/new`}>Add student</PlacementLink></Button>
               <Button asChild variant="outline"><PlacementLink href={`${base}/communication/new`}>New evaluation</PlacementLink></Button>
               <Button asChild variant="outline"><PlacementLink href={`${base}/operations`}>Schedule drive</PlacementLink></Button>
-              <Button asChild variant="outline"><PlacementLink href={`${base}/reports`}>Open analytics</PlacementLink></Button>
             </>
           ) : null}
         </div>

@@ -11,7 +11,6 @@ import {
   PlacementPageBody,
   PlacementPageStack,
   PlacementSectionCard,
-  PlacementSelect,
   formatEnumLabel,
 } from '@/components/placement/PlacementUi'
 import {
@@ -25,7 +24,6 @@ import {
   TECH_STACK_BADGE_ORDER,
 } from '@/lib/techStackBadge'
 import {
-  DEFAULT_ROLE_INTERESTS,
   PROFICIENCY_LEVELS,
   SKILL_CATEGORIES,
   VERIFICATION_STATUSES,
@@ -40,6 +38,11 @@ import {
 } from '@/api/placement/techSkills'
 import { useAuth } from '@/hooks/useAuth'
 import { canManageSkillMaster, canViewTechStack } from '@/lib/placementPermissions'
+
+function resolveFilterValue(value: string | undefined) {
+  const trimmed = value?.trim()
+  return trimmed ? trimmed : undefined
+}
 
 export function TechStackPage() {
   const { placementRole } = useAuth()
@@ -83,15 +86,30 @@ export function TechStackPage() {
 
   const applyFilters = (e: React.FormEvent) => {
     e.preventDefault()
+
+    const resolvedSkillId = resolveFilterValue(draft.skillId)
+      ? skills.find((skill) => skill.is_active && skill.name.toLowerCase().includes(resolveFilterValue(draft.skillId)!.toLowerCase()))?.id
+      : undefined
+
+    const normalizedCategory = resolveFilterValue(draft.category)?.toUpperCase()
+    const normalizedProficiency = resolveFilterValue(draft.proficiencyLevel)?.toUpperCase()
+    const normalizedVerification = resolveFilterValue(draft.verificationStatus)?.toUpperCase()
+
     setFilters({
-      q: draft.q || undefined,
-      branch: draft.branch || undefined,
-      batch: draft.batch || undefined,
-      skillId: draft.skillId || undefined,
-      category: draft.category || undefined,
-      proficiencyLevel: draft.proficiencyLevel || undefined,
-      verificationStatus: draft.verificationStatus || undefined,
-      roleInterest: draft.roleInterest || undefined,
+      q: resolveFilterValue(draft.q),
+      branch: resolveFilterValue(draft.branch),
+      batch: resolveFilterValue(draft.batch),
+      skillId: resolvedSkillId,
+      category: normalizedCategory && (SKILL_CATEGORIES as readonly string[]).includes(normalizedCategory)
+        ? (normalizedCategory as SkillCategory)
+        : undefined,
+      proficiencyLevel: normalizedProficiency && (PROFICIENCY_LEVELS as readonly string[]).includes(normalizedProficiency)
+        ? normalizedProficiency
+        : undefined,
+      verificationStatus: normalizedVerification && (VERIFICATION_STATUSES as readonly string[]).includes(normalizedVerification)
+        ? normalizedVerification
+        : undefined,
+      roleInterest: resolveFilterValue(draft.roleInterest),
     })
   }
 
@@ -124,6 +142,11 @@ export function TechStackPage() {
       setSaving(false)
     }
   }
+
+  const averageCgpa = rows.length
+    ? (rows.reduce((sum, row) => sum + Number(row.student.cgpa ?? 0), 0) / rows.length).toFixed(2)
+    : '—'
+  const eligibleStudents = rows.filter((row) => row.student.is_placement_eligible).length
 
   return (
     <PlacementShell title="Tech Stack">
@@ -206,17 +229,17 @@ export function TechStackPage() {
                 </div>
               ) : null}
 
-              <div className="flex flex-wrap gap-1 rounded-card border border-soft bg-elevated p-1">
+              <div className="mb-4 flex w-full max-w-full gap-1 overflow-x-auto rounded-card border border-soft bg-elevated p-1">
                 {[
+                  { id: 'skill-master', label: 'Skill Master' },
                   { id: 'dashboard', label: 'Dashboard' },
                   { id: 'students', label: 'Students' },
-                  { id: 'skill-master', label: 'Skill Master' },
                 ].map((tab) => (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                    className={`rounded-md px-3 py-2 text-sm font-semibold transition ${activeTab === tab.id ? 'bg-card text-binance' : 'text-secondary hover:text-foreground'}`}
+                    className={`shrink-0 rounded-md px-3 py-2 text-sm font-semibold transition ${activeTab === tab.id ? 'bg-card text-binance' : 'text-secondary hover:text-foreground'}`}
                   >
                     {tab.label}
                   </button>
@@ -237,34 +260,19 @@ export function TechStackPage() {
                         <Input placeholder="e.g. 2026" className="border-border bg-card" value={draft.batch ?? ''} onChange={(e) => setDraft((d) => ({ ...d, batch: e.target.value }))} />
                       </PlacementField>
                       <PlacementField label="Skill">
-                        <PlacementSelect value={draft.skillId ?? ''} onChange={(value) => setDraft((d) => ({ ...d, skillId: value }))}>
-                          <option value="">All skills</option>
-                          {skills.filter((skill) => skill.is_active).map((skill) => <option key={skill.id} value={skill.id}>{skill.name}</option>)}
-                        </PlacementSelect>
+                        <Input placeholder="e.g. React" className="border-border bg-card" value={draft.skillId ?? ''} onChange={(e) => setDraft((d) => ({ ...d, skillId: e.target.value }))} />
                       </PlacementField>
                       <PlacementField label="Category">
-                        <PlacementSelect value={draft.category ?? ''} onChange={(value) => setDraft((d) => ({ ...d, category: value }))}>
-                          <option value="">All categories</option>
-                          {SKILL_CATEGORIES.map((category) => <option key={category} value={category}>{formatEnumLabel(category)}</option>)}
-                        </PlacementSelect>
+                        <Input placeholder="e.g. WEB_TECHNOLOGY" className="border-border bg-card" value={draft.category ?? ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} />
                       </PlacementField>
                       <PlacementField label="Proficiency">
-                        <PlacementSelect value={draft.proficiencyLevel ?? ''} onChange={(value) => setDraft((d) => ({ ...d, proficiencyLevel: value }))}>
-                          <option value="">All proficiency levels</option>
-                          {PROFICIENCY_LEVELS.map((level) => <option key={level} value={level}>{formatEnumLabel(level)}</option>)}
-                        </PlacementSelect>
+                        <Input placeholder="e.g. ADVANCED" className="border-border bg-card" value={draft.proficiencyLevel ?? ''} onChange={(e) => setDraft((d) => ({ ...d, proficiencyLevel: e.target.value }))} />
                       </PlacementField>
                       <PlacementField label="Verification">
-                        <PlacementSelect value={draft.verificationStatus ?? ''} onChange={(value) => setDraft((d) => ({ ...d, verificationStatus: value }))}>
-                          <option value="">All verification statuses</option>
-                          {VERIFICATION_STATUSES.map((status) => <option key={status} value={status}>{formatEnumLabel(status)}</option>)}
-                        </PlacementSelect>
+                        <Input placeholder="e.g. FACULTY_VERIFIED" className="border-border bg-card" value={draft.verificationStatus ?? ''} onChange={(e) => setDraft((d) => ({ ...d, verificationStatus: e.target.value }))} />
                       </PlacementField>
                       <PlacementField label="Role interest">
-                        <PlacementSelect value={draft.roleInterest ?? ''} onChange={(value) => setDraft((d) => ({ ...d, roleInterest: value }))}>
-                          <option value="">All role interests</option>
-                          {DEFAULT_ROLE_INTERESTS.map((role) => <option key={role} value={role}>{role}</option>)}
-                        </PlacementSelect>
+                        <Input placeholder="e.g. Web Developer" className="border-border bg-card" value={draft.roleInterest ?? ''} onChange={(e) => setDraft((d) => ({ ...d, roleInterest: e.target.value }))} />
                       </PlacementField>
                       <div className="flex items-end gap-2 sm:col-span-2">
                         <Button type="submit" size="sm">Apply filters</Button>
@@ -289,34 +297,19 @@ export function TechStackPage() {
                         <Input placeholder="e.g. 2026" className="border-border bg-card" value={draft.batch ?? ''} onChange={(e) => setDraft((d) => ({ ...d, batch: e.target.value }))} />
                       </PlacementField>
                       <PlacementField label="Skill">
-                        <PlacementSelect value={draft.skillId ?? ''} onChange={(value) => setDraft((d) => ({ ...d, skillId: value }))}>
-                          <option value="">All skills</option>
-                          {skills.filter((skill) => skill.is_active).map((skill) => <option key={skill.id} value={skill.id}>{skill.name}</option>)}
-                        </PlacementSelect>
+                        <Input placeholder="e.g. React" className="border-border bg-card" value={draft.skillId ?? ''} onChange={(e) => setDraft((d) => ({ ...d, skillId: e.target.value }))} />
                       </PlacementField>
                       <PlacementField label="Category">
-                        <PlacementSelect value={draft.category ?? ''} onChange={(value) => setDraft((d) => ({ ...d, category: value }))}>
-                          <option value="">All categories</option>
-                          {SKILL_CATEGORIES.map((category) => <option key={category} value={category}>{formatEnumLabel(category)}</option>)}
-                        </PlacementSelect>
+                        <Input placeholder="e.g. WEB_TECHNOLOGY" className="border-border bg-card" value={draft.category ?? ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} />
                       </PlacementField>
                       <PlacementField label="Proficiency">
-                        <PlacementSelect value={draft.proficiencyLevel ?? ''} onChange={(value) => setDraft((d) => ({ ...d, proficiencyLevel: value }))}>
-                          <option value="">All proficiency levels</option>
-                          {PROFICIENCY_LEVELS.map((level) => <option key={level} value={level}>{formatEnumLabel(level)}</option>)}
-                        </PlacementSelect>
+                        <Input placeholder="e.g. ADVANCED" className="border-border bg-card" value={draft.proficiencyLevel ?? ''} onChange={(e) => setDraft((d) => ({ ...d, proficiencyLevel: e.target.value }))} />
                       </PlacementField>
                       <PlacementField label="Verification">
-                        <PlacementSelect value={draft.verificationStatus ?? ''} onChange={(value) => setDraft((d) => ({ ...d, verificationStatus: value }))}>
-                          <option value="">All verification statuses</option>
-                          {VERIFICATION_STATUSES.map((status) => <option key={status} value={status}>{formatEnumLabel(status)}</option>)}
-                        </PlacementSelect>
+                        <Input placeholder="e.g. FACULTY_VERIFIED" className="border-border bg-card" value={draft.verificationStatus ?? ''} onChange={(e) => setDraft((d) => ({ ...d, verificationStatus: e.target.value }))} />
                       </PlacementField>
                       <PlacementField label="Role interest">
-                        <PlacementSelect value={draft.roleInterest ?? ''} onChange={(value) => setDraft((d) => ({ ...d, roleInterest: value }))}>
-                          <option value="">All role interests</option>
-                          {DEFAULT_ROLE_INTERESTS.map((role) => <option key={role} value={role}>{role}</option>)}
-                        </PlacementSelect>
+                        <Input placeholder="e.g. Web Developer" className="border-border bg-card" value={draft.roleInterest ?? ''} onChange={(e) => setDraft((d) => ({ ...d, roleInterest: e.target.value }))} />
                       </PlacementField>
                       <div className="flex items-end gap-2 sm:col-span-2">
                         <Button type="submit" size="sm">Apply filters</Button>
@@ -325,13 +318,15 @@ export function TechStackPage() {
                     </form>
                   </PlacementFilterCard>
 
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <PlacementStatCard label="Visible students" value={rows.length} />
                     <PlacementStatCard label="Verified skills" value={rows.reduce((sum, row) => sum + row.verifiedSkillsCount, 0)} />
+                    <PlacementStatCard label="Avg CGPA" value={averageCgpa} hint="Filtered cohort" />
+                    <PlacementStatCard label="Eligible students" value={eligibleStudents} hint="Placement eligible" />
                   </div>
 
                   {rows.length ? (
-                    <PlacementSectionCard title="Filtered cohort snapshot" description="The student-wise table has been removed; use this summary to review the filtered cohort quickly.">
+                    <PlacementSectionCard title="Filtered cohort snapshot" description="The student-wise table is now consolidated into this concise view.">
                       <div className="flex flex-wrap gap-2">
                         {rows.slice(0, 12).map((row) => (
                           <div key={row.student.id} className="rounded-lg border border-border bg-background/30 px-3 py-2">
