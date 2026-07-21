@@ -9,6 +9,7 @@ import {
   PlacementPageStack,
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
+import { tableSectionExport } from '@/lib/analyticsExports'
 import {
   Table,
   TableBody,
@@ -104,7 +105,30 @@ function AssessmentScoresPage({ kind }: { kind: 'aptitude' | 'verbal' }) {
           />
         ) : null}
         {rows.length ? (
-          <PlacementTableCard title="Latest scores">
+          <PlacementTableCard
+            title="Latest scores"
+            exportSection={tableSectionExport(
+              'Latest scores',
+              ['Roll', 'Score', '%', 'Grade', 'Test', 'Date'],
+              [...rows]
+                .sort((a, b) => {
+                  const scoreDiff = Number(b.percentage || 0) - Number(a.percentage || 0)
+                  if (scoreDiff !== 0) return scoreDiff
+                  return String(a.roll_number).localeCompare(String(b.roll_number), undefined, {
+                    numeric: true,
+                  })
+                })
+                .map((row) => [
+                  row.roll_number,
+                  `${row.score}/${row.max_score}`,
+                  `${row.percentage}%`,
+                  row.grade,
+                  row.test_name || '',
+                  new Date(row.evaluated_at).toLocaleDateString(),
+                ]),
+              { fileBase: kind === 'aptitude' ? 'aptitude_scores' : 'verbal_scores' },
+            )}
+          >
             <Table>
               <TableHeader>
                 <TableRow>

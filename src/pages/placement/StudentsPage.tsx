@@ -54,6 +54,7 @@ import {
   canManageStudents,
 } from '@/lib/placementNavigation'
 import { TrainingProgramCards } from '@/components/placement/TrainingProgramCards'
+import { tableSectionExport } from '@/lib/analyticsExports'
 
 export function StudentsPage() {
   const { base, role } = usePlacementPaths()
@@ -380,6 +381,40 @@ export function StudentsPage() {
             <PlacementTableCard
               title="Students"
               count={result.pagination.total}
+              exportSection={tableSectionExport(
+                'Student tracker',
+                [
+                  'Roll Number',
+                  'Name',
+                  'Email',
+                  'Branch',
+                  'Academic Batch',
+                  'CGPA',
+                  'Status',
+                  'Readiness',
+                  'Profile %',
+                ],
+                [...result.data]
+                  .sort((a, b) => {
+                    const scoreDiff = Number(b.readiness_score || 0) - Number(a.readiness_score || 0)
+                    if (scoreDiff !== 0) return scoreDiff
+                    return String(a.roll_number).localeCompare(String(b.roll_number), undefined, {
+                      numeric: true,
+                    })
+                  })
+                  .map((student) => [
+                    student.roll_number,
+                    student.full_name,
+                    student.email || '',
+                    student.branch || '',
+                    student.academic_batch || student.batch || '',
+                    student.cgpa == null ? '' : String(student.cgpa),
+                    student.placement_status,
+                    String(student.readiness_score ?? 0),
+                    String(student.profile_completeness ?? 0),
+                  ]),
+                { fileBase: 'student_tracker' },
+              )}
               footer={
                 <PlacementPaginationBar
                   page={result.pagination.page}

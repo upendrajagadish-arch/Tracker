@@ -77,6 +77,152 @@ function initials(name: string) {
     .join('')
 }
 
+function performanceGaugeColor(score: number) {
+  if (score >= 80) return '#0ECB81'
+  if (score >= 70) return '#D27918'
+  if (score >= 60) return '#F0B90B'
+  if (score >= 50) return '#F6465D'
+  return '#9B1C31'
+}
+
+const GAUGE_SEGMENTS: Array<{ from: number; to: number; color: string }> = [
+  { from: 0, to: 50, color: '#9B1C31' },
+  { from: 50, to: 60, color: '#F6465D' },
+  { from: 60, to: 70, color: '#F0B90B' },
+  { from: 70, to: 80, color: '#D27918' },
+  { from: 80, to: 100, color: '#0ECB81' },
+]
+
+/** Maps a 0–100 score to a point on the semicircle (180° = score 0, 0° = score 100). */
+function gaugePoint(cx: number, cy: number, r: number, score: number) {
+  const angle = Math.PI * (1 - score / 100)
+  return { x: cx + r * Math.cos(angle), y: cy - r * Math.sin(angle) }
+}
+
+function gaugeBandPath(cx: number, cy: number, outer: number, inner: number, from: number, to: number) {
+  const oStart = gaugePoint(cx, cy, outer, from)
+  const oEnd = gaugePoint(cx, cy, outer, to)
+  const iEnd = gaugePoint(cx, cy, inner, to)
+  const iStart = gaugePoint(cx, cy, inner, from)
+  return [
+    `M ${oStart.x.toFixed(2)} ${oStart.y.toFixed(2)}`,
+    `A ${outer} ${outer} 0 0 1 ${oEnd.x.toFixed(2)} ${oEnd.y.toFixed(2)}`,
+    `L ${iEnd.x.toFixed(2)} ${iEnd.y.toFixed(2)}`,
+    `A ${inner} ${inner} 0 0 0 ${iStart.x.toFixed(2)} ${iStart.y.toFixed(2)}`,
+    'Z',
+  ].join(' ')
+}
+
+function PerformanceScoreGauge({
+  score,
+  status,
+}: {
+  score: number | null
+  status: string
+}) {
+  const cx = 110
+  const cy = 104
+  const outer = 96
+  const inner = 62
+  const normalized = score == null ? 0 : Math.max(0, Math.min(100, score))
+  const color = performanceGaugeColor(normalized)
+  const segmentGap = 1.2
+
+  return (
+    <div
+      className="flex w-full shrink-0 flex-col items-center rounded-2xl border bg-card/95 px-5 py-4 text-center shadow-[0_14px_35px_-24px_rgba(0,0,0,0.9)] sm:w-auto"
+      style={{ borderColor: `${color}66`, boxShadow: `0 14px 35px -24px ${color}` }}
+      aria-label={score == null ? 'Overall score not available' : `Overall score ${score} percent`}
+    >
+      <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        Overall score
+      </p>
+      <div className="relative mt-2 w-48">
+        <svg viewBox="0 0 220 128" className="w-full" aria-hidden>
+          {GAUGE_SEGMENTS.map((segment) => {
+            const active = score != null && normalized >= segment.from && normalized < (segment.to === 100 ? 101 : segment.to)
+            return (
+              <path
+                key={segment.from}
+                d={gaugeBandPath(
+                  cx,
+                  cy,
+                  outer,
+                  inner,
+                  segment.from + (segment.from === 0 ? 0 : segmentGap),
+                  segment.to - (segment.to === 100 ? 0 : segmentGap),
+                )}
+                fill={segment.color}
+                opacity={score == null ? 0.25 : active ? 1 : 0.35}
+                style={{
+                  transition: 'opacity 400ms ease',
+                  filter: active ? `drop-shadow(0 0 6px ${segment.color}99)` : undefined,
+                }}
+              />
+            )
+          })}
+
+          {/* boundary tick labels */}
+          {[0, 50, 60, 70, 80, 100].map((tick) => {
+            const p = gaugePoint(cx, cy, outer + 7, tick)
+            const atEnd = tick === 0 || tick === 100
+            return (
+              <text
+                key={tick}
+                x={p.x}
+                y={atEnd ? p.y + 12 : p.y + 3}
+                textAnchor={atEnd || tick === 50 ? 'middle' : 'start'}
+                fontSize="8"
+                fill="var(--muted-foreground, #848E9C)"
+                className="font-mono"
+              >
+                {tick}
+              </text>
+            )
+          })}
+
+          {/* needle */}
+          {score != null ? (
+            <g
+              style={{
+                transform: `rotate(${(normalized / 100) * 180}deg)`,
+                transformOrigin: `${cx}px ${cy}px`,
+                transition: 'transform 900ms cubic-bezier(0.34, 1.3, 0.4, 1)',
+              }}
+            >
+              <polygon
+                points={`${cx - outer + 8},${cy} ${cx},${cy - 4.5} ${cx},${cy + 4.5}`}
+                fill="var(--foreground, #EAECEF)"
+              />
+            </g>
+          ) : null}
+          <circle cx={cx} cy={cy} r="8" fill="var(--foreground, #EAECEF)" />
+          <circle cx={cx} cy={cy} r="3.5" fill="var(--card, #161A1E)" />
+
+          <text
+            x={cx}
+            y={cy - 22}
+            textAnchor="middle"
+            fontSize="24"
+            fontWeight="700"
+            className="font-pixel"
+            fill={color}
+            stroke="var(--card, #161A1E)"
+            strokeWidth="3"
+            paintOrder="stroke"
+            style={{ filter: `drop-shadow(0 0 8px ${color}66)` }}
+          >
+            {score == null ? '—' : `${score}%`}
+          </text>
+        </svg>
+      </div>
+      <p className="mt-1 max-w-40 text-xs font-semibold" style={{ color }}>
+        {status}
+      </p>
+    </div>
+  )
+}
+
 export function PublicStudentPerformanceCard({ profile }: { profile: PublicStudentPerformance }) {
   const [criteriaOpen, setCriteriaOpen] = useState(false)
 
@@ -143,16 +289,10 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
               <p className="mt-2 break-words text-sm text-foreground/80">{profile.headline}</p>
             ) : null}
           </div>
-          <div className="w-full shrink-0 rounded-xl border border-border bg-card/90 px-4 py-3 text-center sm:w-auto">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-              Overall
-            </p>
-            <p className="mt-1 font-pixel text-3xl text-primary">
-              {overall.overallPercent ?? '—'}
-              {overall.overallPercent != null ? '%' : ''}
-            </p>
-            <p className="mt-1 text-xs font-medium text-foreground">{overall.overallStatus}</p>
-          </div>
+          <PerformanceScoreGauge
+            score={overall.overallPercent}
+            status={overall.overallStatus}
+          />
         </div>
       </header>
 

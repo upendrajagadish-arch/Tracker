@@ -9,6 +9,8 @@ import {
 import { ChartPanel, MeasuredChart } from '@/components/placement/charts/ChartShell'
 import { CHART_AXIS, type ChartDatum } from '@/components/placement/charts/chartTheme'
 import { ChartDataDialog } from '@/components/placement/charts/ChartDataDialog'
+import { SectionExportActions } from '@/components/placement/SectionExportActions'
+import { chartDataSectionExport } from '@/lib/analyticsExports'
 
 function AreaTooltip({
   active,
@@ -65,7 +67,12 @@ export function LuxuryAreaChart({
       title={title}
       subtitle={subtitle}
       className={className}
-      actions={<ChartDataDialog title={title} data={data} />}
+      actions={
+        <div className="flex items-center gap-1">
+          <SectionExportActions section={chartDataSectionExport(title, data.map((row) => ({ name: row.name, value: Number(row.value ?? 0) })))} size="xs" />
+          <ChartDataDialog title={title} data={data} />
+        </div>
+      }
     >
       {data.length === 0 ? (
         <p className="py-16 text-center text-sm text-secondary">No data to chart</p>

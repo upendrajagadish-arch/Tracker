@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Download, Users, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { SectionExportActions } from '@/components/placement/SectionExportActions'
 import {
   listStudentsForTrainingYears,
   programBatchStudentsToCsv,
   type ProgramBatchStudent,
 } from '@/api/placement/students'
+import { tableSectionExport } from '@/lib/analyticsExports'
 import {
   PINNACLE_BATCHES,
   TRAINING_PROGRAMS,
@@ -34,6 +36,40 @@ function downloadCsv(csv: string, filename: string) {
   anchor.download = filename
   anchor.click()
   window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+function trainingStudentsExport(title: string, students: ProgramBatchStudent[]) {
+  const ranked = [...students].sort((a, b) => {
+    const scoreDiff = Number(b.readiness_score || 0) - Number(a.readiness_score || 0)
+    if (scoreDiff !== 0) return scoreDiff
+    return String(a.roll_number).localeCompare(String(b.roll_number), undefined, { numeric: true })
+  })
+  return tableSectionExport(
+    title,
+    [
+      'S.No',
+      'Student',
+      'Roll Number',
+      'Branch',
+      'Section',
+      'CGPA',
+      'Readiness',
+      'Placement Status',
+      'Email',
+    ],
+    ranked.map((student, index) => [
+      String(index + 1),
+      student.full_name,
+      student.roll_number,
+      student.branch || '',
+      student.section || '',
+      student.cgpa == null ? '' : String(student.cgpa),
+      String(student.readiness_score ?? 0),
+      String(student.placement_status || '').replace(/_/g, ' '),
+      student.email || '',
+    ]),
+    { fileBase: title },
+  )
 }
 
 function studentMetrics(students: ProgramBatchStudent[]) {
@@ -200,6 +236,7 @@ function BatchDetailCard({
                 Open in tracker
               </Button>
             ) : null}
+            <SectionExportActions section={trainingStudentsExport(title, students)} size="xs" />
             <Button
               type="button"
               size="sm"
@@ -210,7 +247,7 @@ function BatchDetailCard({
               }
             >
               <Download className="size-3.5" />
-              Download list
+              CSV
             </Button>
           </div>
         </div>
@@ -293,6 +330,10 @@ function ProgramDashboardModal({
                 : `${program.tagline} · student details and download`}
             </p>
           </div>
+          <SectionExportActions
+            section={trainingStudentsExport(`${program.label} ${year}`, students)}
+            size="xs"
+          />
           <Button
             type="button"
             size="sm"
@@ -301,7 +342,7 @@ function ProgramDashboardModal({
             onClick={() => downloadCsv(programBatchStudentsToCsv(students), `${program.id}_${year}_students.csv`)}
           >
             <Download className="size-3.5" />
-            Download all
+            CSV
           </Button>
           <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label={`Close ${program.label}`}>
             <X className="size-4" />

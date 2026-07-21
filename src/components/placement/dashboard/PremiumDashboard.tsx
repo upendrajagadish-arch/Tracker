@@ -20,12 +20,10 @@ import {
   X,
 } from 'lucide-react'
 import {
+  Cell,
   PolarAngleAxis,
-  PolarGrid,
-  PolarRadiusAxis,
-  Radar,
-  RadarChart,
-  Tooltip,
+  RadialBar,
+  RadialBarChart,
 } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -40,6 +38,12 @@ import {
   type BadgeCountMap,
   type TechStackBadge,
 } from '@/lib/techStackBadge'
+import {
+  classifyCommunicationBadge,
+  formatCommunicationBadge,
+} from '@/lib/communicationBadge'
+import { tableSectionExport } from '@/lib/analyticsExports'
+import { SectionExportActions } from '@/components/placement/SectionExportActions'
 import { cn } from '@/lib/utils'
 
 function badgeRows(counts: BadgeCountMap): Array<{ badge: TechStackBadge; count: number; color: string }> {
@@ -113,6 +117,22 @@ function SkillsBadgeYearModal({
               Year-wise Gold / Silver / Bronze / Poor for Tech Stack and Communication
             </p>
           </div>
+          <SectionExportActions
+            section={tableSectionExport(
+              `Skills badges · ${selected.year}`,
+              ['Area', 'Badge', 'Count'],
+              [
+                ...techRows.map((row) => ['Tech Stack', TECH_STACK_BADGE_LABELS[row.badge], String(row.count)]),
+                ...communicationRows.map((row) => [
+                  'Communication',
+                  TECH_STACK_BADGE_LABELS[row.badge],
+                  String(row.count),
+                ]),
+              ],
+              { fileBase: `skills_badges_${selected.year}` },
+            )}
+            size="xs"
+          />
           <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close skills badge dashboard">
             <X className="size-4" />
           </Button>
@@ -478,31 +498,375 @@ function ManagementCard({
   )
 }
 
-function ReadinessProgress({
-  label,
-  value,
-  students,
+const TECH_RADIAL_COLORS = [
+  '#F0B90B',
+  '#3B82F6',
+  '#0ECB81',
+  '#A78BFA',
+  '#F6465D',
+  '#22D3EE',
+  '#D27918',
+] as const
+
+type TechReadinessRow = DashboardSnapshot['techReadiness'][number]
+
+function TechReadinessRadialChart({
+  data,
+  onSelect,
 }: {
-  label: string
-  value: number
-  students?: number
+  data: DashboardSnapshot['techReadiness']
+  onSelect: (row: TechReadinessRow) => void
 }) {
+  const [active, setActive] = useState<number | null>(null)
+  const rows = data.map((row, index) => ({
+    ...row,
+    color: TECH_RADIAL_COLORS[index % TECH_RADIAL_COLORS.length]!,
+  }))
+  // Recharts draws the first datum innermost; reverse so the first tech is the outer ring.
+  const chartData = [...rows].reverse()
+  const toRowIndex = (chartIndex: number) => rows.length - 1 - chartIndex
+  const activeRow = active != null ? rows[active] : null
+  const totalStudents = rows.reduce((sum, row) => sum + row.students, 0)
+  const avgScore = rows.length
+    ? Math.round(rows.reduce((sum, row) => sum + row.score, 0) / rows.length)
+    : 0
+
   return (
     <div>
-      <div className="mb-1.5 flex items-center justify-between text-xs">
-        <span className="font-semibold">{label}</span>
-        <span className="tnum text-muted-foreground">
-          {value}%{students != null ? ` · ${students} students` : ''}
-        </span>
+      <div className="relative">
+        <MeasuredChart height={250}>
+          {(width) => (
+            <RadialBarChart
+              width={width}
+              height={250}
+              data={chartData}
+              innerRadius="30%"
+              outerRadius="110%"
+              startAngle={90}
+              endAngle={-270}
+              barCategoryGap="24%"
+            >
+              <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+              <RadialBar
+                dataKey="score"
+                cornerRadius={14}
+                background={{ fill: 'rgba(43, 49, 57, 0.5)' }}
+                animationDuration={900}
+                onMouseEnter={(_, chartIndex) => setActive(toRowIndex(chartIndex))}
+                onMouseLeave={() => setActive(null)}
+                onClick={(_, chartIndex) => {
+                  const row = rows[toRowIndex(chartIndex)]
+                  if (row) onSelect(row)
+                }}
+              >
+                {chartData.map((entry, chartIndex) => {
+                  const isActive = active === toRowIndex(chartIndex)
+                  const dimmed = active != null && !isActive
+                  return (
+                    <Cell
+                      key={entry.name}
+                      fill={entry.color}
+                      cursor="pointer"
+                      opacity={dimmed ? 0.22 : 1}
+                      style={{
+                        transition: 'opacity 220ms ease, filter 220ms ease',
+                        filter: isActive
+                          ? `drop-shadow(0 0 10px ${entry.color}AA) drop-shadow(0 6px 8px rgba(0,0,0,0.65))`
+                          : 'none',
+                      }}
+                    />
+                  )
+                })}
+              </RadialBar>
+            </RadialBarChart>
+          )}
+        </MeasuredChart>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+          {activeRow ? (
+            <motion.div
+              key={activeRow.name}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.18 }}
+            >
+              <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: activeRow.color }}>
+                {activeRow.name}
+              </p>
+              <p className="tnum text-2xl font-black" style={{ color: activeRow.color }}>
+                {activeRow.score}%
+              </p>
+              <p className="tnum text-[11px] text-muted-foreground">{activeRow.students} students</p>
+            </motion.div>
+          ) : (
+            <div>
+              <p className="tnum text-2xl font-black text-primary">{avgScore}%</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Avg readiness</p>
+              <p className="tnum mt-0.5 text-[11px] text-muted-foreground">{totalStudents} skill holders</p>
+            </div>
+          )}
+        </div>
       </div>
-      <div className="h-2.5 overflow-hidden rounded-full bg-elevated">
+
+      <div className="mt-4 grid grid-cols-2 gap-1.5">
+        {rows.map((row, index) => {
+          const isActive = active === index
+          return (
+            <motion.button
+              key={row.name}
+              type="button"
+              whileHover={{ y: -2, scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onMouseEnter={() => setActive(index)}
+              onMouseLeave={() => setActive(null)}
+              onClick={() => onSelect(row)}
+              className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors"
+              style={{
+                borderColor: isActive ? `${row.color}88` : 'var(--border)',
+                background: isActive ? `${row.color}1A` : 'transparent',
+                boxShadow: isActive ? `0 4px 14px -6px ${row.color}` : 'none',
+              }}
+            >
+              <span
+                className="size-2.5 shrink-0 rounded-full"
+                style={{ background: row.color, boxShadow: isActive ? `0 0 8px ${row.color}` : 'none' }}
+              />
+              <span className="min-w-0 flex-1 truncate text-[11px] font-semibold">{row.name}</span>
+              <span className="tnum shrink-0 text-[11px] font-bold" style={{ color: row.color }}>
+                {row.score}%
+              </span>
+              <span className="tnum shrink-0 text-[10px] text-muted-foreground">· {row.students}</span>
+            </motion.button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+const COMM_CATEGORY_COLORS: Record<string, string> = {
+  'Communication Proficiency': '#3B82F6',
+  'Presentation Skills': '#0ECB81',
+  'Behavioural Skills': '#D27918',
+}
+
+type CommParameter = DashboardSnapshot['communicationParameters'][number]
+
+/** 25-segment nightingale wheel — one clickable sector per communication criterion. */
+function CommunicationParameterWheel({
+  parameters,
+  onSelect,
+}: {
+  parameters: DashboardSnapshot['communicationParameters']
+  onSelect: (param: CommParameter) => void
+}) {
+  const [active, setActive] = useState<string | null>(null)
+  const size = 680
+  const cx = size / 2
+  const cy = size / 2
+  const maxR = 188
+  const labelR = maxR + 14
+  const categoryR = maxR + 122
+  const step = 360 / Math.max(parameters.length, 1)
+  const gap = 0.7
+
+  const polar = (r: number, angle: number): [number, number] => {
+    const rad = ((angle - 90) * Math.PI) / 180
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)]
+  }
+
+  const wedgePath = (a0: number, a1: number, r: number) => {
+    const [x0, y0] = polar(r, a0)
+    const [x1, y1] = polar(r, a1)
+    const large = a1 - a0 > 180 ? 1 : 0
+    return `M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`
+  }
+
+  const arcPath = (a0: number, a1: number, r: number, reverse: boolean) => {
+    const [x0, y0] = polar(r, a0)
+    const [x1, y1] = polar(r, a1)
+    const large = Math.abs(a1 - a0) > 180 ? 1 : 0
+    return reverse
+      ? `M ${x1} ${y1} A ${r} ${r} 0 ${large} 0 ${x0} ${y0}`
+      : `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`
+  }
+
+  const categories: Array<{ name: string; start: number; end: number; color: string }> = []
+  parameters.forEach((param, index) => {
+    const color = COMM_CATEGORY_COLORS[param.category] ?? '#D27918'
+    const last = categories[categories.length - 1]
+    if (last && last.name === param.category) last.end = (index + 1) * step
+    else categories.push({ name: param.category, start: index * step, end: (index + 1) * step, color })
+  })
+
+  const activeParam = parameters.find((param) => param.key === active) ?? null
+
+  return (
+    <div className="relative">
+      {activeParam ? (
         <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${value}%` }}
-          transition={{ duration: 0.75, ease: 'easeOut' }}
-          className="h-full rounded-full bg-gradient-to-r from-primary/70 to-primary"
-        />
-      </div>
+          key={activeParam.key}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[12px] font-bold shadow-lg"
+          style={{
+            color: COMM_CATEGORY_COLORS[activeParam.category] ?? '#D27918',
+            borderColor: `${COMM_CATEGORY_COLORS[activeParam.category] ?? '#D27918'}66`,
+            background: '#12161cF0',
+          }}
+        >
+          {activeParam.label} · {activeParam.average}% — click for student scores
+        </motion.div>
+      ) : null}
+      <MeasuredChart height={640}>
+        {(width) => {
+          const rendered = Math.min(width, 660)
+          return (
+            <div className="flex h-full items-center justify-center">
+              <svg width={rendered} height={Math.min(640, rendered)} viewBox={`0 0 ${size} ${size}`}>
+                <defs>
+                  {categories.map((cat, index) => {
+                    const mid = (cat.start + cat.end) / 2
+                    const flip = mid > 90 && mid < 270
+                    return (
+                      <path
+                        key={cat.name}
+                        id={`comm-cat-arc-${index}`}
+                        d={arcPath(cat.start + 2, cat.end - 2, categoryR, flip)}
+                        fill="none"
+                      />
+                    )
+                  })}
+                </defs>
+
+                {[0.25, 0.5, 0.75, 1].map((fraction) => (
+                  <circle
+                    key={fraction}
+                    cx={cx}
+                    cy={cy}
+                    r={maxR * fraction}
+                    fill="none"
+                    stroke="rgba(146, 154, 165, 0.18)"
+                    strokeWidth={fraction === 1 ? 1.4 : 1}
+                  />
+                ))}
+                {[25, 50, 75, 100].map((value) => (
+                  <text
+                    key={value}
+                    x={cx + 4}
+                    y={cy - (maxR * value) / 100 + 10}
+                    fontSize={8.5}
+                    fill="rgba(146, 154, 165, 0.55)"
+                  >
+                    {value}
+                  </text>
+                ))}
+                {parameters.map((_, index) => {
+                  const [x, y] = polar(maxR, index * step)
+                  return (
+                    <line
+                      key={index}
+                      x1={cx}
+                      y1={cy}
+                      x2={x}
+                      y2={y}
+                      stroke="rgba(146, 154, 165, 0.12)"
+                      strokeWidth={1}
+                    />
+                  )
+                })}
+                {categories.map((cat) => {
+                  const [x, y] = polar(maxR + 104, cat.start)
+                  return (
+                    <line
+                      key={cat.name}
+                      x1={cx}
+                      y1={cy}
+                      x2={x}
+                      y2={y}
+                      stroke="rgba(146, 154, 165, 0.35)"
+                      strokeWidth={1.4}
+                    />
+                  )
+                })}
+
+                {parameters.map((param, index) => {
+                  const color = COMM_CATEGORY_COLORS[param.category] ?? '#D27918'
+                  const a0 = index * step + gap
+                  const a1 = (index + 1) * step - gap
+                  const valueR = Math.max(8, (param.average / 100) * maxR)
+                  const isActive = active === param.key
+                  const dimmed = active != null && !isActive
+                  return (
+                    <g key={param.key}>
+                      <path d={wedgePath(a0, a1, maxR)} fill={color} opacity={0.06} />
+                      <path
+                        d={wedgePath(a0, a1, valueR)}
+                        fill={color}
+                        stroke="#0B0E11"
+                        strokeWidth={1}
+                        opacity={dimmed ? 0.22 : isActive ? 1 : index % 2 === 0 ? 0.88 : 0.68}
+                        style={{
+                          transformOrigin: `${cx}px ${cy}px`,
+                          transform: isActive ? 'scale(1.06)' : 'scale(1)',
+                          transition: 'transform 220ms ease, opacity 220ms ease, filter 220ms ease',
+                          filter: isActive
+                            ? `drop-shadow(0 0 14px ${color}) drop-shadow(0 6px 10px rgba(0,0,0,0.6))`
+                            : 'none',
+                        }}
+                      />
+                      <path
+                        d={wedgePath(a0, a1, maxR)}
+                        fill="transparent"
+                        style={{ cursor: 'pointer' }}
+                        onMouseEnter={() => setActive(param.key)}
+                        onMouseLeave={() => setActive(null)}
+                        onClick={() => onSelect(param)}
+                      />
+                    </g>
+                  )
+                })}
+
+                {parameters.map((param, index) => {
+                  const color = COMM_CATEGORY_COLORS[param.category] ?? '#D27918'
+                  const mid = (index + 0.5) * step
+                  const [x, y] = polar(labelR, mid)
+                  const flip = mid > 180
+                  const isActive = active === param.key
+                  return (
+                    <text
+                      key={param.key}
+                      x={x}
+                      y={y}
+                      dy={3.5}
+                      fontSize={10}
+                      fontWeight={isActive ? 800 : 600}
+                      textAnchor={flip ? 'end' : 'start'}
+                      transform={`rotate(${flip ? mid + 90 : mid - 90}, ${x}, ${y})`}
+                      fill={isActive ? color : 'var(--muted-foreground)'}
+                      style={{ cursor: 'pointer', transition: 'fill 180ms ease' }}
+                      onMouseEnter={() => setActive(param.key)}
+                      onMouseLeave={() => setActive(null)}
+                      onClick={() => onSelect(param)}
+                    >
+                      {param.label}
+                    </text>
+                  )
+                })}
+
+                {categories.map((cat, index) => (
+                  <text key={cat.name} fontSize={13} fontWeight={800} letterSpacing={2.5} fill={cat.color}>
+                    <textPath href={`#comm-cat-arc-${index}`} startOffset="50%" textAnchor="middle">
+                      {cat.name.toUpperCase()}
+                    </textPath>
+                  </text>
+                ))}
+
+                <circle cx={cx} cy={cy} r={4} fill="#D27918" />
+              </svg>
+            </div>
+          )
+        }}
+      </MeasuredChart>
     </div>
   )
 }
@@ -514,6 +878,7 @@ function Panel({
   children,
   className,
   onDetails,
+  exportSection,
 }: {
   title: string
   description: string
@@ -521,20 +886,24 @@ function Panel({
   children: ReactNode
   className?: string
   onDetails?: () => void
+  exportSection?: ReturnType<typeof tableSectionExport>
 }) {
   return (
     <section className={cn('placement-glass rounded-2xl p-5', className)}>
       <div className="mb-5 flex items-start gap-3">
         <span className="rounded-xl bg-primary/10 p-2.5 text-primary">{icon}</span>
-        <div>
+        <div className="min-w-0 flex-1">
           <h2 className="text-base font-bold">{title}</h2>
           <p className="mt-1 text-xs text-muted-foreground">{description}</p>
         </div>
-        {onDetails ? (
-          <Button type="button" variant="ghost" size="sm" className="ml-auto shrink-0 text-primary" onClick={onDetails}>
-            View details
-          </Button>
-        ) : null}
+        <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+          {exportSection ? <SectionExportActions section={exportSection} size="xs" /> : null}
+          {onDetails ? (
+            <Button type="button" variant="ghost" size="sm" className="text-primary" onClick={onDetails}>
+              View details
+            </Button>
+          ) : null}
+        </div>
       </div>
       {children}
     </section>
@@ -611,6 +980,13 @@ function DetailModal({
           <span className="tnum rounded-full bg-primary/10 px-2.5 py-1 text-xs font-bold text-primary">
             {detail.rows.length} records
           </span>
+          <SectionExportActions
+            section={tableSectionExport(detail.title, detail.columns, detail.rows, {
+              description: detail.description,
+              fileBase: detail.title,
+            })}
+            size="xs"
+          />
           <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close details">
             <X className="size-4" />
           </Button>
@@ -676,14 +1052,6 @@ export function PremiumDashboard({
   const { overview, management } = snapshot
   const managementHref = base ? `${base}/operations` : undefined
   const readinessSpark = snapshot.overview.readinessDistribution
-  const radarData = [
-    { subject: 'Tech', score: snapshot.overall.tech },
-    { subject: 'Communication', score: snapshot.overall.communication },
-    { subject: 'Confidence', score: snapshot.communication.confidence },
-    { subject: 'Presentation', score: snapshot.communication.presentation },
-    { subject: 'GD', score: snapshot.communication.groupDiscussion },
-    { subject: 'HR', score: snapshot.communication.hrReadiness },
-  ]
   const openStudents = (
     title: string,
     description: string,
@@ -691,11 +1059,14 @@ export function PremiumDashboard({
   ) => {
     const rows = snapshot.studentDetails
       .filter(predicate)
-      .sort((a, b) => b.readinessScore - a.readinessScore)
+      .sort((a, b) => {
+        if (b.readinessScore !== a.readinessScore) return b.readinessScore - a.readinessScore
+        return a.rollNumber.localeCompare(b.rollNumber, undefined, { numeric: true })
+      })
       .map((student, index) => [
         String(index + 1),
-        student.rollNumber,
         student.fullName,
+        student.rollNumber,
         student.branch,
         `${student.readinessScore}%`,
         student.placementStatus.replace(/_/g, ' '),
@@ -703,7 +1074,7 @@ export function PremiumDashboard({
     setDetail({
       title,
       description,
-      columns: ['S.No', 'Roll Number', 'Student', 'Branch', 'Readiness', 'Status'],
+      columns: ['S.No', 'Student', 'Roll Number', 'Branch', 'Readiness', 'Status'],
       rows,
     })
   }
@@ -864,7 +1235,7 @@ export function PremiumDashboard({
         />
       ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-3">
+      <section className="grid gap-4">
         <Panel
           title="Tech Stack Readiness"
           description="Verified cohort proficiency across role-critical technologies"
@@ -877,113 +1248,163 @@ export function PremiumDashboard({
               rows: snapshot.techReadiness.map((row) => [row.name, `${row.score}%`, String(row.students)]),
             })
           }
+          exportSection={tableSectionExport(
+            'Tech stack readiness',
+            ['Technology', 'Readiness %', 'Students'],
+            snapshot.techReadiness.map((row) => [row.name, String(row.score), String(row.students)]),
+            {
+              description: 'Cohort coverage and normalized readiness by technology group.',
+              fileBase: 'tech_stack_readiness',
+            },
+          )}
         >
-          <div className="space-y-4">
-            {snapshot.techReadiness.map((row) => (
-              <ReadinessProgress key={row.name} label={row.name} value={row.score} students={row.students} />
-            ))}
-          </div>
+          <TechReadinessRadialChart
+            data={snapshot.techReadiness}
+            onSelect={(row) => {
+              const ids = new Set(row.studentIds)
+              openStudents(
+                `${row.name} students`,
+                `${row.students} students with verified ${row.name} skills · ${row.score}% cohort readiness.`,
+                (student) => ids.has(student.id),
+              )
+            }}
+          />
         </Panel>
+      </section>
 
-        <Panel
-          title="Communication Readiness"
-          description="Structured assessment of placement-facing communication skills"
-          icon={<MessageSquareText className="size-5" />}
+      <Panel
+        title="Communication Readiness"
+        description="All 25 evaluation parameters — hover a segment to highlight, click to see that parameter's student scores"
+        icon={<MessageSquareText className="size-5" />}
           onDetails={() =>
             setDetail({
-              title: 'Communication readiness',
-              description: 'Latest communication evaluation for each student in the selected batch.',
-              columns: ['S.No', 'Roll Number', 'Student', 'Score'],
-              rows: snapshot.communicationStudents
-                .sort((a, b) => b.percentage - a.percentage)
+              title: 'Communication readiness — student badges',
+              description:
+                'Latest communication evaluation for each student with the allocated badge (score out of 250), ranked highest to lowest.',
+              columns: ['S.No', 'Student', 'Roll Number', 'Score', 'Percentage', 'Grade', 'Badge'],
+              rows: [...snapshot.communicationStudents]
+                .sort((a, b) => {
+                  if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
+                  return a.rollNumber.localeCompare(b.rollNumber, undefined, { numeric: true })
+                })
                 .map((student, index) => [
                   String(index + 1),
-                  student.rollNumber,
                   student.fullName,
+                  student.rollNumber,
+                  `${student.totalScore}/250`,
                   `${student.percentage}%`,
+                  student.grade,
+                  formatCommunicationBadge(classifyCommunicationBadge(student.totalScore)),
                 ]),
             })
           }
+          exportSection={tableSectionExport(
+            'Communication readiness — all parameters',
+            [
+              'S.No',
+              'Student',
+              'Roll Number',
+              'Total Score',
+              'Percentage',
+              'Grade',
+              'Badge',
+              ...snapshot.communicationParameters.map((param) => param.label),
+            ],
+            [...snapshot.communicationStudents]
+              .sort((a, b) => {
+                if (b.totalScore !== a.totalScore) return b.totalScore - a.totalScore
+                return a.rollNumber.localeCompare(b.rollNumber, undefined, { numeric: true })
+              })
+              .map((student, index) => [
+                String(index + 1),
+                student.fullName,
+                student.rollNumber,
+                String(student.totalScore),
+                String(student.percentage),
+                student.grade,
+                formatCommunicationBadge(classifyCommunicationBadge(student.totalScore)),
+                ...snapshot.communicationParameters.map((param) =>
+                  String(student.parameters[param.key] ?? 0),
+                ),
+              ]),
+            {
+              description: 'All 25 communication parameters with student badges, ranked by total score.',
+              fileBase: 'communication_readiness_all_parameters',
+            },
+          )}
         >
-          <div className="mb-5 flex items-center justify-between rounded-xl border border-border bg-background/50 p-4">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3 rounded-xl border border-primary/25 bg-gradient-to-r from-primary/10 to-background/50 px-4 py-2.5 shadow-[0_10px_30px_-18px_rgba(210,121,24,0.6)]">
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Communication score</p>
-              <p className="tnum mt-1 text-3xl font-bold text-primary">{snapshot.communication.score}%</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Communication score</p>
+              <p className="tnum text-2xl font-bold text-primary">{snapshot.communication.score}%</p>
             </div>
             <ProgressRing value={snapshot.communication.score} />
           </div>
-          <div className="space-y-4">
-            <ReadinessProgress label="Interview confidence" value={snapshot.communication.confidence} />
-            <ReadinessProgress label="Presentation skills" value={snapshot.communication.presentation} />
-            <ReadinessProgress label="Group discussion" value={snapshot.communication.groupDiscussion} />
-            <ReadinessProgress label="HR readiness" value={snapshot.communication.hrReadiness} />
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(COMM_CATEGORY_COLORS).map(([name, color]) => (
+              <span
+                key={name}
+                className="rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide"
+                style={{ color, borderColor: `${color}55`, background: `${color}14` }}
+              >
+                {name}
+              </span>
+            ))}
           </div>
-        </Panel>
-
-        <Panel
-          title="Overall Readiness Comparison"
-          description="Technical versus communication placement readiness"
-          icon={<Sparkles className="size-5" />}
-          onDetails={() =>
-            setDetail({
-              title: 'Overall readiness comparison',
-              description: snapshot.overall.recommendation,
-              columns: ['Readiness Dimension', 'Score'],
-              rows: radarData.map((row) => [row.subject, `${row.score}%`]),
+        </div>
+        <CommunicationParameterWheel
+          parameters={snapshot.communicationParameters}
+          onSelect={(param) => {
+            const ranked = [...snapshot.communicationStudents].sort((a, b) => {
+              const scoreA = a.parameters[param.key] ?? 0
+              const scoreB = b.parameters[param.key] ?? 0
+              if (scoreB !== scoreA) return scoreB - scoreA
+              return a.rollNumber.localeCompare(b.rollNumber, undefined, { numeric: true })
             })
-          }
-        >
-          <MeasuredChart height={230}>
-            {(width) => (
-              <RadarChart width={width} height={230} data={radarData}>
-                <PolarGrid stroke="var(--border)" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: 'var(--muted-foreground)', fontSize: 10 }} />
-                <PolarRadiusAxis domain={[0, 100]} tick={false} axisLine={false} />
-                <Radar
-                  dataKey="score"
-                  stroke="var(--brand)"
-                  fill="var(--brand)"
-                  fillOpacity={0.25}
-                  animationDuration={800}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: 'var(--popover)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 10,
-                  }}
-                />
-              </RadarChart>
-            )}
-          </MeasuredChart>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-lg border border-border bg-background/50 p-2 text-center">
-              <p className="text-[10px] uppercase text-muted-foreground">Tech</p>
-              <p className="tnum text-lg font-bold">{snapshot.overall.tech}%</p>
-            </div>
-            <div className="rounded-lg border border-border bg-background/50 p-2 text-center">
-              <p className="text-[10px] uppercase text-muted-foreground">Communication</p>
-              <p className="tnum text-lg font-bold">{snapshot.overall.communication}%</p>
-            </div>
-            <div className="rounded-lg border border-primary/30 bg-primary/10 p-2 text-center">
-              <p className="text-[10px] uppercase text-primary">Overall</p>
-              <p className="tnum text-lg font-bold text-primary">{snapshot.overall.score}%</p>
-            </div>
-          </div>
-          <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-primary">Readiness insight</p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              {snapshot.overall.recommendation}
-            </p>
-          </div>
-        </Panel>
-      </section>
+            setDetail({
+              title: param.label,
+              description: `${param.category} · cohort average ${param.average}% · ranked highest to lowest score (out of 10).`,
+              columns: [
+                'S.No',
+                'Student',
+                'Roll Number',
+                `${param.label} (/10)`,
+                'Total Score',
+                'Grade',
+                'Badge',
+              ],
+              rows: ranked.map((student, index) => [
+                String(index + 1),
+                student.fullName,
+                student.rollNumber,
+                `${student.parameters[param.key] ?? 0}/10`,
+                `${student.totalScore}/250`,
+                student.grade,
+                formatCommunicationBadge(classifyCommunicationBadge(student.totalScore)),
+              ]),
+            })
+          }}
+        />
+      </Panel>
 
       <section className="grid gap-4 lg:grid-cols-3">
         <Panel
           title="Upcoming Drives"
           description="Next placement activities for the selected batch"
           icon={<CalendarDays className="size-5" />}
+          exportSection={tableSectionExport(
+            'Upcoming drives',
+            ['Drive', 'Mode', 'Date', 'Venue', 'Status'],
+            snapshot.upcomingEvents.map((event) => [
+              event.title,
+              event.mode.replace(/_/g, ' '),
+              new Date(event.starts_at).toLocaleString(),
+              event.venue || '—',
+              event.status,
+            ]),
+            { fileBase: 'upcoming_drives' },
+          )}
         >
           <div className="space-y-2">
             {snapshot.upcomingEvents.length ? (
@@ -1011,6 +1432,17 @@ export function PremiumDashboard({
           title="Leaderboard"
           description="Top performers by live Fame XP"
           icon={<Trophy className="size-5" />}
+          exportSection={tableSectionExport(
+            'Leaderboard top performers',
+            ['Rank', 'Student', 'Roll Number', 'Fame XP'],
+            snapshot.leaderboard.map((row) => [
+              String(row.rank),
+              row.fullName,
+              row.rollNumber,
+              String(row.fameXp),
+            ]),
+            { fileBase: 'dashboard_leaderboard' },
+          )}
         >
           <div className="space-y-2">
             {snapshot.leaderboard.length ? (
@@ -1043,6 +1475,16 @@ export function PremiumDashboard({
           title="Recent Placement Activity"
           description="Latest actions across placement operations"
           icon={<Users className="size-5" />}
+          exportSection={tableSectionExport(
+            'Recent placement activity',
+            ['Action', 'Description', 'When'],
+            snapshot.activities.map((activity) => [
+              activity.action,
+              activity.description || activity.action.replace(/\./g, ' '),
+              new Date(activity.createdAt).toLocaleString(),
+            ]),
+            { fileBase: 'recent_placement_activity' },
+          )}
         >
           <div className="space-y-3">
             {snapshot.activities.length ? (

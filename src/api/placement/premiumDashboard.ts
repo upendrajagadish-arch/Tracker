@@ -40,7 +40,7 @@ export interface DashboardSnapshot {
     activeCompanies: number
     upcomingDrives: number
   }
-  techReadiness: Array<{ name: string; score: number; students: number }>
+  techReadiness: Array<{ name: string; score: number; students: number; studentIds: string[] }>
   communication: {
     score: number
     confidence: number
@@ -75,11 +75,20 @@ export interface DashboardSnapshot {
     readinessScore: number
     placementStatus: string
   }>
+  communicationParameters: Array<{
+    key: string
+    label: string
+    category: string
+    average: number
+  }>
   communicationStudents: Array<{
     id: string
     fullName: string
     rollNumber: string
     percentage: number
+    totalScore: number
+    grade: string
+    parameters: Record<string, number>
   }>
   companyLinkDetails: Array<{
     id: string
@@ -227,32 +236,61 @@ async function listAllDashboardTechRows() {
   }
 }
 
+/** All 25 communication evaluation criteria (each scored 0–10), grouped by rubric section. */
+export const COMMUNICATION_PARAMETERS = [
+  { key: 'open_body_posture_smile', label: 'Open Posture & Smile', category: 'Communication Proficiency' },
+  { key: 'gestures_eye_contact', label: 'Gestures & Eye Contact', category: 'Communication Proficiency' },
+  { key: 'fluency_in_english', label: 'English Fluency', category: 'Communication Proficiency' },
+  { key: 'rate_of_speech', label: 'Rate of Speech', category: 'Communication Proficiency' },
+  { key: 'pronunciation_clarity', label: 'Pronunciation', category: 'Communication Proficiency' },
+  { key: 'voice_modulation', label: 'Voice Modulation', category: 'Communication Proficiency' },
+  { key: 'listening_skills', label: 'Listening Skills', category: 'Communication Proficiency' },
+  { key: 'body_language', label: 'Body Language', category: 'Communication Proficiency' },
+  { key: 'explanation_skills', label: 'Explanation Skills', category: 'Presentation Skills' },
+  { key: 'energy_enthusiasm', label: 'Energy & Enthusiasm', category: 'Presentation Skills' },
+  { key: 'content_quality_ideas', label: 'Content Quality', category: 'Presentation Skills' },
+  { key: 'subject_knowledge', label: 'Subject Knowledge', category: 'Presentation Skills' },
+  { key: 'thought_process_creativity', label: 'Creativity', category: 'Presentation Skills' },
+  { key: 'audience_orientation', label: 'Audience Orientation', category: 'Presentation Skills' },
+  { key: 'courtesy_politeness', label: 'Courtesy', category: 'Behavioural Skills' },
+  { key: 'grooming', label: 'Grooming', category: 'Behavioural Skills' },
+  { key: 'confidence', label: 'Confidence', category: 'Behavioural Skills' },
+  { key: 'professionalism', label: 'Professionalism', category: 'Behavioural Skills' },
+  { key: 'initiative', label: 'Initiative', category: 'Behavioural Skills' },
+  { key: 'leadership_skills', label: 'Leadership', category: 'Behavioural Skills' },
+  { key: 'teamwork', label: 'Teamwork', category: 'Behavioural Skills' },
+  { key: 'analytical_critical_thinking', label: 'Analytical Thinking', category: 'Behavioural Skills' },
+  { key: 'problem_solving_ability', label: 'Problem Solving', category: 'Behavioural Skills' },
+  { key: 'persuasiveness', label: 'Persuasiveness', category: 'Behavioural Skills' },
+  { key: 'time_management', label: 'Time Management', category: 'Behavioural Skills' },
+] as const
+
+export type CommunicationParameterKey = (typeof COMMUNICATION_PARAMETERS)[number]['key']
+
+type CommunicationEvaluationRow = {
+  student_profile_id: string
+  percentage: number
+  total_score: number
+  grade: string
+  evaluation_date: string
+  presentation_skills_total: number
+} & Record<CommunicationParameterKey, number>
+
 async function listAllDashboardCommunicationRows() {
   const client = requireSupabase()
-  const rows: Array<{
-    student_profile_id: string
-    percentage: number
-    evaluation_date: string
-    confidence: number
-    presentation_skills_total: number
-    listening_skills: number
-    teamwork: number
-    analytical_critical_thinking: number
-    professionalism: number
-    grooming: number
-    courtesy_politeness: number
-  }> = []
+  const parameterColumns = COMMUNICATION_PARAMETERS.map((param) => param.key).join(',')
+  const rows: CommunicationEvaluationRow[] = []
   for (let from = 0; ; from += 1000) {
     const { data, error } = await client
       .from('communication_evaluations')
       .select(
-        'student_profile_id,percentage,evaluation_date,confidence,presentation_skills_total,listening_skills,teamwork,analytical_critical_thinking,professionalism,grooming,courtesy_politeness',
+        `student_profile_id,percentage,total_score,grade,evaluation_date,presentation_skills_total,${parameterColumns}`,
       )
       .eq('is_active', true)
       .order('evaluation_date', { ascending: false })
       .range(from, from + 999)
     if (error) throw error
-    rows.push(...(data ?? []))
+    rows.push(...((data ?? []) as unknown as CommunicationEvaluationRow[]))
     if (!data || data.length < 1000) return rows
   }
 }
@@ -358,10 +396,12 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
       const skill = skillNameById.get(row.tech_skill_id) ?? ''
       return group.keys.some((key) => skill.includes(key))
     })
+    const groupStudentIds = new Set(matching.map((row) => row.student_profile_id))
     return {
       name: group.name,
       score: average(matching.map((row) => scoreFromLevel(row.proficiency_level))),
-      students: new Set(matching.map((row) => row.student_profile_id)).size,
+      students: groupStudentIds.size,
+      studentIds: [...groupStudentIds],
     }
   })
 
@@ -539,13 +579,26 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
       readinessScore: Number(student.readiness_score) || 0,
       placementStatus: student.placement_status,
     })),
+    communicationParameters: COMMUNICATION_PARAMETERS.map((param) => ({
+      key: param.key,
+      label: param.label,
+      category: param.category,
+      average: average(comm.map((row) => (Number(row[param.key]) / 10) * 100)),
+    })),
     communicationStudents: comm.map((row) => {
       const student = studentById.get(row.student_profile_id)
+      const parameters: Record<string, number> = {}
+      for (const param of COMMUNICATION_PARAMETERS) {
+        parameters[param.key] = Number(row[param.key]) || 0
+      }
       return {
         id: row.student_profile_id,
         fullName: student?.full_name ?? 'Unknown student',
         rollNumber: student?.roll_number ?? '',
         percentage: Number(row.percentage) || 0,
+        totalScore: Number(row.total_score) || 0,
+        grade: String(row.grade ?? ''),
+        parameters,
       }
     }),
     companyLinkDetails: links

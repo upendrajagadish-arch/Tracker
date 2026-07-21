@@ -22,6 +22,7 @@ import {
   PlacementSelect,
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
+import { tableSectionExport } from '@/lib/analyticsExports'
 import {
   exportCommunicationBadgeStudents,
   listCommunicationBadgeStudents,
@@ -229,7 +230,43 @@ export function CommunicationBadgeStudentsPage() {
               description="No evaluated students match this badge and filter set."
             />
           ) : (
-            <PlacementTableCard title={`${COMMUNICATION_BADGE_LABELS[badge]} Students (${total})`}>
+            <PlacementTableCard
+              title={`${COMMUNICATION_BADGE_LABELS[badge]} Students (${total})`}
+              exportSection={tableSectionExport(
+                `${COMMUNICATION_BADGE_LABELS[badge]} Students`,
+                [
+                  'S.No',
+                  'Roll Number',
+                  'Student Name',
+                  'Branch',
+                  'Academic Batch',
+                  'Communication Score',
+                  'Percentage',
+                  'Grade',
+                  'Badge',
+                ],
+                [...rows]
+                  .sort((a, b) => {
+                    const scoreDiff = Number(b.totalScore || 0) - Number(a.totalScore || 0)
+                    if (scoreDiff !== 0) return scoreDiff
+                    return String(a.rollNumber).localeCompare(String(b.rollNumber), undefined, {
+                      numeric: true,
+                    })
+                  })
+                  .map((row, index) => [
+                    String(index + 1),
+                    row.rollNumber,
+                    row.fullName,
+                    row.branch || '',
+                    row.academicBatch || '',
+                    `${row.totalScore}/250`,
+                    `${row.percentage}%`,
+                    row.grade,
+                    formatCommunicationBadge(row.badge),
+                  ]),
+                { fileBase: 'communication_badge_students' },
+              )}
+            >
               <Table>
                 <TableHeader>
                   <TableRow>

@@ -25,6 +25,7 @@ import {
   PlacementSelect,
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
+import { tableSectionExport } from '@/lib/analyticsExports'
 import {
   exportCommunicationEvaluations,
   listCommunicationEvaluations,
@@ -233,7 +234,43 @@ export function CommunicationEvaluationsPage() {
             description="Create a manual evaluation or upload a spreadsheet of scores."
           />
         ) : (
-          <PlacementTableCard title="Evaluations">
+          <PlacementTableCard
+            title="Evaluations"
+            exportSection={tableSectionExport(
+              'Evaluations',
+              [
+                'Roll',
+                'Name',
+                'Dept',
+                'Proficiency',
+                'Presentation',
+                'Behavioural',
+                'Total / 250',
+                '%',
+                'Grade',
+              ],
+              [...rows]
+                .sort((a, b) => {
+                  const scoreDiff = Number(b.total_score || 0) - Number(a.total_score || 0)
+                  if (scoreDiff !== 0) return scoreDiff
+                  return String(a.roll_number).localeCompare(String(b.roll_number), undefined, {
+                    numeric: true,
+                  })
+                })
+                .map((row) => [
+                  row.roll_number,
+                  row.student_name,
+                  row.department || '',
+                  `${row.communication_proficiency_total}/80`,
+                  `${row.presentation_skills_total}/60`,
+                  `${row.behavioural_skills_total}/110`,
+                  `${row.total_score}/250`,
+                  `${row.percentage}%`,
+                  row.grade,
+                ]),
+              { fileBase: 'communication_evaluations' },
+            )}
+          >
             <Table>
               <TableHeader>
                 <TableRow>

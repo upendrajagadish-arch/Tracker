@@ -17,6 +17,7 @@ import {
   PlacementPageStack,
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
+import { tableSectionExport } from '@/lib/analyticsExports'
 import {
   Table,
   TableBody,
@@ -158,7 +159,21 @@ export function CodeNowScoresPage() {
         ) : null}
 
         {summary?.categoryDistribution?.length ? (
-          <PlacementTableCard title="Category distribution">
+          <PlacementTableCard
+            title="Category distribution"
+            exportSection={tableSectionExport(
+              'Category distribution',
+              ['Category', 'Attempts', 'Avg %'],
+              [...(summary.categoryDistribution ?? [])]
+                .sort((a, b) => b.averagePercentage - a.averagePercentage || b.count - a.count)
+                .map((row) => [
+                  CODENOW_CATEGORY_LABELS[row.category as CodeNowCategory] || row.category,
+                  String(row.count),
+                  `${row.averagePercentage}%`,
+                ]),
+              { fileBase: 'codenow_category_distribution' },
+            )}
+          >
             <Table>
               <TableHeader>
                 <TableRow>
@@ -204,7 +219,33 @@ export function CodeNowScoresPage() {
         ) : null}
 
         {rows.length ? (
-          <PlacementTableCard title="Student CodeNow profiles">
+          <PlacementTableCard
+            title="Student CodeNow profiles"
+            exportSection={tableSectionExport(
+              'Student CodeNow profiles',
+              ['Roll', 'Name', 'Dept', 'Username', 'Score', '%', 'Grade', 'Challenges', 'Synced'],
+              [...rows]
+                .sort((a, b) => {
+                  const scoreDiff = Number(b.percentage || 0) - Number(a.percentage || 0)
+                  if (scoreDiff !== 0) return scoreDiff
+                  return String(a.roll_number).localeCompare(String(b.roll_number), undefined, {
+                    numeric: true,
+                  })
+                })
+                .map((row) => [
+                  row.roll_number,
+                  row.studentName || '',
+                  row.department || '',
+                  row.codenow_username || '',
+                  `${row.total_score}/${row.max_score}`,
+                  `${row.percentage}%`,
+                  row.grade,
+                  `${row.solved_challenges}/${row.total_challenges}`,
+                  new Date(row.last_synced_at).toLocaleDateString(),
+                ]),
+              { fileBase: 'codenow_student_profiles' },
+            )}
+          >
             <Table>
               <TableHeader>
                 <TableRow>

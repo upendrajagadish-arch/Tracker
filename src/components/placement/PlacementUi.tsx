@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { PlacementErrorAlert, PlacementLoadingBlock } from '@/components/placement/PlacementStates'
+import { SectionExportActions } from '@/components/placement/SectionExportActions'
+import type { SectionExportTable } from '@/lib/analyticsExports'
 
 export function formatEnumLabel(value: string | null | undefined) {
   return String(value ?? '')
@@ -95,21 +97,24 @@ export function PlacementTableCard({
   children,
   footer,
   className,
+  exportSection,
 }: {
   title: string
   count?: number | string
   children: ReactNode
   footer?: ReactNode
   className?: string
+  exportSection?: SectionExportTable
 }) {
   return (
     <Card className={cn('overflow-hidden', className)}>
       {title ? (
-        <CardHeader className="border-b border-soft py-3">
+        <CardHeader className="flex flex-row items-center justify-between gap-3 border-b border-soft py-3">
           <CardTitle className="text-[14px] font-bold">
             {title}
             {count != null ? <span className="ml-2 text-[12px] font-medium text-muted">({count})</span> : null}
           </CardTitle>
+          {exportSection ? <SectionExportActions section={exportSection} size="xs" /> : null}
         </CardHeader>
       ) : null}
       <div className="overflow-x-auto">{children}</div>

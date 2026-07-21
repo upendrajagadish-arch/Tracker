@@ -24,7 +24,9 @@ import {
   PlacementPageBody,
   PlacementPageStack,
   PlacementTableCard,
+  formatEnumLabel,
 } from '@/components/placement/PlacementUi'
+import { tableSectionExport } from '@/lib/analyticsExports'
 import { listResumes, updateReviewStatus } from '@/api/placement/resumes'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -125,7 +127,30 @@ export function ResumesPage() {
           ) : undefined}
         >
           {resumes.length ? (
-            <PlacementTableCard title="Resume queue" count={resumes.length}>
+            <PlacementTableCard
+              title="Resume queue"
+              count={resumes.length}
+              exportSection={tableSectionExport(
+                'Resume queue',
+                ['File name', 'Review status', 'Score', 'ATS friendly', 'Uploaded'],
+                [...resumes]
+                  .sort((a, b) => {
+                    const scoreDiff = Number(b.resume_score || 0) - Number(a.resume_score || 0)
+                    if (scoreDiff !== 0) return scoreDiff
+                    return String(a.file_name).localeCompare(String(b.file_name), undefined, {
+                      numeric: true,
+                    })
+                  })
+                  .map((resume) => [
+                    resume.file_name,
+                    formatEnumLabel(String(resume.review_status ?? 'pending').toLowerCase()),
+                    resume.resume_score == null ? '' : String(resume.resume_score),
+                    resume.ats_friendly ? 'Yes' : 'No',
+                    new Date(resume.created_at).toLocaleDateString(),
+                  ]),
+                { fileBase: 'resume_queue' },
+              )}
+            >
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/40">

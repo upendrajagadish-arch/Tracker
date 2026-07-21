@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { List, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ChartDatum } from '@/components/placement/charts/chartTheme'
+import { SectionExportActions } from '@/components/placement/SectionExportActions'
+import { chartDataSectionExport } from '@/lib/analyticsExports'
 
 export function ChartDataDialog({
   title,
@@ -13,6 +15,10 @@ export function ChartDataDialog({
   const [open, setOpen] = useState(false)
   const dialogRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
+  const exportSection = chartDataSectionExport(
+    title,
+    data.map((row) => ({ name: row.name, value: Number(row.value ?? 0) })),
+  )
 
   useEffect(() => {
     if (!open) return
@@ -68,6 +74,7 @@ export function ChartDataDialog({
                 <h3 className="truncate font-bold">{title}</h3>
                 <p className="text-xs text-muted-foreground">{data.length} chart values</p>
               </div>
+              <SectionExportActions section={exportSection} size="xs" />
               <Button type="button" variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="Close chart data">
                 <X className="size-4" />
               </Button>
@@ -88,4 +95,3 @@ export function ChartDataDialog({
     </>
   )
 }
-

@@ -9,6 +9,8 @@ import {
 } from '@/components/placement/charts/chartTheme'
 import { cn } from '@/lib/utils'
 import { ChartDataDialog } from '@/components/placement/charts/ChartDataDialog'
+import { SectionExportActions } from '@/components/placement/SectionExportActions'
+import { chartDataSectionExport } from '@/lib/analyticsExports'
 
 interface ActiveShapeProps {
   cx?: number
@@ -133,6 +135,13 @@ export function LuxuryDonutChart({
       className={className}
       actions={
         <div className="flex items-center gap-1">
+          <SectionExportActions
+            section={chartDataSectionExport(
+              title,
+              colored.map((row) => ({ name: row.name, value: Number(row.value ?? 0) })),
+            )}
+            size="xs"
+          />
           {actions}
           <ChartDataDialog title={title} data={colored} />
         </div>

@@ -21,6 +21,7 @@ import {
   PlacementTableCard,
   formatEnumLabel,
 } from '@/components/placement/PlacementUi'
+import { tableSectionExport } from '@/lib/analyticsExports'
 import { listReadiness, recalculateReadiness } from '@/api/placement/readiness'
 import { listStudents } from '@/api/placement/students'
 import { useAuth } from '@/hooks/useAuth'
@@ -105,7 +106,36 @@ export function ReadinessPage() {
           ) : undefined}
         >
           {snapshots.length ? (
-            <PlacementTableCard title="Readiness history" count={snapshots.length}>
+            <PlacementTableCard
+              title="Readiness history"
+              count={snapshots.length}
+              exportSection={tableSectionExport(
+                'Readiness history',
+                [
+                  'Overall',
+                  'Technical',
+                  'Communication',
+                  'Resume',
+                  'Tech stack',
+                  'Status',
+                  'Risk',
+                  'Calculated',
+                ],
+                [...snapshots]
+                  .sort((a, b) => Number(b.overall_score || 0) - Number(a.overall_score || 0))
+                  .map((row) => [
+                    String(row.overall_score),
+                    String(row.technical_score),
+                    String(row.communication_score),
+                    String(row.resume_score),
+                    String(row.tech_stack_score),
+                    String(row.readiness_status ?? ''),
+                    formatEnumLabel(row.risk_level),
+                    new Date(row.calculated_at).toLocaleString(),
+                  ]),
+                { fileBase: 'readiness_history' },
+              )}
+            >
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/40">

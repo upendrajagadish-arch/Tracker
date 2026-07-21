@@ -15,6 +15,8 @@ import {
   type ChartDatum,
 } from '@/components/placement/charts/chartTheme'
 import { ChartDataDialog } from '@/components/placement/charts/ChartDataDialog'
+import { SectionExportActions } from '@/components/placement/SectionExportActions'
+import { chartDataSectionExport } from '@/lib/analyticsExports'
 
 function BarTooltip({
   active,
@@ -128,7 +130,18 @@ export function LuxuryBarChart({
       title={title}
       subtitle={subtitle}
       className={className}
-      actions={<ChartDataDialog title={title} data={colored} />}
+      actions={
+        <div className="flex items-center gap-1">
+          <SectionExportActions
+            section={chartDataSectionExport(
+              title,
+              colored.map((row) => ({ name: row.name, value: Number(row.value ?? 0) })),
+            )}
+            size="xs"
+          />
+          <ChartDataDialog title={title} data={colored} />
+        </div>
+      }
     >
       {colored.length === 0 ? (
         <p className="py-16 text-center text-sm text-secondary">No data to chart</p>

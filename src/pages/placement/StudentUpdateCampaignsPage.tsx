@@ -22,6 +22,7 @@ import {
   PlacementPageStack,
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
+import { tableSectionExport } from '@/lib/analyticsExports'
 import {
   deleteCampaign,
   getCampaignSummary,
@@ -151,7 +152,20 @@ export function StudentUpdateCampaignsPage() {
           ) : undefined}
         >
           {campaigns.length ? (
-            <PlacementTableCard title="Campaigns">
+            <PlacementTableCard
+              title="Campaigns"
+              exportSection={tableSectionExport(
+                'Campaigns',
+                ['Title', 'Status', 'Expires', 'Created'],
+                campaigns.map((campaign) => [
+                  campaign.title,
+                  campaign.status,
+                  campaign.expires_at ? new Date(campaign.expires_at).toLocaleDateString() : '',
+                  new Date(campaign.created_at).toLocaleDateString(),
+                ]),
+                { fileBase: 'student_update_campaigns' },
+              )}
+            >
               <Table>
                 <TableHeader>
                   <TableRow>

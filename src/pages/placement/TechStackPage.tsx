@@ -25,6 +25,7 @@ import {
   PlacementTableCard,
   formatEnumLabel,
 } from '@/components/placement/PlacementUi'
+import { tableSectionExport } from '@/lib/analyticsExports'
 import {
   BADGE_CHART_COLORS,
   LuxuryBarChart,
@@ -266,7 +267,46 @@ export function TechStackPage() {
               </PlacementFilterCard>
 
               {rows.length ? (
-                <PlacementTableCard title="Student-wise tracking" count={rows.length}>
+                <PlacementTableCard
+                  title="Student-wise tracking"
+                  count={rows.length}
+                  exportSection={tableSectionExport(
+                    'Student-wise tracking',
+                    [
+                      'Student',
+                      'Roll number',
+                      'Branch',
+                      'Batch',
+                      'Skills',
+                      'Top skills',
+                      'Verified',
+                      'Role interests',
+                      'Last updated',
+                    ],
+                    [...rows]
+                      .sort((a, b) => {
+                        const skillDiff = b.skillsCount - a.skillsCount
+                        if (skillDiff !== 0) return skillDiff
+                        return String(a.student.roll_number).localeCompare(
+                          String(b.student.roll_number),
+                          undefined,
+                          { numeric: true },
+                        )
+                      })
+                      .map((row) => [
+                        row.student.full_name,
+                        row.student.roll_number,
+                        row.student.branch || '',
+                        row.student.batch || '',
+                        String(row.skillsCount),
+                        row.topSkills.join(', '),
+                        String(row.verifiedSkillsCount),
+                        row.roleInterests.map((interest) => interest.role_name).join(', '),
+                        row.lastUpdated ? new Date(row.lastUpdated).toLocaleDateString() : '',
+                      ]),
+                    { fileBase: 'tech_stack_students' },
+                  )}
+                >
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/30 hover:bg-muted/40">
