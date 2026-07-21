@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react'
 import { createRouter, createRoute, createRootRoute, Outlet } from '@tanstack/react-router'
 import { NuqsAdapter } from 'nuqs/adapters/tanstack-router'
 import { AppFrame } from '@/components/AppFrame'
@@ -10,7 +11,7 @@ import { CodeChefPage } from '@/pages/CodeChefPage'
 import { HackerRankPage } from '@/pages/HackerRankPage'
 import { TUFPage } from '@/pages/TUFPage'
 import { ProfilePage } from '@/pages/ProfilePage'
-import { MarketPage } from '@/pages/MarketPage'
+import { PublicLandingPage } from '@/pages/PublicLandingPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { AccountPage } from '@/pages/AccountPage'
 import { PublicProfilePage } from '@/pages/PublicProfilePage'
@@ -19,6 +20,28 @@ import { PublicStudentPerformancePage } from '@/pages/public/PublicStudentPerfor
 import { PublicLeaderboardPage } from '@/pages/public/PublicLeaderboardPage'
 import { StudentUpdatePortalPage } from '@/pages/student/StudentUpdatePortalPage'
 import { createPlacementRoutes } from '@/router/placementRoutes'
+import { RequireAuth } from '@/components/RequireAuth'
+
+function authenticated(Page: ComponentType) {
+  return function AuthenticatedRoute() {
+    return (
+      <RequireAuth>
+        <Page />
+      </RequireAuth>
+    )
+  }
+}
+
+const AuthenticatedHomePage = authenticated(HomePage)
+const AuthenticatedGitHubPage = authenticated(GitHubPage)
+const AuthenticatedLeetCodePage = authenticated(LeetCodePage)
+const AuthenticatedCodeforcesPage = authenticated(CodeforcesPage)
+const AuthenticatedGFGPage = authenticated(GFGPage)
+const AuthenticatedCodeChefPage = authenticated(CodeChefPage)
+const AuthenticatedHackerRankPage = authenticated(HackerRankPage)
+const AuthenticatedTUFPage = authenticated(TUFPage)
+const AuthenticatedProfilePage = authenticated(ProfilePage)
+const AuthenticatedAccountPage = authenticated(AccountPage)
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -33,61 +56,61 @@ const rootRoute = createRootRoute({
 export const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
-  component: MarketPage,
+  component: PublicLandingPage,
 })
 
 export const appRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/app',
-  component: HomePage,
+  component: AuthenticatedHomePage,
 })
 
 export const githubRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/github/$username',
-  component: GitHubPage,
+  component: AuthenticatedGitHubPage,
 })
 
 export const leetcodeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/leetcode/$username',
-  component: LeetCodePage,
+  component: AuthenticatedLeetCodePage,
 })
 
 export const codeforcesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/codeforces/$username',
-  component: CodeforcesPage,
+  component: AuthenticatedCodeforcesPage,
 })
 
 export const gfgRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/gfg/$username',
-  component: GFGPage,
+  component: AuthenticatedGFGPage,
 })
 
 export const codechefRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/codechef/$username',
-  component: CodeChefPage,
+  component: AuthenticatedCodeChefPage,
 })
 
 export const hackerrankRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/hackerrank/$username',
-  component: HackerRankPage,
+  component: AuthenticatedHackerRankPage,
 })
 
 export const tufRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/tuf/$username',
-  component: TUFPage,
+  component: AuthenticatedTUFPage,
 })
 
 export const profileRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/profile',
-  component: ProfilePage,
+  component: AuthenticatedProfilePage,
 })
 
 export const loginRoute = createRoute({
@@ -111,7 +134,7 @@ const accountSearch = (search: Record<string, unknown>): { next?: string } => {
 export const accountRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/account',
-  component: AccountPage,
+  component: AuthenticatedAccountPage,
   validateSearch: accountSearch,
 })
 
@@ -119,7 +142,7 @@ export const accountRoute = createRoute({
 export const onboardingRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/onboarding',
-  component: AccountPage,
+  component: AuthenticatedAccountPage,
   validateSearch: accountSearch,
 })
 

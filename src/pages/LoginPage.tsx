@@ -89,11 +89,11 @@ export function LoginPage() {
         <div className="mx-auto flex w-full max-w-xl flex-1 flex-col justify-center">
           <nav className="mb-6">
             <Link
-              to="/app"
+              to="/"
               className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-binance transition-opacity hover:opacity-80"
             >
               <ArrowLeft className="size-4" strokeWidth={2} />
-              Back to dashboard
+              Back to home
             </Link>
           </nav>
 
