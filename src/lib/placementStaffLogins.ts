@@ -3,6 +3,16 @@ export const STAFF_LOGIN_ACCOUNTS = [
   { role: 'admin', email: 'admin@rcee.ac.in', fullName: 'RCEE Admin' },
   { role: 'tpo', email: 'tpo@rcee.ac.in', fullName: 'RCEE TPO' },
   { role: 'faculty', email: 'faculty@rcee.ac.in', fullName: 'RCEE Faculty' },
+  {
+    role: 'faculty',
+    email: 'sridurgadevipujari@rcee.ac.in',
+    fullName: 'Sri Durga Devi Pujari',
+  },
+  {
+    role: 'faculty',
+    email: 'shaiknasira@rcee.ac.in',
+    fullName: 'Shaik Nasira',
+  },
   { role: 'interviewer', email: 'interviewer@rcee.ac.in', fullName: 'RCEE Interviewer' },
 ] as const
 

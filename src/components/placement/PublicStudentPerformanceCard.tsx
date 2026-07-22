@@ -476,6 +476,10 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
                   label="Last evaluated"
                   value={formatDate(profile.communication.evaluatedAt)}
                 />
+                <ShareMetric
+                  label="Interviewer"
+                  value={display(profile.communication.evaluatorName)}
+                />
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <ShareMetric
@@ -538,7 +542,37 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
           )}
         </ShareProfileSection>
 
-        <ShareProfileSection number="05" title="Aptitude Performance">
+        <ShareProfileSection
+          number="05"
+          title="Tech Stack Evaluation"
+          description="Coding languages and subjects with interviewer"
+        >
+          {profile.techSkills?.length ? (
+            <div className="space-y-2">
+              {profile.techSkills.map((skill) => (
+                <div
+                  key={`${skill.name}-${skill.assessedByName ?? 'na'}-${skill.proficiencyLevel}`}
+                  className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-border bg-background/60 px-3 py-2 text-sm"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground">{skill.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {skill.category ? `${skill.category.replace(/_/g, ' ')} · ` : ''}
+                      {skill.proficiencyLevel.replace(/_/g, ' ').toLowerCase()}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Interviewer: {skill.assessedByName || 'Not Available'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <ShareNotAvailable label="Not Available — no tech stack evaluations yet." />
+          )}
+        </ShareProfileSection>
+
+        <ShareProfileSection number="06" title="Aptitude Performance">
           {profile.aptitude ? (
             <div className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -568,7 +602,7 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
           )}
         </ShareProfileSection>
 
-        <ShareProfileSection number="06" title="Verbal Performance">
+        <ShareProfileSection number="07" title="Verbal Performance">
           {profile.verbal ? (
             <div className="space-y-3">
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

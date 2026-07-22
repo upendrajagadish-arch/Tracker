@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,7 +16,6 @@ import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
 import {
   CompletenessBar,
   PlacementStatusBadge,
-  PLACEMENT_STATUSES,
   ReadinessStatusBadge,
 } from '@/components/placement/PlacementBadges'
 import {
@@ -24,17 +23,11 @@ import {
   PlacementStatCard,
 } from '@/components/placement/PlacementStates'
 import {
-  LuxuryBarChart,
-  LuxuryDonutChart,
-} from '@/components/placement/charts'
-import {
   PlacementAlerts,
   PlacementField,
   PlacementFilterCard,
   PlacementPageBody,
   PlacementPageStack,
-  PlacementPaginationBar,
-  PlacementSelect,
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
 import { listStudents, type StudentListFilters } from '@/api/placement/students'
@@ -56,25 +49,44 @@ import {
 import { TrainingProgramCards } from '@/components/placement/TrainingProgramCards'
 import { tableSectionExport } from '@/lib/analyticsExports'
 
+const TOP_LIMIT = 5
+
+function defaultTopFilters(extra: Partial<StudentListFilters> = {}): StudentListFilters {
+  return {
+    page: 1,
+    limit: TOP_LIMIT,
+    orderBy: 'readiness_score',
+    orderAscending: false,
+    ...extra,
+  }
+}
+
 export function StudentsPage() {
   const { base, role } = usePlacementPaths()
   const canManage = canManageStudents(role)
   const canImport = canImportStudents(role)
   const canAssign = canAssignStudentBranch(role)
-  const [filters, setFilters] = useState<StudentListFilters>({ page: 1, limit: 20 })
-  const [draft, setDraft] = useState({ q: '', branch: '', batch: '', placementStatus: '' })
+  const [filters, setFilters] = useState<StudentListFilters>(defaultTopFilters())
+  const [rollSearch, setRollSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
   const [pdfProgress, setPdfProgress] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<Awaited<ReturnType<typeof listStudents>> | null>(null)
+  const [rosterTotal, setRosterTotal] = useState<number | null>(null)
+
+  const isSearching = Boolean(filters.q?.trim())
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      setResult(await listStudents(filters))
+      const page = await listStudents(filters)
+      setResult(page)
+      if (!filters.q?.trim()) {
+        setRosterTotal(page.pagination.total)
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load students')
     } finally {
@@ -86,16 +98,24 @@ export function StudentsPage() {
     void load()
   }, [load])
 
-  const applyFilters = (e: React.FormEvent) => {
+  const applyRollSearch = (e: FormEvent) => {
     e.preventDefault()
-    setFilters({
-      page: 1,
-      limit: 20,
-      q: draft.q || undefined,
-      branch: draft.branch || undefined,
-      batch: draft.batch || undefined,
-      placementStatus: draft.placementStatus || undefined,
-    })
+    const roll = rollSearch.trim()
+    if (!roll) {
+      setFilters(defaultTopFilters())
+      return
+    }
+    setFilters(
+      defaultTopFilters({
+        q: roll,
+        limit: TOP_LIMIT,
+      }),
+    )
+  }
+
+  const clearSearch = () => {
+    setRollSearch('')
+    setFilters(defaultTopFilters())
   }
 
   const handleExport = async () => {
@@ -200,18 +220,13 @@ export function StudentsPage() {
     }
   }
 
-  const summary = result?.data
-  const eligible = summary?.filter((s) => s.is_placement_eligible).length ?? 0
-  const withCgpa = summary?.filter((s) => s.cgpa != null) ?? []
-  const avgCgpa = withCgpa.length
-    ? (withCgpa.reduce((sum, s) => sum + Number(s.cgpa), 0) / withCgpa.length).toFixed(2)
-    : '—'
+  const rows = result?.data ?? []
 
   return (
     <PlacementShell title="Student Tracker">
       <PlacementPageHeader
         title="Student Tracker"
-        description="Search students, bulk add records, assign branch and year, and open full dossiers."
+        description="Top performers at a glance — search by roll number to open any student dossier."
         actions={
           base ? (
             <>
@@ -271,89 +286,42 @@ export function StudentsPage() {
 
         <TrainingProgramCards
           onFilter={(filter) => {
-            setDraft((current) => ({
-              ...current,
-              batch: String(filter.year),
-            }))
-            setFilters({
-              page: 1,
-              limit: 20,
-              q: draft.q || undefined,
-              branch: draft.branch || undefined,
-              graduationYear: filter.year,
-              section: filter.section,
-              placementStatus: draft.placementStatus || undefined,
-            })
+            setRollSearch('')
+            setFilters(
+              defaultTopFilters({
+                graduationYear: filter.year,
+                section: filter.section,
+              }),
+            )
           }}
         />
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <PlacementStatCard label="Total students" value={result?.pagination.total ?? '—'} hint="Matching filters" />
-          <PlacementStatCard label="Eligible on page" value={eligible} />
-          <PlacementStatCard label="Average CGPA" value={avgCgpa} hint="Current page" />
-          <PlacementStatCard label="Incomplete profiles" value={summary?.filter((s) => s.profile_completeness < 70).length ?? '—'} hint="Below 70%" />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <PlacementStatCard label="Total students" value={rosterTotal ?? '—'} hint="Active roster" />
+          <PlacementStatCard
+            label={isSearching ? 'Search matches' : 'Showing top'}
+            value={rows.length}
+            hint={isSearching ? 'Roll number search' : 'Highest readiness scores'}
+          />
         </div>
 
-        {summary?.length ? (
-          <div className="grid gap-4 lg:grid-cols-2">
-            <LuxuryDonutChart
-              title="Profile completeness"
-              subtitle="Complete vs incomplete profiles on this page"
-              data={[
-                {
-                  name: 'Complete (≥70%)',
-                  value: summary.filter((s) => s.profile_completeness >= 70).length,
-                  color: '#0ECB81',
-                },
-                {
-                  name: 'Incomplete (<70%)',
-                  value: summary.filter((s) => s.profile_completeness < 70).length,
-                  color: '#F6465D',
-                },
-              ]}
-              centerLabel="Page"
-              centerValue={summary.length}
-            />
-            <LuxuryBarChart
-              title="Eligibility snapshot"
-              subtitle="Eligible students vs incomplete profiles"
-              data={[
-                { name: 'Eligible', value: eligible, color: '#F0B90B' },
-                {
-                  name: 'Incomplete',
-                  value: summary.filter((s) => s.profile_completeness < 70).length,
-                  color: '#F6465D',
-                },
-                {
-                  name: 'Total page',
-                  value: summary.length,
-                  color: '#3B82F6',
-                },
-              ]}
-            />
-          </div>
-        ) : null}
-
         <PlacementFilterCard>
-          <form onSubmit={applyFilters} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            <PlacementField label="Search" hint="Name, roll number, or email">
-              <Input placeholder="e.g. CS21B1001" value={draft.q} onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))} className="border-border bg-card" />
-            </PlacementField>
-            <PlacementField label="Branch">
-              <Input placeholder="e.g. CSE" value={draft.branch} onChange={(e) => setDraft((d) => ({ ...d, branch: e.target.value }))} className="border-border bg-card" />
-            </PlacementField>
-            <PlacementField label="Academic Batch">
-              <Input placeholder="e.g. 2023-2027" value={draft.batch} onChange={(e) => setDraft((d) => ({ ...d, batch: e.target.value }))} className="border-border bg-card" />
-            </PlacementField>
-            <PlacementField label="Placement status">
-              <PlacementSelect value={draft.placementStatus} onChange={(value) => setDraft((d) => ({ ...d, placementStatus: value }))}>
-                <option value="">All statuses</option>
-                {PLACEMENT_STATUSES.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
-              </PlacementSelect>
-            </PlacementField>
-            <div className="flex items-end gap-2">
-              <Button type="submit" size="sm">Apply filters</Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => { setDraft({ q: '', branch: '', batch: '', placementStatus: '' }); setFilters({ page: 1, limit: 20 }) }}>
+          <form onSubmit={applyRollSearch} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="min-w-0 flex-1">
+              <PlacementField label="Search by roll number" hint="Plain text search — no dropdown">
+                <Input
+                  placeholder="e.g. CS21B1001"
+                  value={rollSearch}
+                  onChange={(e) => setRollSearch(e.target.value)}
+                  className="border-border bg-card font-mono"
+                />
+              </PlacementField>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button type="submit" size="sm">
+                Search
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={clearSearch}>
                 Clear
               </Button>
             </div>
@@ -363,10 +331,14 @@ export function StudentsPage() {
         <PlacementPageBody
           loading={loading}
           loadingLabel="Loading students…"
-          empty={!result?.data.length ? (
+          empty={!rows.length ? (
             <PlacementEmptyState
-              title="No students found"
-              description="Bulk add students or adjust filters to get started."
+              title={isSearching ? 'No student found' : 'No students yet'}
+              description={
+                isSearching
+                  ? 'Try a different roll number, or clear search to see the top 5.'
+                  : 'Bulk add students to get started.'
+              }
               action={
                 canImport && base ? (
                   <Button asChild size="sm">
@@ -377,12 +349,12 @@ export function StudentsPage() {
             />
           ) : undefined}
         >
-          {result?.data.length ? (
+          {rows.length ? (
             <PlacementTableCard
-              title="Students"
-              count={result.pagination.total}
+              title={isSearching ? 'Search results' : 'Top students'}
+              count={rows.length}
               exportSection={tableSectionExport(
-                'Student tracker',
+                isSearching ? 'Student roll search' : 'Top 5 students',
                 [
                   'Roll Number',
                   'Name',
@@ -394,39 +366,24 @@ export function StudentsPage() {
                   'Readiness',
                   'Profile %',
                 ],
-                [...result.data]
-                  .sort((a, b) => {
-                    const scoreDiff = Number(b.readiness_score || 0) - Number(a.readiness_score || 0)
-                    if (scoreDiff !== 0) return scoreDiff
-                    return String(a.roll_number).localeCompare(String(b.roll_number), undefined, {
-                      numeric: true,
-                    })
-                  })
-                  .map((student) => [
-                    student.roll_number,
-                    student.full_name,
-                    student.email || '',
-                    student.branch || '',
-                    student.academic_batch || student.batch || '',
-                    student.cgpa == null ? '' : String(student.cgpa),
-                    student.placement_status,
-                    String(student.readiness_score ?? 0),
-                    String(student.profile_completeness ?? 0),
-                  ]),
-                { fileBase: 'student_tracker' },
+                rows.map((student) => [
+                  student.roll_number,
+                  student.full_name,
+                  student.email || '',
+                  student.branch || '',
+                  student.academic_batch || student.batch || '',
+                  student.cgpa == null ? '' : String(student.cgpa),
+                  student.placement_status,
+                  String(student.readiness_score ?? 0),
+                  String(student.profile_completeness ?? 0),
+                ]),
+                { fileBase: isSearching ? 'student_roll_search' : 'top_students' },
               )}
-              footer={
-                <PlacementPaginationBar
-                  page={result.pagination.page}
-                  pages={result.pagination.pages}
-                  onPrevious={() => setFilters((f) => ({ ...f, page: Math.max(1, (f.page ?? 1) - 1) }))}
-                  onNext={() => setFilters((f) => ({ ...f, page: (f.page ?? 1) + 1 }))}
-                />
-              }
             >
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/40">
+                    <TableHead className="w-12">#</TableHead>
                     <TableHead>Roll number</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
@@ -440,8 +397,11 @@ export function StudentsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {result.data.map((student) => (
+                  {rows.map((student, index) => (
                     <TableRow key={student.id} className="hover:bg-muted/40">
+                      <TableCell className="tnum text-xs font-bold text-muted-foreground">
+                        {index + 1}
+                      </TableCell>
                       <TableCell className="font-mono text-xs">{student.roll_number}</TableCell>
                       <TableCell>
                         {base ? (

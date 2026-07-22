@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Download, FileSpreadsheet, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PlacementShell, usePlacementPaths } from '@/components/placement/PlacementShell'
@@ -6,7 +6,6 @@ import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
 import {
   PlacementAlerts,
   PlacementPageStack,
-  PlacementSelect,
 } from '@/components/placement/PlacementUi'
 import { PlacementErrorAlert } from '@/components/placement/PlacementStates'
 import {
@@ -17,13 +16,14 @@ import { getPremiumDashboard, type DashboardSnapshot } from '@/api/placement/pre
 import { exportDashboardPdf, exportDashboardXlsx } from '@/lib/dashboardExports'
 import { isSupabaseConfigured, requireSupabase } from '@/lib/supabase'
 import { WorkspaceTabs } from '@/components/placement/WorkspaceTabs'
+import { PassOutYearFilterBar, usePassOutYearFilter } from '@/lib/placementYearFilter'
 
 export function PlacementDashboardPage() {
   const { base } = usePlacementPaths()
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [batch, setBatch] = useState('all')
+  const { year: batch, setYear: setBatch } = usePassOutYearFilter()
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null)
   const requestSequence = useRef(0)
 
@@ -79,28 +79,15 @@ export function PlacementDashboardPage() {
     }
   }, [batch, load])
 
-  const batchOptions = useMemo(() => {
-    const values = new Set(snapshot?.availableBatches ?? [])
-    values.add('2027')
-    values.add('2028')
-    return [...values].filter(Boolean).sort()
-  }, [snapshot?.availableBatches])
-
   return (
     <PlacementShell title="Dashboard">
       <WorkspaceTabs active="placement" />
 
       <PlacementPageHeader
         title="Placement Dashboard"
-        description="A live command center for student eligibility, placement progress, company engagement, and readiness."
+        description="Filter by pass-out year to drill into eligibility, placement progress, and readiness analytics."
         actions={
           <div className="flex flex-wrap items-center gap-2">
-            <PlacementSelect value={batch} onChange={setBatch} className="h-9 min-w-36">
-              <option value="all">All batches</option>
-              {batchOptions.map((value) => (
-                <option key={value} value={value}>{value} Batch</option>
-              ))}
-            </PlacementSelect>
             <Button
               type="button"
               variant="outline"
@@ -136,6 +123,8 @@ export function PlacementDashboardPage() {
       />
 
       <PlacementPageStack>
+        <PassOutYearFilterBar value={batch} onChange={setBatch} />
+
         <PlacementAlerts error={error} />
         {loading ? <PremiumDashboardSkeleton /> : snapshot ? <PremiumDashboard snapshot={snapshot} base={base} /> : null}
       </PlacementPageStack>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { CommunicationModuleNav } from '@/components/placement/CommunicationModuleNav'
 import { PlacementShell, usePlacementPaths } from '@/components/placement/PlacementShell'
 import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
@@ -10,28 +11,29 @@ import {
   PlacementField,
   PlacementFilterCard,
   PlacementPageStack,
-  PlacementSelect,
+  PlacementSectionCard,
 } from '@/components/placement/PlacementUi'
 import {
   BADGE_CHART_COLORS,
   LuxuryDonutChart,
 } from '@/components/placement/charts'
+import { CommunicationParameterWheel } from '@/components/placement/dashboard/PremiumDashboard'
 import {
   exportCommunicationBadgeStudents,
   exportCommunicationDashboardStudents,
   getCommunicationDashboard,
   type CommunicationDashboardSummary,
 } from '@/api/placement/communicationEvaluations'
+import { getPremiumDashboard, type DashboardSnapshot } from '@/api/placement/premiumDashboard'
 import {
-  COMMUNICATION_ACADEMIC_BATCH_OPTIONS,
   COMMUNICATION_BADGE_EMOJI,
   COMMUNICATION_BADGE_LABELS,
   COMMUNICATION_BADGE_ORDER,
-  COMMUNICATION_BRANCH_OPTIONS,
   type CommunicationBadge,
 } from '@/lib/communicationBadge'
 import { canViewCommunicationModule } from '@/lib/placementNavigation'
 import { useAuth } from '@/hooks/useAuth'
+import { PassOutYearFilterBar, usePassOutYearFilter } from '@/lib/placementYearFilter'
 
 const BADGE_CARDS: CommunicationBadge[] = COMMUNICATION_BADGE_ORDER
 
@@ -50,12 +52,15 @@ export function CommunicationDashboardPage() {
   const { base } = usePlacementPaths()
   const navigate = useNavigate()
   const canView = canViewCommunicationModule(placementRole)
+  const { year, setYear, graduationYear } = usePassOutYearFilter()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [summary, setSummary] = useState<CommunicationDashboardSummary | null>(null)
+  const [communicationParameters, setCommunicationParameters] = useState<
+    DashboardSnapshot['communicationParameters']
+  >([])
   const [filters, setFilters] = useState({
-    academicBatch: '',
     branch: '',
     search: '',
   })
@@ -65,18 +70,23 @@ export function CommunicationDashboardPage() {
     setLoading(true)
     setError(null)
     try {
-      const result = await getCommunicationDashboard({
-        academicBatch: filters.academicBatch || undefined,
-        branch: filters.branch || undefined,
-        search: filters.search || undefined,
-      })
+      const yearKey = year === 'all' ? 'all' : year
+      const [result, snapshot] = await Promise.all([
+        getCommunicationDashboard({
+          graduationYear,
+          branch: filters.branch || undefined,
+          search: filters.search || undefined,
+        }),
+        getPremiumDashboard(yearKey).catch(() => null),
+      ])
       setSummary(result)
+      setCommunicationParameters(snapshot?.communicationParameters ?? [])
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load dashboard')
     } finally {
       setLoading(false)
     }
-  }, [canView, filters])
+  }, [canView, filters, graduationYear, year])
 
   useEffect(() => {
     void load()
@@ -88,7 +98,7 @@ export function CommunicationDashboardPage() {
       to: `${base}/communication/badge/$badge` as '/admin/placement/communication/badge/$badge',
       params: { badge },
       search: {
-        academicBatch: filters.academicBatch || undefined,
+        academicBatch: year === 'all' ? undefined : year,
         branch: filters.branch || undefined,
         search: filters.search || undefined,
       },
@@ -98,7 +108,7 @@ export function CommunicationDashboardPage() {
   const handleDownloadAll = async () => {
     try {
       const csv = await exportCommunicationDashboardStudents({
-        academicBatch: filters.academicBatch || undefined,
+        graduationYear,
         branch: filters.branch || undefined,
         search: filters.search || undefined,
       })
@@ -112,7 +122,7 @@ export function CommunicationDashboardPage() {
     event.stopPropagation()
     try {
       const csv = await exportCommunicationBadgeStudents(badge, {
-        academicBatch: filters.academicBatch || undefined,
+        graduationYear,
         branch: filters.branch || undefined,
         search: filters.search || undefined,
       })
@@ -175,6 +185,7 @@ export function CommunicationDashboardPage() {
       ) : (
         <PlacementPageStack>
           <PlacementAlerts error={error} />
+          <PassOutYearFilterBar value={year} onChange={setYear} />
 
           <PlacementFilterCard
             actions={
@@ -183,36 +194,18 @@ export function CommunicationDashboardPage() {
               </Button>
             }
           >
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <PlacementField label="Academic Batch">
-                <PlacementSelect
-                  value={filters.academicBatch}
-                  onChange={(value) => setFilters((f) => ({ ...f, academicBatch: value }))}
-                >
-                  <option value="">All</option>
-                  {COMMUNICATION_ACADEMIC_BATCH_OPTIONS.map((batch) => (
-                    <option key={batch} value={batch}>
-                      {batch}
-                    </option>
-                  ))}
-                </PlacementSelect>
-              </PlacementField>
+            <div className="grid gap-3 sm:grid-cols-2">
               <PlacementField label="Branch">
-                <PlacementSelect
+                <Input
+                  className="border-border bg-card"
                   value={filters.branch}
-                  onChange={(value) => setFilters((f) => ({ ...f, branch: value }))}
-                >
-                  <option value="">All</option>
-                  {COMMUNICATION_BRANCH_OPTIONS.map((branch) => (
-                    <option key={branch} value={branch}>
-                      {branch}
-                    </option>
-                  ))}
-                </PlacementSelect>
+                  onChange={(e) => setFilters((f) => ({ ...f, branch: e.target.value }))}
+                  placeholder="e.g. CSE"
+                />
               </PlacementField>
               <PlacementField label="Search">
-                <input
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                <Input
+                  className="border-border bg-card"
                   value={filters.search}
                   onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
                   placeholder="Roll / name"
@@ -220,6 +213,15 @@ export function CommunicationDashboardPage() {
               </PlacementField>
             </div>
           </PlacementFilterCard>
+
+          {!loading && communicationParameters.length ? (
+            <PlacementSectionCard
+              title="Communication Readiness"
+              description="Interactive parameter wheel for every evaluation criterion."
+            >
+              <CommunicationParameterWheel parameters={communicationParameters} />
+            </PlacementSectionCard>
+          ) : null}
 
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>

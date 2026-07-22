@@ -191,7 +191,7 @@ export function AccountPage() {
                 <div>
                   <h2 className="glow-text font-pixel text-2xl text-foreground">Placement Office</h2>
                   <p className="mt-2 font-mono text-xs leading-relaxed text-muted-foreground">
-                    Signed in as <span className="capitalize text-primary">{placementRole}</span>. Open the placement dashboard for students, resumes, tech stack, and reports.
+                    Signed in as <span className="capitalize text-primary">{placementRole}</span>. Open the placement dashboard for students, tech stack, and communication.
                   </p>
                 </div>
                 <Button asChild className="font-mono text-xs">

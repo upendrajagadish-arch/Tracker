@@ -121,7 +121,7 @@ export function StudentImportPage() {
       <PlacementShell title="Import students">
         <PlacementEmptyState
           title="Not allowed"
-          description="Only administrators and placement officers can import students."
+          description="Only administrators, placement officers, and faculty can import students."
         />
       </PlacementShell>
     )

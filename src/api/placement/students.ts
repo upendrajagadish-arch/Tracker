@@ -7,6 +7,11 @@ import {
   type ImportPreviewResult,
   type StudentImportMode,
 } from '@/lib/studentImport'
+import {
+  trainingProgramSectionValue,
+  type PinnacleBatchNumber,
+  type TrainingProgramId,
+} from '@/lib/trainingPrograms'
 import type { Database, Json } from '@/types/supabase'
 import type { PlatformHandles } from '@/lib/studentPlatformHandles'
 
@@ -34,6 +39,8 @@ export interface StudentListFilters {
   studentIds?: string[]
   page?: number
   limit?: number
+  orderBy?: 'updated_at' | 'readiness_score' | 'roll_number' | 'full_name'
+  orderAscending?: boolean
 }
 
 export interface PaginatedResult<T> {
@@ -186,7 +193,9 @@ export async function listStudents(filters: StudentListFilters = {}): Promise<Pa
   let query = client
     .from('student_profiles')
     .select('*', { count: 'exact' })
-    .order('updated_at', { ascending: false })
+    .order(filters.orderBy ?? 'updated_at', {
+      ascending: filters.orderAscending ?? false,
+    })
 
   if (filters.branch) query = query.eq('branch', filters.branch)
   const batchValue = filters.academicBatch || filters.batch
@@ -271,6 +280,21 @@ export async function listStudents(filters: StudentListFilters = {}): Promise<Pa
       pages: total ? Math.ceil(total / limit) : 0,
     },
   }
+}
+
+export async function getStudentByRollNumber(rollNumber: string): Promise<StudentProfileRow | null> {
+  const client = requireSupabase()
+  const clean = rollNumber.trim()
+  if (!clean) return null
+  const { data, error } = await client
+    .from('student_profiles')
+    .select('*')
+    .ilike('roll_number', clean)
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data
 }
 
 export async function getStudent(studentId: string): Promise<StudentProfileRow | null> {
@@ -435,12 +459,24 @@ export async function listExistingRollNumbers(): Promise<Set<string>> {
   return new Set((data ?? []).map((row) => row.roll_number))
 }
 
+export async function listStudentIdsByRollNumber(): Promise<Map<string, string>> {
+  const client = requireSupabase()
+  const { data, error } = await client.from('student_profiles').select('id,roll_number')
+  if (error) throw error
+  const map = new Map<string, string>()
+  for (const row of data ?? []) {
+    if (row.roll_number) map.set(row.roll_number, row.id)
+  }
+  return map
+}
+
 export async function previewStudentsImport(
   records: Record<string, string>[],
   mode: StudentImportMode,
+  options?: { allowUpdateExisting?: boolean },
 ): Promise<ImportPreviewResult> {
   const existingRollNumbers = await listExistingRollNumbers()
-  return previewStudentImport(records, mode, existingRollNumbers)
+  return previewStudentImport(records, mode, existingRollNumbers, options)
 }
 
 export async function importValidatedStudents(
@@ -465,6 +501,112 @@ export async function importValidatedStudents(
     entityType: 'student_profile',
     description: `Imported ${result.imported} students after validation`,
     metadata: { imported: result.imported, skipped: result.skipped, errorCount: result.errors.length },
+  })
+
+  return result
+}
+
+export interface TrainingProgramImportAssignment {
+  year: number
+  program: TrainingProgramId
+  pinnacleBatch?: PinnacleBatchNumber | null
+}
+
+export interface TrainingProgramImportResult extends CsvImportResult {
+  created: number
+  updated: number
+}
+
+function withTrainingProgramAssignment(
+  input: CreateStudentInput,
+  assignment: TrainingProgramImportAssignment,
+): CreateStudentInput {
+  const section = trainingProgramSectionValue(assignment.program, assignment.pinnacleBatch)
+  const year = String(assignment.year)
+  return {
+    ...input,
+    section,
+    graduationYear: assignment.year,
+    academicBatch: year,
+    batch: year,
+  }
+}
+
+export async function importStudentsIntoTrainingProgram(
+  records: Record<string, string>[],
+  assignment: TrainingProgramImportAssignment,
+): Promise<TrainingProgramImportResult> {
+  if (assignment.program === 'pinnacle' && !assignment.pinnacleBatch) {
+    throw new Error('Select a Pinnacle batch (1–4) before uploading.')
+  }
+
+  const rollToId = await listStudentIdsByRollNumber()
+  const preview = previewStudentImport(
+    records,
+    'quick',
+    new Set(rollToId.keys()),
+    { allowUpdateExisting: true },
+  )
+
+  const result: TrainingProgramImportResult = {
+    imported: 0,
+    created: 0,
+    updated: 0,
+    skipped: 0,
+    errors: preview.rows
+      .filter((row) => row.errors.length)
+      .flatMap((row) => row.errors.map((message) => ({ row: row.rowNumber, message }))),
+  }
+
+  for (const row of preview.rows) {
+    if (!row.input || row.errors.length) {
+      if (row.errors.length) result.skipped += 1
+      continue
+    }
+
+    const payload = withTrainingProgramAssignment(row.input, assignment)
+    const existingId = rollToId.get(payload.rollNumber.trim())
+
+    try {
+      if (existingId) {
+        await updateStudent(existingId, {
+          fullName: payload.fullName,
+          email: payload.email || undefined,
+          phone: payload.phone || undefined,
+          branch: payload.branch || undefined,
+          section: payload.section,
+          graduationYear: payload.graduationYear,
+          academicBatch: payload.academicBatch,
+          batch: payload.batch,
+        })
+        result.updated += 1
+      } else {
+        await createStudent(payload)
+        result.created += 1
+      }
+      result.imported += 1
+    } catch (error) {
+      result.skipped += 1
+      result.errors.push({
+        row: row.rowNumber,
+        message: error instanceof Error ? error.message : 'Import failed.',
+      })
+    }
+  }
+
+  await logPlacementAudit({
+    action: 'student.import_training_program',
+    entityType: 'student_profile',
+    description: `Imported ${result.imported} students into ${assignment.program} ${assignment.year}`,
+    metadata: {
+      program: assignment.program,
+      year: assignment.year,
+      pinnacleBatch: assignment.pinnacleBatch ?? null,
+      created: result.created,
+      updated: result.updated,
+      skipped: result.skipped,
+      errorCount: result.errors.length,
+    },
   })
 
   return result

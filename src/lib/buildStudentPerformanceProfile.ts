@@ -4,6 +4,7 @@ import { getLatestAptitudeScore, getLatestVerbalScore } from '@/api/placement/as
 import { getStudentCodingSnapshot } from '@/api/placement/studentCodingProfile'
 import { getStudent, listStudents, type StudentListFilters } from '@/api/placement/students'
 import { getCodeNowProfile, listCodeNowChallenges } from '@/api/placement/codeNow'
+import { listStudentSkills } from '@/api/placement/techSkills'
 import { resolvePlatformHandles } from '@/lib/studentPlatformHandles'
 import { ALL_CRITERIA_KEYS, type CriteriaKey } from '@/lib/communicationEvaluation'
 import { normalizeCodeNowCategory } from '@/lib/codeNowCategories'
@@ -95,12 +96,13 @@ export async function buildStudentPerformanceProfile(
   const student = await getStudent(studentProfileId)
   if (!student) throw new Error('Student not found')
 
-  const [comm, aptitude, verbal, snapshot, codeNow] = await Promise.all([
+  const [comm, aptitude, verbal, snapshot, codeNow, techSkills] = await Promise.all([
     getLatestEvaluationForStudent(student.id).catch(() => null),
     getLatestAptitudeScore(student.id).catch(() => null),
     getLatestVerbalScore(student.id).catch(() => null),
     getStudentCodingSnapshot(student.id).catch(() => null),
     buildCodeNowBlock(student.id),
+    listStudentSkills(student.id).catch(() => []),
   ])
 
   const handles = resolvePlatformHandles(student)
@@ -113,6 +115,7 @@ export async function buildStudentPerformanceProfile(
         percentage: comm.percentage,
         grade: comm.grade,
         evaluatedAt: comm.evaluation_date,
+        evaluatorName: comm.evaluator_name?.trim() || null,
         proficiencyTotal: comm.communication_proficiency_total,
         presentationTotal: comm.presentation_skills_total,
         behaviouralTotal: comm.behavioural_skills_total,
@@ -127,6 +130,7 @@ export async function buildStudentPerformanceProfile(
           percentage: Number(student.communication_score),
           grade: student.communication_grade || 'Not Available',
           evaluatedAt: student.last_communication_evaluation_at,
+          evaluatorName: null,
           proficiencyTotal: 0,
           presentationTotal: 0,
           behaviouralTotal: 0,
@@ -154,6 +158,12 @@ export async function buildStudentPerformanceProfile(
     totalSolved: snapshot?.total_solved ?? 0,
     codingSyncedAt: snapshot?.fetched_at ?? null,
     communication,
+    techSkills: techSkills.map((skill) => ({
+      name: skill.tech_skill?.name ?? skill.tech_skill_id,
+      category: skill.tech_skill?.category ?? '',
+      proficiencyLevel: skill.proficiency_level,
+      assessedByName: skill.assessed_by_name?.trim() || null,
+    })),
     aptitude: assessmentFromRow(aptitude, {
       percentage: student.aptitude_score ?? null,
       grade: student.aptitude_grade ?? null,

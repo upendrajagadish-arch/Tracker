@@ -24,6 +24,7 @@ export type CommunicationEvaluationRow = Database['public']['Tables']['communica
 export interface CommunicationListFilters {
   branch?: string
   batch?: string
+  graduationYear?: number
   grade?: string
   search?: string
   rollNumber?: string
@@ -119,16 +120,39 @@ export async function listCommunicationEvaluations(filters: CommunicationListFil
 
   let rows = data ?? []
 
-  if (filters.branch || filters.batch) {
+  if (filters.branch || filters.batch || filters.graduationYear != null) {
     const ids = [...new Set(rows.map((r) => r.student_profile_id))]
-    let profileQuery = client.from('student_profiles').select('id, branch, batch').in('id', ids)
+    let profileQuery = client
+      .from('student_profiles')
+      .select('id, branch, batch, academic_batch, graduation_year')
+      .in('id', ids)
     if (filters.branch) profileQuery = profileQuery.eq('branch', filters.branch)
     if (filters.batch) profileQuery = profileQuery.eq('batch', filters.batch)
     const { data: profiles, error: profileError } = ids.length
       ? await profileQuery
-      : { data: [] as Array<{ id: string; branch: string; batch: string }>, error: null }
+      : {
+          data: [] as Array<{
+            id: string
+            branch: string
+            batch: string
+            academic_batch: string | null
+            graduation_year: number | null
+          }>,
+          error: null,
+        }
     if (profileError) throw formatError(profileError)
-    const allowed = new Set((profiles ?? []).map((p) => p.id))
+    const allowed = new Set(
+      (profiles ?? [])
+        .filter((profile) => {
+          if (filters.graduationYear == null) return true
+          const year =
+            profile.graduation_year != null
+              ? Number(profile.graduation_year)
+              : Number(String(profile.academic_batch || profile.batch || '').match(/(\d{4})\s*$/)?.[1] ?? NaN)
+          return year === filters.graduationYear
+        })
+        .map((p) => p.id),
+    )
     rows = rows.filter((r) => allowed.has(r.student_profile_id))
   }
 
@@ -672,6 +696,7 @@ export interface CommunicationDashboardFilters {
   academicBatch?: string
   branch?: string
   search?: string
+  graduationYear?: number
 }
 
 export interface CommunicationDashboardSummary {
@@ -703,6 +728,7 @@ type ProfileJoin = {
   branch: string
   batch: string
   academic_batch: string | null
+  graduation_year: number | null
   full_name: string
   roll_number: string
 }
@@ -732,7 +758,7 @@ async function loadLatestEvaluatedStudents(filters: CommunicationDashboardFilter
       const chunk = ids.slice(i, i + 200)
       const { data: rows, error: pErr } = await client
         .from('student_profiles')
-        .select('id, branch, batch, academic_batch, full_name, roll_number')
+        .select('id, branch, batch, academic_batch, graduation_year, full_name, roll_number')
         .in('id', chunk)
         .eq('is_active', true)
       if (pErr) throw formatError(pErr)
@@ -743,6 +769,7 @@ async function loadLatestEvaluatedStudents(filters: CommunicationDashboardFilter
   const academicBatch = filters.academicBatch?.trim() || ''
   const branch = filters.branch?.trim() || ''
   const search = filters.search?.trim().toLowerCase() || ''
+  const graduationYear = filters.graduationYear
 
   const rows: CommunicationBadgeStudentRow[] = []
   for (const evalRow of latest) {
@@ -754,7 +781,14 @@ async function loadLatestEvaluatedStudents(filters: CommunicationDashboardFilter
     const roll = (profile.roll_number || evalRow.roll_number || '').trim()
     const name = (profile.full_name || evalRow.student_name || '').trim()
 
-    if (academicBatch && displayBatch !== academicBatch) continue
+    if (graduationYear != null) {
+      const year =
+        profile.graduation_year != null
+          ? Number(profile.graduation_year)
+          : Number(displayBatch.match(/(\d{4})\s*$/)?.[1] ?? NaN)
+      if (year !== graduationYear) continue
+    }
+    if (academicBatch && displayBatch !== academicBatch && !displayBatch.includes(academicBatch)) continue
     if (branch && displayBranch !== branch) continue
     if (search) {
       const hay = `${roll} ${name}`.toLowerCase()

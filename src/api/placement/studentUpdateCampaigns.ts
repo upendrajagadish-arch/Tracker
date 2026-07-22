@@ -151,20 +151,37 @@ export async function getCampaign(campaignId: string): Promise<StudentUpdateCamp
 
 export async function getCampaignSummary(): Promise<CampaignSummary> {
   const client = requireSupabase()
-  const [{ data: campaigns, error: cErr }, { data: registrants, error: rErr }] = await Promise.all([
-    client.from('student_update_campaigns').select('id'),
+  const [
+    { data: campaigns, error: cErr },
+    { data: registrants, error: rErr },
+    { data: tokens, error: tErr },
+  ] = await Promise.all([
+    client.from('student_update_campaigns').select('id,status,expires_at'),
     client.from('student_profiles').select('registered_via_campaign_id').not('registered_via_campaign_id', 'is', null),
+    client.from('student_update_tokens').select('id,opened_at,completed_at,expires_at').limit(5000),
   ])
   if (cErr) throw cErr
   if (rErr) throw rErr
 
+  const tokenRows = tErr ? [] : tokens ?? []
+  const now = Date.now()
+  const opened = tokenRows.filter((row) => row.opened_at).length
+  const completed = tokenRows.filter((row) => row.completed_at).length
+  const expired = tokenRows.filter((row) => {
+    if (row.completed_at) return false
+    if (!row.expires_at) return false
+    return new Date(row.expires_at).getTime() < now
+  }).length
+  const pending = Math.max(0, tokenRows.length - completed - expired)
+  const registrations = registrants?.length ?? 0
+
   return {
     campaigns: campaigns?.length ?? 0,
-    students: registrants?.length ?? 0,
-    opened: 0,
-    completed: registrants?.length ?? 0,
-    pending: 0,
-    expired: 0,
+    students: registrations,
+    opened: opened || registrations,
+    completed: completed || registrations,
+    pending,
+    expired,
   }
 }
 

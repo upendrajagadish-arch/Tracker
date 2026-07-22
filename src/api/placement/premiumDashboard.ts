@@ -13,6 +13,7 @@ import {
   type TechStackBadge,
 } from '@/lib/techStackBadge'
 import type { Database, PlacementRole } from '@/types/supabase'
+import { TRAINING_YEARS } from '@/lib/trainingPrograms'
 
 export type PlacementEventRow = Database['public']['Tables']['placement_events']['Row']
 export type CompanyShareLinkRow = Database['public']['Tables']['company_share_links']['Row']
@@ -111,16 +112,6 @@ export interface DashboardSnapshot {
     }>
   }
 }
-
-const TECH_GROUPS: Array<{ name: string; keys: string[] }> = [
-  { name: 'Java', keys: ['java'] },
-  { name: 'Python', keys: ['python'] },
-  { name: 'MERN', keys: ['mern', 'react', 'node', 'mongodb', 'express'] },
-  { name: '.NET', keys: ['.net', 'dotnet', 'c#', 'asp.net'] },
-  { name: 'AI/ML', keys: ['ai', 'ml', 'machine learning', 'artificial intelligence'] },
-  { name: 'Data Science', keys: ['data science', 'data analytics', 'pandas', 'numpy'] },
-  { name: 'Cloud', keys: ['cloud', 'aws', 'azure', 'gcp'] },
-]
 
 function average(values: Array<number | null | undefined>): number {
   const valid = values.map(Number).filter((value) => Number.isFinite(value))
@@ -308,7 +299,7 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
     links,
     companies,
     activities,
-    leaderboardResult,
+    leaderboardResultRaw,
     dashboardAggregateResult,
   ] = await Promise.all([
     listAllDashboardStudents(),
@@ -343,16 +334,20 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
     ),
     client.rpc('get_public_leaderboard', {
       p_search: null,
-      p_limit: 5,
+      p_limit: batch === 'all' ? 8 : 200,
       p_offset: 0,
     }),
     client.rpc('get_placement_dashboard', { p_batch: batch }),
   ])
 
-  if (leaderboardResult.error) throw leaderboardResult.error
+  if (leaderboardResultRaw.error) throw leaderboardResultRaw.error
   if (dashboardAggregateResult.error) throw dashboardAggregateResult.error
+  const leaderboardResult = leaderboardResultRaw
   const availableBatches = Array.from(
-    new Set(allStudents.map(resolveStudentGraduationBatch).filter(Boolean)),
+    new Set([
+      ...TRAINING_YEARS.map(String),
+      ...allStudents.map(resolveStudentGraduationBatch).filter(Boolean),
+    ]),
   ).sort()
   const students =
     batch === 'all'
@@ -384,35 +379,23 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
     (start) => readiness.filter((score) => score >= start && score < start + 20).length,
   )
 
-  const skillNameById = new Map(
-    techCatalog.map((skill) => [
-      skill.id,
-      `${skill.name} ${skill.category}`.toLowerCase(),
-    ]),
-  )
   const filteredSkills = techRows.filter((row) => studentIds.has(row.student_profile_id))
-  const fallbackSkillNames = techCatalog
-    .filter((skill) => !TECH_GROUPS.some((group) => group.keys.some((key) => `${skill.name} ${skill.category}`.toLowerCase().includes(key))))
-    .map((skill) => skill.name)
-  const readinessGroups = [
-    ...TECH_GROUPS,
-    ...(fallbackSkillNames.length
-      ? [{ name: 'Other skills', keys: fallbackSkillNames.map((name) => name.toLowerCase()) }]
-      : []),
-  ]
-  const techReadiness = readinessGroups.map((group) => {
-    const matching = filteredSkills.filter((row) => {
-      const skill = skillNameById.get(row.tech_skill_id) ?? ''
-      return group.keys.some((key) => skill.includes(key))
+  // One chart segment per Skill Master skill so newly created catalog skills appear immediately.
+  // Always include every active Skill Master skill so newly created skills appear on the chart.
+  const techReadiness = techCatalog
+    .map((skill) => {
+      const matching = filteredSkills.filter((row) => row.tech_skill_id === skill.id)
+      const groupStudentIds = new Set(matching.map((row) => row.student_profile_id))
+      return {
+        name: skill.name,
+        score: matching.length
+          ? average(matching.map((row) => scoreFromLevel(row.proficiency_level)))
+          : 0,
+        students: groupStudentIds.size,
+        studentIds: [...groupStudentIds],
+      }
     })
-    const groupStudentIds = new Set(matching.map((row) => row.student_profile_id))
-    return {
-      name: group.name,
-      score: average(matching.map((row) => scoreFromLevel(row.proficiency_level))),
-      students: groupStudentIds.size,
-      studentIds: [...groupStudentIds],
-    }
-  })
+    .sort((a, b) => b.score - a.score || b.students - a.students || a.name.localeCompare(b.name))
 
   const latestCommunication = new Map<string, (typeof communicationRows)[number]>()
   for (const row of communicationRows) {
@@ -574,12 +557,22 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
       description: activity.description,
       createdAt: activity.created_at,
     })),
-    leaderboard: (leaderboardPayload.rows ?? []).map((row) => ({
-      rank: Number(row.rank ?? 0),
-      fullName: String(row.fullName ?? ''),
-      rollNumber: String(row.rollNumber ?? ''),
-      fameXp: Number(row.fameXp ?? row.readinessScore ?? 0),
-    })),
+    leaderboard: (leaderboardPayload.rows ?? [])
+      .filter((row) => {
+        if (batch === 'all') return true
+        const year =
+          row.graduationYear != null
+            ? String(row.graduationYear)
+            : String(row.academicBatch ?? row.batch ?? '').match(/(\d{4})\s*$/)?.[1] ?? ''
+        return year === batch
+      })
+      .slice(0, 8)
+      .map((row, index) => ({
+        rank: Number(row.rank ?? index + 1),
+        fullName: String(row.fullName ?? ''),
+        rollNumber: String(row.rollNumber ?? ''),
+        fameXp: Number(row.fameXp ?? row.readinessScore ?? 0),
+      })),
     studentDetails: students.map((student) => ({
       id: student.id,
       fullName: student.full_name,

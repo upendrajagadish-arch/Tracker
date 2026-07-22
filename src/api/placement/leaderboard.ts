@@ -8,6 +8,7 @@ export interface LeaderboardRow {
   branch: string
   batch: string
   academicBatch: string | null
+  graduationYear: number | null
   fameXp: number
   fameLevel: string
   readinessScore: number
@@ -36,6 +37,16 @@ export interface LeaderboardResult {
   rows: LeaderboardRow[]
 }
 
+function resolveGraduationYear(raw: Record<string, unknown>): number | null {
+  if (raw.graduationYear != null && Number.isFinite(Number(raw.graduationYear))) {
+    return Number(raw.graduationYear)
+  }
+  const academic = String(raw.academicBatch ?? raw.batch ?? '').trim()
+  const range = academic.match(/(\d{4})\s*$/)
+  if (range) return Number(range[1])
+  return null
+}
+
 function toRow(raw: Record<string, unknown>): LeaderboardRow {
   const fameXp = Number(raw.fameXp ?? raw.readinessScore ?? 0)
   const fameLevel =
@@ -44,10 +55,11 @@ function toRow(raw: Record<string, unknown>): LeaderboardRow {
       : String(raw.fameLevel)
   const communicationScore = raw.communicationScore == null ? null : Number(raw.communicationScore)
   const readinessScore = Number(raw.readinessScore ?? 0)
-  const techScore = Number.isFinite(readinessScore) ? readinessScore : 0
+  const techStackScore = Number.isFinite(readinessScore) ? readinessScore : 0
   const codingSolved = Number(raw.totalSolved ?? 0)
+  const codingScore = Math.min(100, codingSolved)
   const avgScore = Math.round(
-    ((communicationScore ?? 0) + techScore + Math.min(codingSolved, 100)) / 3,
+    ((communicationScore ?? 0) + techStackScore + codingScore) / 3,
   )
 
   return {
@@ -57,9 +69,10 @@ function toRow(raw: Record<string, unknown>): LeaderboardRow {
     branch: String(raw.branch ?? ''),
     batch: String(raw.batch ?? ''),
     academicBatch: raw.academicBatch == null ? null : String(raw.academicBatch),
+    graduationYear: resolveGraduationYear(raw),
     fameXp,
     fameLevel,
-    readinessScore: Number(raw.readinessScore ?? 0),
+    readinessScore,
     readinessStatus: String(raw.readinessStatus ?? ''),
     placementStatus: String(raw.placementStatus ?? ''),
     communicationScore,
@@ -78,29 +91,56 @@ function toRow(raw: Record<string, unknown>): LeaderboardRow {
   }
 }
 
-/** Open (anonymous) Leaderboard — ranks live by fame XP from all evaluations. */
+/** Open (anonymous) Leaderboard — year-wise ranks; includes students with score 0. */
 export async function getPublicLeaderboard(options: {
   search?: string
+  year?: number | null
   limit?: number
   offset?: number
 } = {}): Promise<LeaderboardResult> {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('get_public_leaderboard', {
+  const payloadArgs: Record<string, unknown> = {
     p_search: options.search?.trim() || null,
-    p_limit: options.limit ?? 100,
+    p_limit: options.limit ?? 200,
     p_offset: options.offset ?? 0,
-  })
+  }
+  if (options.year != null) payloadArgs.p_year = options.year
+
+  let data: unknown
+  let error: { message?: string } | null = null
+  ;({ data, error } = await client.rpc('get_public_leaderboard', payloadArgs))
+  // Older DB overloads may not accept p_year — retry without it and filter client-side.
+  if (error && options.year != null && /p_year|could not find|function/i.test(error.message ?? '')) {
+    ;({ data, error } = await client.rpc('get_public_leaderboard', {
+      p_search: options.search?.trim() || null,
+      p_limit: Math.max(options.limit ?? 200, 500),
+      p_offset: 0,
+    }))
+  }
   if (error) throw error
 
   const payload = (data ?? {}) as Record<string, unknown>
   const rawRows = Array.isArray(payload.rows) ? (payload.rows as Array<Record<string, unknown>>) : []
+  let rows = rawRows.map(toRow)
+  const serverFilteredByYear = options.year != null && payload.year != null
+
+  if (options.year != null && !serverFilteredByYear) {
+    rows = rows.filter((row) => row.graduationYear === options.year)
+    rows = rows
+      .sort((a, b) => {
+        const avgDiff = (b.avgScore ?? 0) - (a.avgScore ?? 0)
+        if (avgDiff !== 0) return avgDiff
+        return a.rollNumber.localeCompare(b.rollNumber, undefined, { numeric: true })
+      })
+      .map((row, index) => ({ ...row, rank: index + 1 }))
+  }
 
   return {
-    total: Number(payload.total ?? 0),
-    limit: Number(payload.limit ?? options.limit ?? 100),
+    total: options.year != null && !serverFilteredByYear ? rows.length : Number(payload.total ?? rows.length),
+    limit: Number(payload.limit ?? options.limit ?? 200),
     offset: Number(payload.offset ?? options.offset ?? 0),
     generatedAt: payload.generatedAt == null ? null : String(payload.generatedAt),
-    rows: rawRows.map(toRow),
+    rows,
   }
 }
 

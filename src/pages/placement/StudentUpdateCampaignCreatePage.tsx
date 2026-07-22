@@ -29,7 +29,8 @@ const FIELD_GROUPS = [
     title: 'Academic details',
     fields: [
       { key: 'branch', label: 'Branch' },
-      { key: 'batch', label: 'Academic batch' },
+      { key: 'batch', label: 'Year of pass out (2027–2030)' },
+      { key: 'section', label: 'Training program (Ignite / Pinnacle / Connect)' },
       { key: 'cgpa', label: 'CGPA' },
       { key: 'active_backlogs', label: 'Active backlogs' },
     ],

@@ -26,7 +26,7 @@ import {
   type CommunicationImportPreviewRow,
 } from '@/api/placement/communicationEvaluations'
 import { parseCsvText, sheetRowsToRecords } from '@/lib/studentImport'
-import { canManageReadiness } from '@/lib/placementNavigation'
+import { canEvaluateCommunication } from '@/lib/placementNavigation'
 import { useAuth } from '@/hooks/useAuth'
 import { readSpreadsheetRows } from '@/lib/spreadsheet'
 
@@ -43,7 +43,7 @@ async function parseUploadFile(file: File): Promise<Record<string, string>[]> {
 export function CommunicationEvaluationImportPage() {
   const { placementRole, user } = useAuth()
   const { base } = usePlacementPaths()
-  const canManage = canManageReadiness(placementRole)
+  const canManage = canEvaluateCommunication(placementRole)
 
   const [preview, setPreview] = useState<Awaited<
     ReturnType<typeof previewCommunicationUpload>
@@ -64,7 +64,7 @@ export function CommunicationEvaluationImportPage() {
       <PlacementShell title="Import communication evaluations">
         <PlacementEmptyState
           title="Not allowed"
-          description="Only Admin and TPO can bulk-upload communication evaluations."
+          description="Only Admin, TPO, and Faculty can bulk-upload communication evaluations."
           action={
             base ? (
               <Button asChild variant="outline" size="sm">

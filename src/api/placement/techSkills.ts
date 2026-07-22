@@ -89,6 +89,7 @@ export interface TechStackFilters {
   q?: string
   branch?: string
   batch?: string
+  graduationYear?: number
   skillId?: string
   category?: string
   proficiencyLevel?: string
@@ -137,7 +138,35 @@ export async function listTechSkills(activeOnly = true): Promise<TechSkillRow[]>
 }
 
 function slugifySkillName(name: string) {
-  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+  const base = name
+    .trim()
+    .toLowerCase()
+    .replace(/\+/g, 'plus')
+    .replace(/#/g, 'sharp')
+    .replace(/\./g, 'dot')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+  return base || `skill-${Date.now()}`
+}
+
+function namesMatch(a: string, b: string) {
+  return a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
+function toErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Error && error.message) return error.message
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = String((error as { message: unknown }).message || '').trim()
+    if (message) return message
+  }
+  return fallback
+}
+
+function normalizeSkillCategory(value: string | undefined): SkillCategory {
+  const normalized = String(value || 'OTHER').trim().toUpperCase()
+  return SKILL_CATEGORIES.includes(normalized as SkillCategory)
+    ? (normalized as SkillCategory)
+    : 'OTHER'
 }
 
 function normalizeProficiency(value?: string): ProficiencyLevel {
@@ -329,17 +358,76 @@ export async function verifyStudentSkill(skillRowId: string, status: Verificatio
 export async function createTechSkill(input: { name: string; category: SkillCategory }): Promise<TechSkillRow> {
   if (!input.name.trim()) throw new Error('Skill name is required.')
   const client = requireSupabase()
+  const name = input.name.trim()
+  const category = normalizeSkillCategory(input.category)
+
+  // Exact display-name match only (C and C++ are different skills).
+  const { data: sameNameRows, error: sameNameError } = await client
+    .from('tech_skills')
+    .select('*')
+    .ilike('name', name.replace(/%/g, '\\%').replace(/_/g, '\\_'))
+  if (sameNameError) throw new Error(toErrorMessage(sameNameError, 'Failed to look up skill catalog.'))
+
+  const exactName = (sameNameRows ?? []).find((row) => namesMatch(row.name, name))
+  if (exactName) {
+    if (!exactName.is_active) {
+      const { data: reactivated, error: reactivateError } = await client
+        .from('tech_skills')
+        .update({ is_active: true, category, updated_at: new Date().toISOString() })
+        .eq('id', exactName.id)
+        .select()
+        .single()
+      if (reactivateError) throw new Error(toErrorMessage(reactivateError, 'Failed to reactivate skill.'))
+      return reactivated
+    }
+    return exactName
+  }
+
+  // Pick a unique name_key that does not collide with a differently named skill (e.g. legacy C++ keyed as "c").
+  const baseKey = slugifySkillName(name)
+  let nameKey = baseKey
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const candidate = attempt === 0 ? baseKey : `${baseKey}-${attempt + 1}`
+    const { data: keyOwner, error: keyError } = await client
+      .from('tech_skills')
+      .select('id, name')
+      .eq('name_key', candidate)
+      .maybeSingle()
+    if (keyError) throw new Error(toErrorMessage(keyError, 'Failed to reserve skill key.'))
+    if (!keyOwner) {
+      nameKey = candidate
+      break
+    }
+    if (namesMatch(keyOwner.name, name)) {
+      nameKey = candidate
+      break
+    }
+    nameKey = `${baseKey}-${Date.now().toString(36)}`
+  }
+
   const { data, error } = await client
     .from('tech_skills')
     .insert({
-      name: input.name.trim(),
-      name_key: slugifySkillName(input.name),
-      category: input.category,
+      name,
+      name_key: nameKey,
+      category,
       is_active: true,
     })
     .select()
     .single()
-  if (error) throw error
+  if (error) {
+    if (error.code === '23505') {
+      throw new Error(
+        `Could not create “${name}” because of a catalog key conflict. Try a slightly different spelling, or refresh and retry.`,
+      )
+    }
+    if (error.code === '42501') {
+      throw new Error(
+        'Permission denied creating skills. Run scripts/apply-faculty-evaluate-access.sql in the Supabase SQL Editor, then retry.',
+      )
+    }
+    throw new Error(toErrorMessage(error, 'Failed to create skill.'))
+  }
 
   await logPlacementAudit({
     action: 'tech_skill_master.create',
@@ -442,6 +530,13 @@ function rowMatchesFilters(row: TechStackStudentRow, filters: TechStackFilters) 
   if (filters.proficiencyLevel && !row.skills.some((skill) => skill.proficiency_level === filters.proficiencyLevel)) return false
   if (filters.verificationStatus && !row.skills.some((skill) => skill.verification_status === filters.verificationStatus)) return false
   if (filters.roleInterest && !row.roleInterests.some((interest) => interest.role_name === filters.roleInterest)) return false
+  if (filters.graduationYear != null) {
+    const year =
+      row.student.graduation_year != null
+        ? Number(row.student.graduation_year)
+        : Number(String(row.student.academic_batch || row.student.batch || '').match(/(\d{4})\s*$/)?.[1] ?? NaN)
+    if (year !== filters.graduationYear) return false
+  }
   return true
 }
 
@@ -511,8 +606,10 @@ export async function listTechStackStudents(filters: TechStackFilters = {}): Pro
   return rows.filter((row) => rowMatchesFilters(row, filters))
 }
 
-export async function getTechStackDashboardStats(): Promise<TechStackDashboardStats> {
-  const rows = await listTechStackStudents()
+export async function getTechStackDashboardStats(
+  filters: TechStackFilters = {},
+): Promise<TechStackDashboardStats> {
+  const rows = await listTechStackStudents(filters)
   const rowsWithSkills = rows.filter((row) => row.skillsCount > 0)
   const skillCounts = new Map<string, number>()
   const categoryCounts = new Map<string, Set<string>>()

@@ -19,7 +19,6 @@ import {
   PlacementField,
   PlacementFilterCard,
   PlacementPageStack,
-  PlacementSelect,
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
 import { tableSectionExport } from '@/lib/analyticsExports'
@@ -29,10 +28,8 @@ import {
   type CommunicationBadgeStudentRow,
 } from '@/api/placement/communicationEvaluations'
 import {
-  COMMUNICATION_ACADEMIC_BATCH_OPTIONS,
   COMMUNICATION_BADGE_EMOJI,
   COMMUNICATION_BADGE_LABELS,
-  COMMUNICATION_BRANCH_OPTIONS,
   formatCommunicationBadge,
   isCommunicationBadge,
   type CommunicationBadge,
@@ -177,36 +174,26 @@ export function CommunicationBadgeStudentsPage() {
           >
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <PlacementField label="Academic Batch">
-                <PlacementSelect
+                <input
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
                   value={filters.academicBatch}
-                  onChange={(value) => {
+                  onChange={(e) => {
                     setPage(1)
-                    setFilters((f) => ({ ...f, academicBatch: value }))
+                    setFilters((f) => ({ ...f, academicBatch: e.target.value }))
                   }}
-                >
-                  <option value="">All</option>
-                  {COMMUNICATION_ACADEMIC_BATCH_OPTIONS.map((batch) => (
-                    <option key={batch} value={batch}>
-                      {batch}
-                    </option>
-                  ))}
-                </PlacementSelect>
+                  placeholder="e.g. 2026"
+                />
               </PlacementField>
               <PlacementField label="Branch">
-                <PlacementSelect
+                <input
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
                   value={filters.branch}
-                  onChange={(value) => {
+                  onChange={(e) => {
                     setPage(1)
-                    setFilters((f) => ({ ...f, branch: value }))
+                    setFilters((f) => ({ ...f, branch: e.target.value }))
                   }}
-                >
-                  <option value="">All</option>
-                  {COMMUNICATION_BRANCH_OPTIONS.map((branch) => (
-                    <option key={branch} value={branch}>
-                      {branch}
-                    </option>
-                  ))}
-                </PlacementSelect>
+                  placeholder="e.g. CSE"
+                />
               </PlacementField>
               <PlacementField label="Search">
                 <input

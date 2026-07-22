@@ -12,7 +12,7 @@ import {
   PlacementSectionCard,
   PlacementSelect,
 } from '@/components/placement/PlacementUi'
-import { listStudents, getStudent } from '@/api/placement/students'
+import { getStudent } from '@/api/placement/students'
 import { createCommunicationEvaluation } from '@/api/placement/communicationEvaluations'
 import {
   COMMUNICATION_SECTIONS,
@@ -21,8 +21,9 @@ import {
   emptyScores,
   type CriteriaKey,
 } from '@/lib/communicationEvaluation'
-import { canManageReadiness } from '@/lib/placementNavigation'
+import { canEvaluateCommunication } from '@/lib/placementNavigation'
 import { useAuth } from '@/hooks/useAuth'
+import { StudentTypeahead } from '@/components/placement/StudentTypeahead'
 
 export function CommunicationEvaluationFormPage() {
   const { placementRole, user } = useAuth()
@@ -31,13 +32,13 @@ export function CommunicationEvaluationFormPage() {
   const params = useParams({ strict: false }) as { studentProfileId?: string }
   const studentProfileId = params.studentProfileId
   const isNew = !studentProfileId
-  const canManage = canManageReadiness(placementRole)
+  const canManage = canEvaluateCommunication(placementRole)
 
   const [scores, setScores] = useState<Record<CriteriaKey, number>>(emptyScores())
   const [notes, setNotes] = useState('')
   const [trainerName, setTrainerName] = useState('')
   const [selectedStudentId, setSelectedStudentId] = useState(studentProfileId || '')
-  const [students, setStudents] = useState<Array<{ id: string; label: string }>>([])
+  const [selectedStudentLabel, setSelectedStudentLabel] = useState('')
   const [studentLabel, setStudentLabel] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -56,24 +57,15 @@ export function CommunicationEvaluationFormPage() {
       setLoading(true)
       setError(null)
       try {
-        if (isNew && canManage) {
-          const page = await listStudents({ limit: 200 })
-          setStudents(
-            page.data.map((s) => ({
-              id: s.id,
-              label: `${s.roll_number} — ${s.full_name}`,
-            })),
-          )
-        }
         if (studentProfileId) {
           const student = await getStudent(studentProfileId)
           if (student) {
+            const label = `${student.full_name} · ${student.roll_number}`
             setStudentLabel(`${student.full_name} (${student.roll_number})`)
             setSelectedStudentId(student.id)
+            setSelectedStudentLabel(label)
           }
         }
-        // Always start a blank interview form so each save is a new evaluation
-        // with its own trainer/interviewer name and scores.
         setScores(emptyScores())
         setNotes('')
       } catch (e) {
@@ -87,7 +79,7 @@ export function CommunicationEvaluationFormPage() {
       }
     }
     void boot()
-  }, [studentProfileId, isNew, canManage])
+  }, [studentProfileId])
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault()
@@ -171,18 +163,19 @@ export function CommunicationEvaluationFormPage() {
           <form onSubmit={(e) => void handleSave(e)} className="space-y-6">
             {isNew && canManage ? (
               <PlacementSectionCard title="Student">
-                <PlacementField label="Select student">
-                  <PlacementSelect
-                    value={selectedStudentId}
-                    onChange={(value) => setSelectedStudentId(value)}
-                  >
-                    <option value="">Select student…</option>
-                    {students.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </PlacementSelect>
+                <PlacementField label="Search student" hint="Type name or roll — matches appear automatically">
+                  <StudentTypeahead
+                    selectedId={selectedStudentId}
+                    selectedLabel={selectedStudentLabel}
+                    onSelect={(student) => {
+                      setSelectedStudentId(student.id)
+                      setSelectedStudentLabel(`${student.full_name} · ${student.roll_number}`)
+                    }}
+                    onClear={() => {
+                      setSelectedStudentId('')
+                      setSelectedStudentLabel('')
+                    }}
+                  />
                 </PlacementField>
               </PlacementSectionCard>
             ) : null}

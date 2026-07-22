@@ -28,7 +28,19 @@ export const ROLE_PERMISSIONS: Record<PlacementRole, string[]> = {
     'campaigns:view',
     'campaigns:manage',
   ],
-  faculty: ['students:view', 'reports:view', 'companies:view', 'readiness:view', 'tech_stack:view', 'tech_stack:update', 'tech_stack:verify', 'campaigns:view'],
+  faculty: [
+    'students:view',
+    'students:create',
+    'students:update',
+    'students:import',
+    'reports:view',
+    'companies:view',
+    'readiness:view',
+    'tech_stack:view',
+    'tech_stack:update',
+    'tech_stack:verify',
+    'campaigns:view',
+  ],
   interviewer: ['students:view'],
   hr: [],
   student: [],
@@ -91,7 +103,12 @@ export function canManageStudentTechStack(role: PlacementRole | null | undefined
 }
 
 export function canManageSkillMaster(role: PlacementRole | null | undefined) {
-  return hasPermission(role, 'tech_stack:master_manage') || role === 'admin'
+  return (
+    hasPermission(role, 'tech_stack:master_manage')
+    || role === 'admin'
+    || role === 'tpo'
+    || role === 'faculty'
+  )
 }
 
 export function canVerifyTechSkills(role: PlacementRole | null | undefined) {

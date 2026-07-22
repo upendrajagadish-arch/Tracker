@@ -52,10 +52,24 @@ if (!STAFF_PASSWORD || STAFF_PASSWORD.length < 12) {
   process.exit(1)
 }
 
+const FACULTY_PASSWORD = env.FACULTY_PASSWORD || 'RCE_FAC'
+
 const STAFF_USERS = [
   { email: 'admin@rcee.ac.in', fullName: 'RCEE Admin', role: 'admin' },
   { email: 'tpo@rcee.ac.in', fullName: 'RCEE TPO', role: 'tpo' },
   { email: 'faculty@rcee.ac.in', fullName: 'RCEE Faculty', role: 'faculty' },
+  {
+    email: 'sridurgadevipujari@rcee.ac.in',
+    fullName: 'Sri Durga Devi Pujari',
+    role: 'faculty',
+    password: FACULTY_PASSWORD,
+  },
+  {
+    email: 'shaiknasira@rcee.ac.in',
+    fullName: 'Shaik Nasira',
+    role: 'faculty',
+    password: FACULTY_PASSWORD,
+  },
   { email: 'interviewer@rcee.ac.in', fullName: 'RCEE Interviewer', role: 'interviewer' },
 ]
 
@@ -85,13 +99,14 @@ async function listAllUsers() {
   return users
 }
 
-async function ensureUser({ email, fullName, role, rollNumber }) {
+async function ensureUser({ email, fullName, role, rollNumber, password }) {
+  const accountPassword = password || STAFF_PASSWORD
   const users = await listAllUsers()
   let user = users.find((u) => u.email?.toLowerCase() === email.toLowerCase())
   if (!user) {
     const { data, error } = await admin.auth.admin.createUser({
       email,
-      password: STAFF_PASSWORD,
+      password: accountPassword,
       email_confirm: true,
       user_metadata: { full_name: fullName },
     })
@@ -100,7 +115,7 @@ async function ensureUser({ email, fullName, role, rollNumber }) {
     console.log(`Created auth user: ${email}`)
   } else {
     const { error } = await admin.auth.admin.updateUserById(user.id, {
-      password: STAFF_PASSWORD,
+      password: accountPassword,
       ban_duration: 'none',
       user_metadata: { full_name: fullName },
     })

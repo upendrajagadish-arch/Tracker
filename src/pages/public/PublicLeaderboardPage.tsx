@@ -11,7 +11,7 @@ import {
   type LeaderboardRow,
 } from '@/api/placement/leaderboard'
 import { publicStudentPerformanceUrl } from '@/api/placement/studentShare'
-import { FAME_LEVELS, fameLevelFromXp, fameLevelProgress } from '@/lib/leaderboardFame'
+import { TRAINING_YEARS, type TrainingYear } from '@/lib/trainingPrograms'
 import { cn } from '@/lib/utils'
 
 const PAGE_SIZE = 50
@@ -68,26 +68,20 @@ function streakLabel(xp: number): string | null {
   return null
 }
 
-function XpBar({ xp, className }: { xp: number; className?: string }) {
-  const level = fameLevelFromXp(xp)
-  const progress = fameLevelProgress(xp)
+function ScoreBar({ score, className }: { score: number; className?: string }) {
+  const clamped = Math.max(0, Math.min(100, score))
   return (
     <div className={cn('w-full', className)}>
       <div className="mb-1 flex items-center justify-between gap-2 text-[10px]">
-        <span className="font-semibold uppercase tracking-wide" style={{ color: level.color }}>
-          {level.name}
-        </span>
-        <span className="tnum text-secondary">
-          {xp} XP
-          {progress.next != null ? ` · next ${progress.next}` : ' · MAX'}
-        </span>
+        <span className="font-semibold uppercase tracking-wide text-[#D27918]">Avg score</span>
+        <span className="tnum text-secondary">{clamped}/100</span>
       </div>
       <div className="h-2.5 overflow-hidden rounded-full bg-[#0B0E11]/90 ring-1 ring-[#2B3139]">
         <motion.div
           className="relative h-full rounded-full"
-          style={{ background: `linear-gradient(90deg, ${level.color}88, ${level.color})` }}
+          style={{ background: 'linear-gradient(90deg, #D2791888, #D27918)' }}
           initial={{ width: 0 }}
-          animate={{ width: `${progress.percent}%` }}
+          animate={{ width: `${clamped}%` }}
           transition={{ duration: 0.8, ease: 'easeOut' }}
         >
           <span className="absolute inset-y-0 right-0 w-4 animate-pulse bg-white/30 blur-[2px]" />
@@ -103,6 +97,20 @@ function StatChip({ label, value }: { label: string; value: string }) {
       <p className="text-[9px] uppercase tracking-wide text-secondary">{label}</p>
       <p className="tnum text-[12px] font-semibold text-foreground">{value}</p>
     </div>
+  )
+}
+
+function scoreChips(row: LeaderboardRow) {
+  return (
+    <>
+      <StatChip
+        label="Comm"
+        value={row.communicationScore != null ? `${row.communicationScore}%` : '—'}
+      />
+      <StatChip label="Tech Stack" value={`${row.readinessScore}%`} />
+      <StatChip label="Solved" value={String(row.totalSolved)} />
+      <StatChip label="Avg" value={`${row.avgScore}`} />
+    </>
   )
 }
 
@@ -124,10 +132,17 @@ function StudentLink({
   )
 }
 
-function PodiumCard({ row, place }: { row: LeaderboardRow; place: 0 | 1 | 2 }) {
+function PodiumCard({
+  row,
+  place,
+  displayRank,
+}: {
+  row: LeaderboardRow
+  place: 0 | 1 | 2
+  displayRank: number
+}) {
   const style = PODIUM_STYLES[place]
-  const level = fameLevelFromXp(row.fameXp)
-  const streak = streakLabel(row.fameXp)
+  const streak = streakLabel(row.avgScore)
   return (
     <StudentLink
       row={row}
@@ -176,7 +191,7 @@ function PodiumCard({ row, place }: { row: LeaderboardRow; place: 0 | 1 | 2 }) {
             'bg-[#0B0E11]/90 ring-1 ring-current',
           )}
         >
-          #{row.rank}
+          #{displayRank}
         </span>
       </div>
       <p className={cn('mt-4 text-[11px] font-bold uppercase tracking-[0.2em]', style.text)}>
@@ -194,17 +209,12 @@ function PodiumCard({ row, place }: { row: LeaderboardRow; place: 0 | 1 | 2 }) {
           {streak}
         </span>
       ) : null}
-      <p
-        className="mt-2 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
-        style={{ color: level.color, background: `${level.color}22`, border: `1px solid ${level.color}55` }}
-      >
-        {row.fameLevel || level.name}
-      </p>
       <p className={cn('tnum mt-2 text-[32px] font-black tracking-tight', style.text)}>
-        {row.fameXp}
-        <span className="ml-1 text-[12px] font-semibold text-secondary">XP</span>
+        {row.avgScore}
+        <span className="ml-1 text-[12px] font-semibold text-secondary">Avg</span>
       </p>
-      <XpBar xp={row.fameXp} className="mt-3 w-full max-w-[220px]" />
+      <ScoreBar score={row.avgScore} className="mt-3 w-full max-w-[220px]" />
+      <div className="mt-3 grid w-full max-w-[240px] grid-cols-2 gap-1.5">{scoreChips(row)}</div>
       <p className="mt-3 text-[12px] text-secondary">
         {row.branch}
         {row.academicBatch || row.batch ? ` · ${row.academicBatch || row.batch}` : ''}
@@ -221,6 +231,7 @@ export function PublicLeaderboardPage() {
   const [error, setError] = useState<string | null>(null)
   const [searchDraft, setSearchDraft] = useState('')
   const [search, setSearch] = useState('')
+  const [year, setYear] = useState<TrainingYear>(TRAINING_YEARS[0]!)
   const [generatedAt, setGeneratedAt] = useState<string | null>(null)
   const [liveTick, setLiveTick] = useState(0)
 
@@ -252,6 +263,7 @@ export function PublicLeaderboardPage() {
       try {
         const result = await getPublicLeaderboard({
           search: search || undefined,
+          year,
           limit: PAGE_SIZE,
           offset,
         })
@@ -262,7 +274,7 @@ export function PublicLeaderboardPage() {
         const message = e instanceof Error ? e.message : 'Failed to load leaderboard'
         if (/get_public_leaderboard|schema cache|function/i.test(message)) {
           setError(
-            'Leaderboard needs a database update. Run scripts/apply-gamified-leaderboard.sql in the Supabase SQL Editor.',
+            'Leaderboard needs a database update. Run scripts/apply-year-wise-leaderboard.sql in the Supabase SQL Editor.',
           )
         } else if (!quiet) {
           setError(message)
@@ -272,7 +284,7 @@ export function PublicLeaderboardPage() {
         setLoadingMore(false)
       }
     },
-    [search],
+    [search, year],
   )
 
   useEffect(() => {
@@ -303,7 +315,7 @@ export function PublicLeaderboardPage() {
     <>
       <SeoHead
         title="Leaderboard · Student Performance"
-        description="Gamified leaderboard with live Fame XP ranks, funny avatars, and podium glory."
+        description="Live leaderboard ranked by average of Communication, Tech Stack, and coding problems solved."
       />
       <div className="relative min-h-screen overflow-hidden bg-[#0B0E11]">
         <div
@@ -339,29 +351,56 @@ export function PublicLeaderboardPage() {
 
             <div className="relative inline-flex items-center gap-2 rounded-full border border-[#D27918]/40 bg-[#D27918]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-[#D27918]">
               <Zap className="size-3.5" />
-              Live arena · Funny mode
+              Live arena · Avg score ranks
               <Sparkles className="size-3.5" />
             </div>
             <h1 className="relative mt-4 font-heading text-[40px] font-black tracking-tight text-foreground sm:text-[46px]">
               Leaderboard
             </h1>
             <p className="relative mx-auto mt-2 max-w-xl text-[14px] leading-relaxed text-secondary">
-              Earn Fame XP from Communication, Aptitude, Verbal, CodeNow, readiness, and coding.
-              Ranks reshuffle live — climb the podium and flex your funny avatar.
+              Year-wise ranks by Communication, Tech Stack, and coding problems solved.
+              Students with score 0 still appear on their pass-out year board.
             </p>
 
-            <div className="relative mx-auto mt-5 flex max-w-2xl flex-wrap items-center justify-center gap-2">
-              {FAME_LEVELS.map((level) => (
+            <div className="relative mx-auto mt-5 flex max-w-xl flex-wrap items-center justify-center gap-2">
+              {TRAINING_YEARS.map((tabYear) => (
+                <button
+                  key={tabYear}
+                  type="button"
+                  onClick={() => {
+                    setYear(tabYear)
+                    setSearchDraft('')
+                    setSearch('')
+                  }}
+                  className={cn(
+                    'rounded-full border px-4 py-2 text-[12px] font-bold uppercase tracking-wide transition',
+                    year === tabYear
+                      ? 'border-[#D27918] bg-[#D27918] text-black'
+                      : 'border-[#2B3139] bg-[#0B0E11]/70 text-secondary hover:border-[#D27918]/50 hover:text-[#D27918]',
+                  )}
+                >
+                  {tabYear}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative mx-auto mt-4 flex max-w-2xl flex-wrap items-center justify-center gap-2">
+              {[
+                { label: 'Communication', color: '#3B82F6' },
+                { label: 'Tech Stack', color: '#D27918' },
+                { label: 'Problems Solved', color: '#0ECB81' },
+                { label: 'Avg Score', color: '#F0B90B' },
+              ].map((item) => (
                 <span
-                  key={level.name}
+                  key={item.label}
                   className="rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide"
                   style={{
-                    color: level.color,
-                    borderColor: `${level.color}66`,
-                    background: `${level.color}18`,
+                    color: item.color,
+                    borderColor: `${item.color}66`,
+                    background: `${item.color}18`,
                   }}
                 >
-                  {level.name}
+                  {item.label}
                 </span>
               ))}
             </div>
@@ -427,7 +466,7 @@ export function PublicLeaderboardPage() {
                 <p className="mt-1.5 text-sm text-secondary">
                   {search
                     ? `Nothing matched “${search}”. Try a different roll number or name.`
-                    : 'Complete evaluations to start earning Fame XP and appear on the board.'}
+                    : `No students in the ${year} pass-out year yet. They will appear here after registering with year ${year}, including score 0.`}
                 </p>
               </CardContent>
             </Card>
@@ -442,7 +481,7 @@ export function PublicLeaderboardPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.05 }}
                   >
-                    <PodiumCard row={podium[1]!} place={1} />
+                    <PodiumCard row={podium[1]!} place={1} displayRank={podium[1]!.displayRank} />
                   </motion.div>
                   <motion.div
                     className="md:order-2"
@@ -450,7 +489,7 @@ export function PublicLeaderboardPage() {
                     initial={{ opacity: 0, y: 24 }}
                     animate={{ opacity: 1, y: 0 }}
                   >
-                    <PodiumCard row={podium[0]!} place={0} />
+                    <PodiumCard row={podium[0]!} place={0} displayRank={podium[0]!.displayRank} />
                   </motion.div>
                   <motion.div
                     className="md:order-3"
@@ -459,7 +498,7 @@ export function PublicLeaderboardPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                   >
-                    <PodiumCard row={podium[2]!} place={2} />
+                    <PodiumCard row={podium[2]!} place={2} displayRank={podium[2]!.displayRank} />
                   </motion.div>
                 </div>
               ) : null}
@@ -469,21 +508,20 @@ export function PublicLeaderboardPage() {
                   <div className="flex items-center justify-between border-b border-[#2B3139] bg-gradient-to-r from-[#D27918]/10 via-transparent to-transparent px-5 py-4">
                     <div>
                       <h2 className="font-heading text-[16px] font-bold text-foreground">
-                        {search ? `Results for “${search}”` : 'Live Rankings'}
+                        {search ? `Results for “${search}”` : `${year} Live Rankings`}
                       </h2>
                       <p className="text-[11px] text-secondary">
-                        Funny avatars · Fame XP · Live reorder
+                        Pass-out year {year} · includes score 0 · Comm · Tech · Solved · Avg
                       </p>
                     </div>
                     <p className="tnum rounded-full border border-[#D27918]/35 bg-[#D27918]/10 px-3 py-1 text-[12px] font-semibold text-[#D27918]">
-                      {total} players
+                      {total} students
                     </p>
                   </div>
                   <ul className="divide-y divide-[#2B3139]/80">
                     <AnimatePresence initial={false}>
                       {listRows.map((row, index) => {
-                        const level = fameLevelFromXp(row.fameXp)
-                        const streak = streakLabel(row.fameXp)
+                        const streak = streakLabel(row.avgScore)
                         return (
                           <motion.li
                             key={row.rollNumber}
@@ -503,10 +541,10 @@ export function PublicLeaderboardPage() {
                               <span
                                 className={cn(
                                   'tnum flex size-10 shrink-0 items-center justify-center rounded-xl border text-[13px] font-black',
-                                  rankBadgeClasses(row.rank),
+                                  rankBadgeClasses(row.displayRank),
                                 )}
                               >
-                                {row.rank}
+                                {row.displayRank}
                               </span>
                               <div className="relative shrink-0">
                                 <img
@@ -515,7 +553,7 @@ export function PublicLeaderboardPage() {
                                   loading="lazy"
                                   className="size-12 rounded-2xl bg-[#0B0E11] ring-2 ring-[#2B3139] transition-transform duration-200 group-hover:scale-110 group-hover:rotate-3 group-hover:ring-[#D27918]/70"
                                 />
-                                {row.rank <= 10 ? (
+                                {row.displayRank <= 10 ? (
                                   <span className="absolute -right-1 -top-1 rounded-full bg-[#D27918] px-1 text-[9px] font-black text-black">
                                     TOP
                                   </span>
@@ -526,16 +564,6 @@ export function PublicLeaderboardPage() {
                                   <p className="truncate text-[14px] font-bold text-foreground">
                                     {row.fullName}
                                   </p>
-                                  <span
-                                    className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide"
-                                    style={{
-                                      color: level.color,
-                                      background: `${level.color}22`,
-                                      border: `1px solid ${level.color}55`,
-                                    }}
-                                  >
-                                    {row.fameLevel || level.name}
-                                  </span>
                                   {streak ? (
                                     <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[#D27918]">
                                       <Flame className="size-3" />
@@ -553,27 +581,17 @@ export function PublicLeaderboardPage() {
                                     </span>
                                   ) : null}
                                 </p>
-                                <XpBar xp={row.fameXp} className="mt-2 max-w-xs" />
+                                <ScoreBar score={row.avgScore} className="mt-2 max-w-xs" />
                               </div>
                               <div className="hidden shrink-0 grid-cols-2 gap-1.5 lg:grid">
-                                <StatChip
-                                  label="Comm"
-                                  value={
-                                    row.communicationScore != null
-                                      ? `${row.communicationScore}%`
-                                      : '—'
-                                  }
-                                />
-                                <StatChip label="Tech" value={`${row.readinessScore}%`} />
-                                <StatChip label="Solved" value={String(row.totalSolved)} />
-                                <StatChip label="Avg" value={`${row.avgScore}`} />
+                                {scoreChips(row)}
                               </div>
                               <div className="shrink-0 text-right">
                                 <p className="tnum text-[11px] uppercase tracking-wide text-secondary">
-                                  Fame XP
+                                  Avg
                                 </p>
                                 <p className="tnum text-[20px] font-black text-[#D27918]">
-                                  {row.fameXp}
+                                  {row.avgScore}
                                 </p>
                               </div>
                             </StudentLink>

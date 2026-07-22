@@ -1139,7 +1139,12 @@ export interface Database {
       }
       get_public_student_performance: { Args: { p_token: string }; Returns: Json }
       get_public_leaderboard: {
-        Args: { p_search?: string | null; p_limit?: number; p_offset?: number }
+        Args: {
+          p_search?: string | null
+          p_limit?: number
+          p_offset?: number
+          p_year?: number | null
+        }
         Returns: Json
       }
       get_public_student_update_form: { Args: { p_token: string }; Returns: Json }

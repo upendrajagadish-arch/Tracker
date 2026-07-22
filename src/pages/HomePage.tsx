@@ -1,9 +1,10 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, Link2, LogIn, UserCircle2 } from 'lucide-react'
 import { SeoHead } from '@/components/SeoHead'
 import { useQueryStates, parseAsString } from 'nuqs'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { AppFooter } from '../components/AppFooter'
 import { Link, useNavigate } from '@tanstack/react-router'
 import type { Platform, Usernames } from '../types/api'
@@ -25,6 +26,11 @@ import { PlatformLegend } from '../components/PlatformLegend'
 import { ShareFab } from '../components/ShareFab'
 import { WorkspaceTabs } from '@/components/placement/WorkspaceTabs'
 import { BRAND_NAME } from '@/lib/brand'
+import { getStudentByRollNumber } from '@/api/placement/students'
+import {
+  platformHandlesToUsernames,
+  resolvePlatformHandles,
+} from '@/lib/studentPlatformHandles'
 
 const CARD_RENDERERS: Record<Platform, (username: string) => ReactNode> = {
   github:     (u) => <GitHubCard username={u} />,
@@ -59,6 +65,10 @@ export function HomePage() {
     message: null,
     error: null,
   })
+  const [rollSearch, setRollSearch] = useState('')
+  const [rollBusy, setRollBusy] = useState(false)
+  const [rollError, setRollError] = useState<string | null>(null)
+  const [rollStudentName, setRollStudentName] = useState<string | null>(null)
 
   const usernames: Usernames | null =
     isSubmitted && hasAnyQuery
@@ -76,6 +86,47 @@ export function HomePage() {
   const handleSearchAgain = () => {
     setIsSubmitted(false)
     setQuery(null)
+    setRollStudentName(null)
+    setRollError(null)
+  }
+
+  const handleRollSearch = async (event: FormEvent) => {
+    event.preventDefault()
+    const roll = rollSearch.trim()
+    if (!roll) {
+      setRollError('Enter a roll number.')
+      return
+    }
+    setRollBusy(true)
+    setRollError(null)
+    try {
+      const student = await getStudentByRollNumber(roll)
+      if (!student) {
+        setRollError('No student found for that roll number.')
+        return
+      }
+      const handles = platformHandlesToUsernames(resolvePlatformHandles(student))
+      const hasHandles = Object.values(handles).some((value) => Boolean(value?.trim()))
+      if (!hasHandles) {
+        setRollError(`${student.full_name} has no coding platform handles linked yet.`)
+        return
+      }
+      await setQuery({
+        github: handles.github || '',
+        leetcode: handles.leetcode || '',
+        codeforces: handles.codeforces || '',
+        gfg: handles.gfg || '',
+        codechef: handles.codechef || '',
+        hackerrank: handles.hackerrank || '',
+        tuf: handles.tuf || '',
+      })
+      setRollStudentName(student.full_name)
+      setIsSubmitted(true)
+    } catch (e) {
+      setRollError(e instanceof Error ? e.message : 'Failed to load student')
+    } finally {
+      setRollBusy(false)
+    }
   }
 
   // Share the current view as-is — the long URL with every ?platform=handle
@@ -157,13 +208,25 @@ export function HomePage() {
             </nav>
             <div className="mx-auto max-w-2xl overflow-hidden rounded-card border border-soft bg-card">
               <div className="px-6 py-10 md:px-8 md:py-12">
-                <p className="text-[12px] font-semibold text-muted">Coding analytics</p>
+                <p className="text-[12px] font-semibold text-muted">Student performance</p>
                 <h1 className="mt-2 font-heading text-[40px] font-bold leading-none tracking-tight text-foreground md:text-[48px]">
                   {BRAND_NAME}
                 </h1>
                 <p className="mt-4 max-w-lg text-[14px] leading-relaxed text-secondary">
-                  Track your coding footprint across GitHub, LeetCode, Codeforces, GFG, CodeChef, HackerRank &amp; takeUforward — DSA sheet progress with topic-level breakdown, submission heatmaps, and streak tracking
+                  Search by roll number to load a student&apos;s linked coding platforms, or enter platform usernames manually.
                 </p>
+                <form onSubmit={(e) => void handleRollSearch(e)} className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <Input
+                    value={rollSearch}
+                    onChange={(e) => setRollSearch(e.target.value)}
+                    placeholder="Enter roll number"
+                    className="font-mono"
+                  />
+                  <Button type="submit" disabled={rollBusy}>
+                    {rollBusy ? 'Searching…' : 'Search student'}
+                  </Button>
+                </form>
+                {rollError ? <p className="mt-2 text-sm font-semibold text-[#F6465D]">{rollError}</p> : null}
               </div>
             </div>
           </header>
@@ -176,6 +239,9 @@ export function HomePage() {
               >
                 {BRAND_NAME}
               </Link>
+              {rollStudentName ? (
+                <span className="ml-3 text-sm text-secondary">Showing {rollStudentName}</span>
+              ) : null}
               <div className="ml-auto flex items-center gap-1">
                 <Button
                   variant="ghost"

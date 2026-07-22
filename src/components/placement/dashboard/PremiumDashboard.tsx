@@ -20,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { PlacementLink } from '@/components/placement/PlacementLink'
+import { MeasuredChart } from '@/components/placement/charts/ChartShell'
 import type { DashboardSnapshot } from '@/api/placement/premiumDashboard'
 import { BADGE_CHART_COLORS } from '@/components/placement/charts/chartTheme'
 import {
@@ -29,9 +30,14 @@ import {
   type BadgeCountMap,
   type TechStackBadge,
 } from '@/lib/techStackBadge'
+import {
+  classifyCommunicationBadge,
+  formatCommunicationBadge,
+} from '@/lib/communicationBadge'
 import { SectionExportActions } from '@/components/placement/SectionExportActions'
 import { tableSectionExport } from '@/lib/analyticsExports'
 import { cn } from '@/lib/utils'
+import { Cell, PolarAngleAxis, RadialBar, RadialBarChart } from 'recharts'
 
 function badgeRows(counts: BadgeCountMap): Array<{ badge: TechStackBadge; count: number; color: string }> {
   return TECH_STACK_BADGE_ORDER.map((badge) => ({
@@ -43,13 +49,19 @@ function badgeRows(counts: BadgeCountMap): Array<{ badge: TechStackBadge; count:
 
 function SkillsBadgeYearModal({
   skillBadges,
+  preferredYear,
   onClose,
 }: {
   skillBadges: DashboardSnapshot['skillBadges']
+  preferredYear?: string
   onClose: () => void
 }) {
   const years = skillBadges.byYear.map((row) => row.year)
-  const [year, setYear] = useState(years[0] ?? 'All')
+  const initialYear =
+    preferredYear && preferredYear !== 'all' && years.includes(preferredYear)
+      ? preferredYear
+      : years[0] ?? 'All'
+  const [year, setYear] = useState(initialYear)
   const dialogRef = useRef<HTMLDivElement>(null)
   const selected =
     skillBadges.byYear.find((row) => row.year === year) ??
@@ -485,6 +497,379 @@ function ManagementCard({
   )
 }
 
+const TECH_RADIAL_COLORS = [
+  '#F0B90B',
+  '#3B82F6',
+  '#0ECB81',
+  '#A78BFA',
+  '#F6465D',
+  '#22D3EE',
+  '#D27918',
+] as const
+
+type TechReadinessRow = DashboardSnapshot['techReadiness'][number]
+
+export function TechReadinessRadialChart({
+  data,
+  onSelect,
+}: {
+  data: DashboardSnapshot['techReadiness']
+  onSelect?: (row: TechReadinessRow) => void
+}) {
+  const [active, setActive] = useState<number | null>(null)
+  const rows = data.map((row, index) => ({
+    ...row,
+    color: TECH_RADIAL_COLORS[index % TECH_RADIAL_COLORS.length]!,
+  }))
+  // Recharts draws the first datum innermost; reverse so the first tech is the outer ring.
+  const chartData = [...rows].reverse()
+  const toRowIndex = (chartIndex: number) => rows.length - 1 - chartIndex
+  const activeRow = active != null ? rows[active] : null
+  const totalStudents = rows.reduce((sum, row) => sum + row.students, 0)
+  const avgScore = rows.length
+    ? Math.round(rows.reduce((sum, row) => sum + row.score, 0) / rows.length)
+    : 0
+
+  return (
+    <div>
+      <div className="relative">
+        <MeasuredChart height={250}>
+          {(width) => (
+            <RadialBarChart
+              width={width}
+              height={250}
+              data={chartData}
+              innerRadius="30%"
+              outerRadius="110%"
+              startAngle={90}
+              endAngle={-270}
+              barCategoryGap="24%"
+            >
+              <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
+              <RadialBar
+                dataKey="score"
+                cornerRadius={14}
+                background={{ fill: 'rgba(43, 49, 57, 0.5)' }}
+                animationDuration={900}
+                onMouseEnter={(_, chartIndex) => setActive(toRowIndex(chartIndex))}
+                onMouseLeave={() => setActive(null)}
+                onClick={(_, chartIndex) => {
+                  const row = rows[toRowIndex(chartIndex)]
+                  if (row) onSelect?.(row)
+                }}
+              >
+                {chartData.map((entry, chartIndex) => {
+                  const isActive = active === toRowIndex(chartIndex)
+                  const dimmed = active != null && !isActive
+                  return (
+                    <Cell
+                      key={entry.name}
+                      fill={entry.color}
+                      cursor="pointer"
+                      opacity={dimmed ? 0.22 : 1}
+                      style={{
+                        transition: 'opacity 220ms ease, filter 220ms ease',
+                        filter: isActive
+                          ? `drop-shadow(0 0 10px ${entry.color}AA) drop-shadow(0 6px 8px rgba(0,0,0,0.65))`
+                          : 'none',
+                      }}
+                    />
+                  )
+                })}
+              </RadialBar>
+            </RadialBarChart>
+          )}
+        </MeasuredChart>
+        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+          {activeRow ? (
+            <motion.div
+              key={activeRow.name}
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.18 }}
+            >
+              <p className="text-[11px] font-bold uppercase tracking-wide" style={{ color: activeRow.color }}>
+                {activeRow.name}
+              </p>
+              <p className="tnum text-2xl font-black" style={{ color: activeRow.color }}>
+                {activeRow.score}%
+              </p>
+              <p className="tnum text-[11px] text-muted-foreground">{activeRow.students} students</p>
+            </motion.div>
+          ) : (
+            <div>
+              <p className="tnum text-2xl font-black text-primary">{avgScore}%</p>
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Avg readiness</p>
+              <p className="tnum mt-0.5 text-[11px] text-muted-foreground">{totalStudents} skill holders</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-1.5">
+        {rows.map((row, index) => {
+          const isActive = active === index
+          return (
+            <motion.button
+              key={row.name}
+              type="button"
+              whileHover={{ y: -2, scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onMouseEnter={() => setActive(index)}
+              onMouseLeave={() => setActive(null)}
+              onClick={() => onSelect?.(row)}
+              className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left transition-colors"
+              style={{
+                borderColor: isActive ? `${row.color}88` : 'var(--border)',
+                background: isActive ? `${row.color}1A` : 'transparent',
+                boxShadow: isActive ? `0 4px 14px -6px ${row.color}` : 'none',
+              }}
+            >
+              <span
+                className="size-2.5 shrink-0 rounded-full"
+                style={{ background: row.color, boxShadow: isActive ? `0 0 8px ${row.color}` : 'none' }}
+              />
+              <span className="min-w-0 flex-1 truncate text-[11px] font-semibold">{row.name}</span>
+              <span className="tnum shrink-0 text-[11px] font-bold" style={{ color: row.color }}>
+                {row.score}%
+              </span>
+              <span className="tnum shrink-0 text-[10px] text-muted-foreground">· {row.students}</span>
+            </motion.button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+const COMM_CATEGORY_COLORS: Record<string, string> = {
+  'Communication Proficiency': '#3B82F6',
+  'Presentation Skills': '#0ECB81',
+  'Behavioural Skills': '#D27918',
+}
+
+type CommParameter = DashboardSnapshot['communicationParameters'][number]
+
+/** 25-segment nightingale wheel — one clickable sector per communication criterion. */
+export function CommunicationParameterWheel({
+  parameters,
+  onSelect,
+}: {
+  parameters: DashboardSnapshot['communicationParameters']
+  onSelect?: (param: CommParameter) => void
+}) {
+  const [active, setActive] = useState<string | null>(null)
+  const size = 680
+  const cx = size / 2
+  const cy = size / 2
+  const maxR = 188
+  const labelR = maxR + 14
+  const categoryR = maxR + 122
+  const step = 360 / Math.max(parameters.length, 1)
+  const gap = 0.7
+
+  const polar = (r: number, angle: number): [number, number] => {
+    const rad = ((angle - 90) * Math.PI) / 180
+    return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)]
+  }
+
+  const wedgePath = (a0: number, a1: number, r: number) => {
+    const [x0, y0] = polar(r, a0)
+    const [x1, y1] = polar(r, a1)
+    const large = a1 - a0 > 180 ? 1 : 0
+    return `M ${cx} ${cy} L ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1} Z`
+  }
+
+  const arcPath = (a0: number, a1: number, r: number, reverse: boolean) => {
+    const [x0, y0] = polar(r, a0)
+    const [x1, y1] = polar(r, a1)
+    const large = Math.abs(a1 - a0) > 180 ? 1 : 0
+    return reverse
+      ? `M ${x1} ${y1} A ${r} ${r} 0 ${large} 0 ${x0} ${y0}`
+      : `M ${x0} ${y0} A ${r} ${r} 0 ${large} 1 ${x1} ${y1}`
+  }
+
+  const categories: Array<{ name: string; start: number; end: number; color: string }> = []
+  parameters.forEach((param, index) => {
+    const color = COMM_CATEGORY_COLORS[param.category] ?? '#D27918'
+    const last = categories[categories.length - 1]
+    if (last && last.name === param.category) last.end = (index + 1) * step
+    else categories.push({ name: param.category, start: index * step, end: (index + 1) * step, color })
+  })
+
+  const activeParam = parameters.find((param) => param.key === active) ?? null
+
+  return (
+    <div className="relative">
+      {activeParam ? (
+        <motion.div
+          key={activeParam.key}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[12px] font-bold shadow-lg"
+          style={{
+            color: COMM_CATEGORY_COLORS[activeParam.category] ?? '#D27918',
+            borderColor: `${COMM_CATEGORY_COLORS[activeParam.category] ?? '#D27918'}66`,
+            background: '#12161cF0',
+          }}
+        >
+          {activeParam.label} · {activeParam.average}% — click for student scores
+        </motion.div>
+      ) : null}
+      <MeasuredChart height={640}>
+        {(width) => {
+          const rendered = Math.min(width, 660)
+          return (
+            <div className="flex h-full items-center justify-center">
+              <svg width={rendered} height={Math.min(640, rendered)} viewBox={`0 0 ${size} ${size}`}>
+                <defs>
+                  {categories.map((cat, index) => {
+                    const mid = (cat.start + cat.end) / 2
+                    const flip = mid > 90 && mid < 270
+                    return (
+                      <path
+                        key={cat.name}
+                        id={`comm-cat-arc-${index}`}
+                        d={arcPath(cat.start + 2, cat.end - 2, categoryR, flip)}
+                        fill="none"
+                      />
+                    )
+                  })}
+                </defs>
+
+                {[0.25, 0.5, 0.75, 1].map((fraction) => (
+                  <circle
+                    key={fraction}
+                    cx={cx}
+                    cy={cy}
+                    r={maxR * fraction}
+                    fill="none"
+                    stroke="rgba(146, 154, 165, 0.18)"
+                    strokeWidth={fraction === 1 ? 1.4 : 1}
+                  />
+                ))}
+                {[25, 50, 75, 100].map((value) => (
+                  <text
+                    key={value}
+                    x={cx + 4}
+                    y={cy - (maxR * value) / 100 + 10}
+                    fontSize={8.5}
+                    fill="rgba(146, 154, 165, 0.55)"
+                  >
+                    {value}
+                  </text>
+                ))}
+                {parameters.map((_, index) => {
+                  const [x, y] = polar(maxR, index * step)
+                  return (
+                    <line
+                      key={index}
+                      x1={cx}
+                      y1={cy}
+                      x2={x}
+                      y2={y}
+                      stroke="rgba(146, 154, 165, 0.12)"
+                      strokeWidth={1}
+                    />
+                  )
+                })}
+                {categories.map((cat) => {
+                  const [x, y] = polar(maxR + 104, cat.start)
+                  return (
+                    <line
+                      key={cat.name}
+                      x1={cx}
+                      y1={cy}
+                      x2={x}
+                      y2={y}
+                      stroke="rgba(146, 154, 165, 0.35)"
+                      strokeWidth={1.4}
+                    />
+                  )
+                })}
+
+                {parameters.map((param, index) => {
+                  const color = COMM_CATEGORY_COLORS[param.category] ?? '#D27918'
+                  const a0 = index * step + gap
+                  const a1 = (index + 1) * step - gap
+                  const valueR = Math.max(8, (param.average / 100) * maxR)
+                  const isActive = active === param.key
+                  const dimmed = active != null && !isActive
+                  return (
+                    <g key={param.key}>
+                      <path d={wedgePath(a0, a1, maxR)} fill={color} opacity={0.06} />
+                      <path
+                        d={wedgePath(a0, a1, valueR)}
+                        fill={color}
+                        stroke="#0B0E11"
+                        strokeWidth={1}
+                        opacity={dimmed ? 0.22 : isActive ? 1 : index % 2 === 0 ? 0.88 : 0.68}
+                        style={{
+                          transformOrigin: `${cx}px ${cy}px`,
+                          transform: isActive ? 'scale(1.06)' : 'scale(1)',
+                          transition: 'transform 220ms ease, opacity 220ms ease, filter 220ms ease',
+                          filter: isActive
+                            ? `drop-shadow(0 0 14px ${color}) drop-shadow(0 6px 10px rgba(0,0,0,0.6))`
+                            : 'none',
+                        }}
+                      />
+                      <path
+                        d={wedgePath(a0, a1, maxR)}
+                        fill="transparent"
+                        style={{ cursor: 'pointer' }}
+                        onMouseEnter={() => setActive(param.key)}
+                        onMouseLeave={() => setActive(null)}
+                        onClick={() => onSelect?.(param)}
+                      />
+                    </g>
+                  )
+                })}
+
+                {parameters.map((param, index) => {
+                  const color = COMM_CATEGORY_COLORS[param.category] ?? '#D27918'
+                  const mid = (index + 0.5) * step
+                  const [x, y] = polar(labelR, mid)
+                  const flip = mid > 180
+                  const isActive = active === param.key
+                  return (
+                    <text
+                      key={param.key}
+                      x={x}
+                      y={y}
+                      dy={3.5}
+                      fontSize={10}
+                      fontWeight={isActive ? 800 : 600}
+                      textAnchor={flip ? 'end' : 'start'}
+                      transform={`rotate(${flip ? mid + 90 : mid - 90}, ${x}, ${y})`}
+                      fill={isActive ? color : 'var(--muted-foreground)'}
+                      style={{ cursor: 'pointer', transition: 'fill 180ms ease' }}
+                      onMouseEnter={() => setActive(param.key)}
+                      onMouseLeave={() => setActive(null)}
+                      onClick={() => onSelect?.(param)}
+                    >
+                      {param.label}
+                    </text>
+                  )
+                })}
+
+                {categories.map((cat, index) => (
+                  <text key={cat.name} fontSize={13} fontWeight={800} letterSpacing={2.5} fill={cat.color}>
+                    <textPath href={`#comm-cat-arc-${index}`} startOffset="50%" textAnchor="middle">
+                      {cat.name.toUpperCase()}
+                    </textPath>
+                  </text>
+                ))}
+
+                <circle cx={cx} cy={cy} r={4} fill="#D27918" />
+              </svg>
+            </div>
+          )
+        }}
+      </MeasuredChart>
+    </div>
+  )
+}
+
 function Panel({
   title,
   description,
@@ -697,7 +1082,11 @@ export function PremiumDashboard({
     <div className="space-y-5">
       {detail ? <DetailModal detail={detail} onClose={() => setDetail(null)} /> : null}
       {skillsOpen && snapshot.skillBadges ? (
-        <SkillsBadgeYearModal skillBadges={snapshot.skillBadges} onClose={() => setSkillsOpen(false)} />
+        <SkillsBadgeYearModal
+          skillBadges={snapshot.skillBadges}
+          preferredYear={snapshot.batch}
+          onClose={() => setSkillsOpen(false)}
+        />
       ) : null}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <MetricCard
@@ -977,6 +1366,7 @@ export function PremiumDashboard({
               <Button asChild variant="outline"><PlacementLink href={`${base}/students/new`}>Add student</PlacementLink></Button>
               <Button asChild variant="outline"><PlacementLink href={`${base}/communication/new`}>New evaluation</PlacementLink></Button>
               <Button asChild variant="outline"><PlacementLink href={`${base}/operations`}>Schedule drive</PlacementLink></Button>
+              <Button asChild variant="outline"><PlacementLink href={`${base}/tech-stack`}>Open tech stack</PlacementLink></Button>
             </>
           ) : null}
         </div>

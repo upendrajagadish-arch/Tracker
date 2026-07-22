@@ -57,33 +57,63 @@ export function resolveStudentGraduationYear(student: {
 }
 
 /**
- * Program / Pinnacle batch from the student `section` field.
- * Examples: "Ignite", "Connect", "1", "Batch 2", "Pinnacle-3", "B4"
+ * Program / Pinnacle batch from section, batch name, or academic label.
+ * Examples: "Ignite", "Connect", "Pinnacle", "1", "Batch 2", "Pinnacle-3", "B4"
  */
-export function resolveStudentTrainingAssignment(section: string | null | undefined): {
+export function resolveStudentTrainingAssignment(
+  section?: string | null,
+  batch?: string | null,
+  academicBatch?: string | null,
+): {
   program: TrainingProgramId | null
   pinnacleBatch: PinnacleBatchNumber | null
 } {
-  const raw = String(section ?? '').trim().toLowerCase()
-  if (!raw) return { program: null, pinnacleBatch: null }
+  const candidates = [section, batch, academicBatch]
+  for (const candidate of candidates) {
+    const raw = String(candidate ?? '').trim().toLowerCase()
+    if (!raw) continue
 
-  if (/\bignite\b/.test(raw)) return { program: 'ignite', pinnacleBatch: null }
-  if (/\bconnect\b/.test(raw)) return { program: 'connect', pinnacleBatch: null }
+    if (/\bignite\b/.test(raw)) return { program: 'ignite', pinnacleBatch: null }
+    if (/\bconnect\b/.test(raw)) return { program: 'connect', pinnacleBatch: null }
 
-  const batchMatch =
-    raw.match(/\bbatch\s*([1-4])\b/) ||
-    raw.match(/\bpinnacle\s*[-_/]?\s*([1-4])\b/) ||
-    raw.match(/^b\s*([1-4])$/) ||
-    raw.match(/^([1-4])$/)
+    const batchMatch =
+      raw.match(/\bbatch\s*([1-4])\b/) ||
+      raw.match(/\bpinnacle\s*[-_/]?\s*([1-4])\b/) ||
+      raw.match(/^b\s*([1-4])$/) ||
+      raw.match(/^([1-4])$/)
 
-  if (batchMatch) {
-    const n = Number(batchMatch[1]) as PinnacleBatchNumber
-    return { program: 'pinnacle', pinnacleBatch: n }
+    if (batchMatch) {
+      const n = Number(batchMatch[1]) as PinnacleBatchNumber
+      return { program: 'pinnacle', pinnacleBatch: n }
+    }
+
+    if (/\bpinnacle\b/.test(raw)) return { program: 'pinnacle', pinnacleBatch: null }
   }
 
-  if (/\bpinnacle\b/.test(raw)) return { program: 'pinnacle', pinnacleBatch: null }
-
   return { program: null, pinnacleBatch: null }
+}
+
+export function trainingProgramLabel(id: TrainingProgramId): string {
+  return TRAINING_PROGRAMS.find((program) => program.id === id)?.label ?? id
+}
+
+/** Canonical `section` value so training cards can resolve Ignite / Pinnacle / Connect. */
+export function trainingProgramSectionValue(
+  program: TrainingProgramId,
+  pinnacleBatch?: PinnacleBatchNumber | null,
+): string {
+  if (program === 'pinnacle' && pinnacleBatch) return pinnacleBatchLabel(pinnacleBatch)
+  return trainingProgramLabel(program)
+}
+
+/** Normalize registration input to a canonical program section value. */
+export function normalizeTrainingProgramInput(value: string | null | undefined): string {
+  const assignment = resolveStudentTrainingAssignment(value, value, value)
+  if (!assignment.program) return String(value ?? '').trim()
+  if (assignment.program === 'pinnacle' && assignment.pinnacleBatch) {
+    return pinnacleBatchLabel(assignment.pinnacleBatch)
+  }
+  return trainingProgramLabel(assignment.program)
 }
 
 export function isTrainingYear(value: number): value is TrainingYear {

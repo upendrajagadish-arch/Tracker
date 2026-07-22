@@ -242,14 +242,17 @@ export function previewStudentImport(
   records: Record<string, string>[],
   mode: StudentImportMode,
   existingRollNumbers: Set<string> = new Set(),
+  options: { allowUpdateExisting?: boolean } = {},
 ): ImportPreviewResult {
   const seenRolls = new Map<string, number>()
   const duplicateRollsInFile: string[] = []
+  const allowUpdateExisting = Boolean(options.allowUpdateExisting)
 
   const rows: ParsedImportRow[] = records.map((raw, index) => {
     const rowNumber = index + 2
     const errors = validateRow(raw, mode)
     const roll = raw.roll_number?.trim()
+    const warnings: string[] = []
 
     if (roll) {
       if (seenRolls.has(roll)) {
@@ -259,8 +262,20 @@ export function previewStudentImport(
         seenRolls.set(roll, rowNumber)
       }
       if (existingRollNumbers.has(roll)) {
-        errors.push('Roll number already exists in the system.')
+        if (allowUpdateExisting) {
+          warnings.push('Already in system — will assign to this training program.')
+        } else {
+          errors.push('Roll number already exists in the system.')
+        }
       }
+    }
+
+    if (!raw.branch?.trim() || !raw.batch?.trim()) {
+      warnings.push(
+        allowUpdateExisting
+          ? 'Branch optional for program upload — year and program come from the selected card.'
+          : 'Branch or year not set — faculty can assign later.',
+      )
     }
 
     const input = errors.length ? null : recordToStudentInput(raw)
@@ -269,9 +284,7 @@ export function previewStudentImport(
       input,
       raw,
       errors,
-      warnings: !raw.branch?.trim() || !raw.batch?.trim()
-        ? ['Branch or year not set — faculty can assign later.']
-        : [],
+      warnings,
     }
   })
 
@@ -291,3 +304,7 @@ CS2026002,Priya Sharma,priya@college.example,9876543211,ECE,2026,15/08/2004,9.1,
 export const IMPORT_TEMPLATE_QUICK = `roll_number,full_name,email
 CS2026003,Rahul Verma,rahul@college.example
 CS2026004,Sneha Iyer,sneha@college.example`
+
+export const IMPORT_TEMPLATE_TRAINING_PROGRAM = `roll_number,full_name,email,branch,phone
+CS2027001,Alex Kumar,alex@college.example,CSE,9876543210
+CS2027002,Priya Sharma,priya@college.example,ECE,9876543211`

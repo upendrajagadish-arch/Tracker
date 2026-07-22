@@ -26,6 +26,7 @@ type RegistrationForm = {
   phone: string
   branch: string
   batch: string
+  trainingProgram: string
   dateOfBirth: string | null
   cgpa: number | null
   activeBacklogs: number
@@ -46,6 +47,7 @@ const emptyRegistrationForm: RegistrationForm = {
   phone: '',
   branch: '',
   batch: '',
+  trainingProgram: '',
   dateOfBirth: null,
   cgpa: null,
   activeBacklogs: 0,
@@ -81,6 +83,7 @@ function RegistrationFields({
     (platform) => isAllowed('platform_handles') || isAllowed(`platform_handles.${platform}`),
   )
   const resumeAllowed = isAllowed('resume') || Boolean(allowedFields?.includes('platform_handles'))
+  const showTrainingProgram = isAllowed('section') || isAllowed('batch') || isAllowed('academic_batch')
 
   return (
     <>
@@ -105,8 +108,32 @@ function RegistrationFields({
         <Input className="mt-1 border-border bg-card" value={form.branch} onChange={(e) => set('branch', e.target.value)} />
       </label>
       <label className={fieldClass('batch')}>
-        <span className="text-muted-foreground">Academic Batch</span>
-        <Input className="mt-1 border-border bg-card" value={form.batch} onChange={(e) => set('batch', e.target.value)} />
+        <span className="text-muted-foreground">Year of pass out</span>
+        <select
+          className="mt-1 flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm"
+          value={form.batch}
+          onChange={(e) => set('batch', e.target.value)}
+        >
+          <option value="">Select year</option>
+          <option value="2027">2027</option>
+          <option value="2028">2028</option>
+          <option value="2029">2029</option>
+          <option value="2030">2030</option>
+        </select>
+      </label>
+      <label className={showTrainingProgram ? 'text-sm' : 'hidden'}>
+        <span className="text-muted-foreground">Training program (batch name) *</span>
+        <select
+          className="mt-1 flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm"
+          value={form.trainingProgram}
+          onChange={(e) => set('trainingProgram', e.target.value)}
+          required={showTrainingProgram}
+        >
+          <option value="">Select Ignite / Pinnacle / Connect</option>
+          <option value="Ignite">Ignite</option>
+          <option value="Pinnacle">Pinnacle</option>
+          <option value="Connect">Connect</option>
+        </select>
       </label>
       <label className={fieldClass('date_of_birth')}>
         <span className="text-muted-foreground">Date of birth</span>
@@ -267,8 +294,17 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
         ...(has('email') ? { email: form.email.trim() } : {}),
         ...(has('phone') ? { phone: form.phone } : {}),
         ...(has('branch') ? { branch: form.branch } : {}),
-        ...(has('batch') || has('academic_batch')
-          ? { batch: form.batch, academicBatch: form.batch }
+        ...(has('batch') || has('academic_batch') || has('section')
+          ? {
+              // Year of pass out → academic_batch / graduation_year
+              academicBatch: form.batch,
+              graduationYear: form.batch ? Number(form.batch) : null,
+              passOutYear: form.batch ? Number(form.batch) : null,
+              // Training program name → batch + section so Ignite/Pinnacle/Connect cards populate
+              batch: form.trainingProgram || form.batch,
+              section: form.trainingProgram,
+              trainingProgram: form.trainingProgram,
+            }
           : {}),
         ...(has('date_of_birth') ? { dateOfBirth: form.dateOfBirth } : {}),
         ...(has('cgpa') ? { cgpa: form.cgpa } : {}),

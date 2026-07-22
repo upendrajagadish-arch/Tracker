@@ -12,10 +12,18 @@ export interface PublicShareCommunication {
   percentage: number
   grade: string
   evaluatedAt: string | null
+  evaluatorName: string | null
   proficiencyTotal: number
   presentationTotal: number
   behaviouralTotal: number
   criteria: Partial<Record<CriteriaKey, number>> | null
+}
+
+export interface PublicShareTechSkill {
+  name: string
+  category: string
+  proficiencyLevel: string
+  assessedByName: string | null
 }
 
 export interface PublicShareAssessment {
@@ -61,6 +69,7 @@ export interface PublicStudentPerformance {
   totalSolved: number
   codingSyncedAt: string | null
   communication: PublicShareCommunication | null
+  techSkills: PublicShareTechSkill[]
   aptitude: PublicShareAssessment | null
   verbal: PublicShareAssessment | null
   codeNow: PublicShareCodeNow | null
@@ -191,11 +200,30 @@ function parseCommunication(raw: unknown): PublicShareCommunication | null {
     percentage: Number(payload.percentage ?? 0),
     grade: String(payload.grade ?? 'Not Available'),
     evaluatedAt: payload.evaluatedAt == null ? null : String(payload.evaluatedAt),
+    evaluatorName: payload.evaluatorName == null ? null : String(payload.evaluatorName),
     proficiencyTotal: Number(payload.proficiencyTotal ?? 0),
     presentationTotal: Number(payload.presentationTotal ?? 0),
     behaviouralTotal: Number(payload.behaviouralTotal ?? 0),
     criteria,
   }
+}
+
+function parseTechSkills(raw: unknown): PublicShareTechSkill[] {
+  if (!Array.isArray(raw)) return []
+  return raw.flatMap((item) => {
+    if (!item || typeof item !== 'object') return []
+    const row = item as Record<string, unknown>
+    const name = String(row.name ?? '').trim()
+    if (!name) return []
+    return [{
+      name,
+      category: String(row.category ?? ''),
+      proficiencyLevel: String(row.proficiencyLevel ?? ''),
+      assessedByName: row.assessedByName == null || String(row.assessedByName).trim() === ''
+        ? null
+        : String(row.assessedByName),
+    }]
+  })
 }
 
 export async function getPublicStudentPerformance(
@@ -230,6 +258,7 @@ export async function getPublicStudentPerformance(
     totalSolved: Number(payload.totalSolved ?? 0),
     codingSyncedAt: payload.codingSyncedAt == null ? null : String(payload.codingSyncedAt),
     communication: parseCommunication(payload.communication),
+    techSkills: parseTechSkills(payload.techSkills),
     aptitude: parseAssessment(payload.aptitude),
     verbal: parseAssessment(payload.verbal),
     codeNow: parseCodeNow(payload.codeNow),

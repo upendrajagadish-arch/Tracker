@@ -1,26 +1,26 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { asPlacementPath } from '@/components/placement/PlacementLink'
 import { usePlacementPaths } from '@/components/placement/PlacementShell'
-import { canEvaluateCommunication, canViewCommunicationModule } from '@/lib/placementNavigation'
+import { canManageStudentTechStack, canViewTechStack } from '@/lib/placementPermissions'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 
-export function CommunicationModuleNav() {
+export function TechStackModuleNav() {
   const { base } = usePlacementPaths()
   const { placementRole } = useAuth()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const canManage = canEvaluateCommunication(placementRole)
-  const canView = canViewCommunicationModule(placementRole)
+  const canView = canViewTechStack(placementRole)
+  const canEvaluate = canManageStudentTechStack(placementRole)
 
   if (!base || !canView) return null
 
   const links = [
-    { to: `${base}/communication`, label: 'Dashboard', exact: true },
-    { to: `${base}/communication/students`, label: 'Students' },
-    ...(canManage
+    { to: `${base}/tech-stack`, label: 'Dashboard', exact: true },
+    { to: `${base}/tech-stack/students`, label: 'Students' },
+    ...(canEvaluate
       ? [
-          { to: `${base}/communication/new`, label: 'Evaluate' },
-          { to: `${base}/communication/import`, label: 'Bulk Upload' },
+          { to: `${base}/tech-stack/evaluate`, label: 'Evaluate' },
+          { to: `${base}/tech-stack/import`, label: 'Bulk Upload' },
         ]
       : []),
   ]

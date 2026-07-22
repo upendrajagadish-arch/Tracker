@@ -22,7 +22,6 @@ import {
   PlacementField,
   PlacementFilterCard,
   PlacementPageStack,
-  PlacementSelect,
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
 import { tableSectionExport } from '@/lib/analyticsExports'
@@ -31,15 +30,17 @@ import {
   listCommunicationEvaluations,
   type CommunicationEvaluationRow,
 } from '@/api/placement/communicationEvaluations'
-import { canExportReports, canManageReadiness, canViewCommunicationModule } from '@/lib/placementNavigation'
+import { canEvaluateCommunication, canExportReports, canViewCommunicationModule } from '@/lib/placementNavigation'
 import { useAuth } from '@/hooks/useAuth'
+import { PassOutYearFilterBar, usePassOutYearFilter } from '@/lib/placementYearFilter'
 
 export function CommunicationEvaluationsPage() {
   const { placementRole } = useAuth()
   const { base } = usePlacementPaths()
-  const canManage = canManageReadiness(placementRole)
+  const canManage = canEvaluateCommunication(placementRole)
   const canExport = canExportReports(placementRole)
   const canView = canViewCommunicationModule(placementRole)
+  const { year, setYear, graduationYear } = usePassOutYearFilter()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -52,7 +53,6 @@ export function CommunicationEvaluationsPage() {
   })
   const [filters, setFilters] = useState({
     branch: '',
-    batch: '',
     grade: '',
     search: '',
   })
@@ -63,6 +63,7 @@ export function CommunicationEvaluationsPage() {
     try {
       const result = await listCommunicationEvaluations({
         ...filters,
+        graduationYear,
         page: 1,
         limit: 50,
         latestOnly: true,
@@ -81,7 +82,7 @@ export function CommunicationEvaluationsPage() {
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [filters, graduationYear])
 
   useEffect(() => {
     void load()
@@ -138,6 +139,7 @@ export function CommunicationEvaluationsPage() {
       ) : (
       <PlacementPageStack>
         <PlacementAlerts error={error} />
+        <PassOutYearFilterBar value={year} onChange={setYear} />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <PlacementStatCard label="Total evaluated" value={summary.totalEvaluated} />
@@ -184,7 +186,7 @@ export function CommunicationEvaluationsPage() {
             </Button>
           }
         >
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <PlacementField label="Department / Branch">
               <input
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
@@ -193,27 +195,13 @@ export function CommunicationEvaluationsPage() {
                 placeholder="CSE"
               />
             </PlacementField>
-            <PlacementField label="Batch">
+            <PlacementField label="Grade">
               <input
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-                value={filters.batch}
-                onChange={(e) => setFilters((f) => ({ ...f, batch: e.target.value }))}
-                placeholder="2026"
-              />
-            </PlacementField>
-            <PlacementField label="Grade">
-              <PlacementSelect
                 value={filters.grade}
-                onChange={(value) => setFilters((f) => ({ ...f, grade: value }))}
-              >
-                <option value="">All</option>
-                <option value="A+">A+</option>
-                <option value="A">A</option>
-                <option value="B+">B+</option>
-                <option value="B">B</option>
-                <option value="C">C</option>
-                <option value="Needs Improvement">Needs Improvement</option>
-              </PlacementSelect>
+                onChange={(e) => setFilters((f) => ({ ...f, grade: e.target.value }))}
+                placeholder="A+ / A / B+ / …"
+              />
             </PlacementField>
             <PlacementField label="Search">
               <input

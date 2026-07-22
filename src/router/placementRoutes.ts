@@ -1,6 +1,7 @@
 import { createRoute } from '@tanstack/react-router'
 import type { AnyRoute } from '@tanstack/react-router'
 import { PlacementDashboardPage } from '@/pages/placement/PlacementDashboardPage'
+import { FacultyDashboardPage } from '@/pages/placement/FacultyDashboardPage'
 import { StudentsPage } from '@/pages/placement/StudentsPage'
 import { StudentDetailPage } from '@/pages/placement/StudentDetailPage'
 import { StudentFormPage } from '@/pages/placement/StudentFormPage'
@@ -8,6 +9,9 @@ import { StudentImportPage } from '@/pages/placement/StudentImportPage'
 import { StudentBulkAssignPage } from '@/pages/placement/StudentBulkAssignPage'
 import { ResumesPage } from '@/pages/placement/ResumesPage'
 import { TechStackPage } from '@/pages/placement/TechStackPage'
+import { TechStackStudentsPage } from '@/pages/placement/TechStackStudentsPage'
+import { TechStackEvaluatePage } from '@/pages/placement/TechStackEvaluatePage'
+import { TechStackImportPage } from '@/pages/placement/TechStackImportPage'
 import { ReadinessPage } from '@/pages/placement/ReadinessPage'
 import { RequirementsPage } from '@/pages/placement/RequirementsPage'
 import { RequirementDetailPage } from '@/pages/placement/RequirementDetailPage'
@@ -69,11 +73,12 @@ function createStaffPlacementRoutes(parent: AnyRoute, prefix: 'admin' | 'tpo' | 
 }
 
 function createRolePlacementRoutes(parent: AnyRoute, prefix: 'admin' | 'tpo' | 'faculty' | 'interviewer') {
+  const Dashboard = prefix === 'faculty' ? FacultyDashboardPage : PlacementDashboardPage
   return [
     createRoute({
       getParentRoute: () => parent,
       path: `${prefix}/placement`,
-      component: PlacementDashboardPage,
+      component: Dashboard,
     }),
     createRoute({
       getParentRoute: () => parent,
@@ -134,6 +139,21 @@ function createRolePlacementRoutes(parent: AnyRoute, prefix: 'admin' | 'tpo' | '
       getParentRoute: () => parent,
       path: `${prefix}/placement/tech-stack`,
       component: TechStackPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/tech-stack/students`,
+      component: TechStackStudentsPage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/tech-stack/evaluate`,
+      component: TechStackEvaluatePage,
+    }),
+    createRoute({
+      getParentRoute: () => parent,
+      path: `${prefix}/placement/tech-stack/import`,
+      component: TechStackImportPage,
     }),
     createRoute({
       getParentRoute: () => parent,

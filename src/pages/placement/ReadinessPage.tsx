@@ -7,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
 import { PlacementShell } from '@/components/placement/PlacementShell'
 import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
 import { ReadinessStatusBadge } from '@/components/placement/PlacementBadges'
@@ -17,14 +18,13 @@ import {
   PlacementFilterCard,
   PlacementPageBody,
   PlacementPageStack,
-  PlacementSelect,
   PlacementTableCard,
   formatEnumLabel,
 } from '@/components/placement/PlacementUi'
 import { tableSectionExport } from '@/lib/analyticsExports'
 import { listReadiness, recalculateReadiness } from '@/api/placement/readiness'
-import { listStudents } from '@/api/placement/students'
 import { useAuth } from '@/hooks/useAuth'
+import { StudentTypeahead } from '@/components/placement/StudentTypeahead'
 
 export function ReadinessPage() {
   const { placementRole } = useAuth()
@@ -32,19 +32,16 @@ export function ReadinessPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [snapshots, setSnapshots] = useState<Awaited<ReturnType<typeof listReadiness>>['data']>([])
-  const [students, setStudents] = useState<{ id: string; label: string }[]>([])
+  const [selectedStudentId, setSelectedStudentId] = useState('')
+  const [selectedStudentLabel, setSelectedStudentLabel] = useState('')
   const [recalculating, setRecalculating] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const [readiness, studentPage] = await Promise.all([
-        listReadiness({ limit: 30 }),
-        listStudents({ limit: 100 }),
-      ])
+      const readiness = await listReadiness({ limit: 30 })
       setSnapshots(readiness.data)
-      setStudents(studentPage.data.map((s) => ({ id: s.id, label: `${s.roll_number} — ${s.full_name}` })))
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load readiness data')
     } finally {
@@ -79,19 +76,35 @@ export function ReadinessPage() {
       <PlacementPageStack>
         <PlacementAlerts error={error} />
 
-        {canRecalculate && students.length ? (
+        {canRecalculate ? (
           <PlacementFilterCard title="Recalculate readiness">
-            <PlacementField label="Select student" hint="Choose a student to generate a fresh readiness snapshot">
-              <PlacementSelect
-                value=""
-                disabled={Boolean(recalculating)}
-                onChange={(value) => { if (value) void handleRecalculate(value) }}
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+              <PlacementField label="Search student" hint="Type name or roll — matches appear automatically">
+                <StudentTypeahead
+                  selectedId={selectedStudentId}
+                  selectedLabel={selectedStudentLabel}
+                  disabled={Boolean(recalculating)}
+                  onSelect={(student) => {
+                    setSelectedStudentId(student.id)
+                    setSelectedStudentLabel(`${student.full_name} · ${student.roll_number}`)
+                  }}
+                  onClear={() => {
+                    setSelectedStudentId('')
+                    setSelectedStudentLabel('')
+                  }}
+                />
+              </PlacementField>
+              <Button
+                type="button"
+                size="sm"
+                disabled={!selectedStudentId || Boolean(recalculating)}
+                onClick={() => {
+                  if (selectedStudentId) void handleRecalculate(selectedStudentId)
+                }}
               >
-                <option value="">Select student…</option>
-                {students.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-              </PlacementSelect>
-            </PlacementField>
-            {recalculating ? <p className="mt-2 font-mono text-xs text-muted-foreground">Recalculating readiness…</p> : null}
+                {recalculating ? 'Recalculating…' : 'Recalculate'}
+              </Button>
+            </div>
           </PlacementFilterCard>
         ) : null}
 
