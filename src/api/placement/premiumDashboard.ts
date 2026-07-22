@@ -408,12 +408,23 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
   ).length
   const readiness = students.map((student) => Number(student.readiness_score) || 0)
   const localEligibility = placementEligibilityCounts(readiness)
-  // Prefer live student rows so newly registered students always appear in totals.
-  const aggregateTotal = Math.max(students.length, Number(rpcAggregate?.totalStudents ?? 0))
-  const above60 = Math.max(localEligibility.above60, Number(rpcAggregate?.above60 ?? 0))
-  const above70 = Math.max(localEligibility.above70, Number(rpcAggregate?.above70 ?? 0))
-  const above80 = Math.max(localEligibility.above80, Number(rpcAggregate?.above80 ?? 0))
-  const aggregatePlaced = Math.max(placed, Number(rpcAggregate?.placed ?? 0))
+  // Year-scoped views must use filtered rows only. RPC aggregates are all-years and would hide the filter.
+  const yearScoped = batch !== 'all'
+  const aggregateTotal = yearScoped
+    ? students.length
+    : Math.max(students.length, Number(rpcAggregate?.totalStudents ?? 0))
+  const above60 = yearScoped
+    ? localEligibility.above60
+    : Math.max(localEligibility.above60, Number(rpcAggregate?.above60 ?? 0))
+  const above70 = yearScoped
+    ? localEligibility.above70
+    : Math.max(localEligibility.above70, Number(rpcAggregate?.above70 ?? 0))
+  const above80 = yearScoped
+    ? localEligibility.above80
+    : Math.max(localEligibility.above80, Number(rpcAggregate?.above80 ?? 0))
+  const aggregatePlaced = yearScoped
+    ? placed
+    : Math.max(placed, Number(rpcAggregate?.placed ?? 0))
   const placementRate = placementPercentage(aggregatePlaced, aggregateTotal)
 
   const distribution = [0, 20, 40, 60, 80].map(

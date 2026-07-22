@@ -14,7 +14,6 @@ import { placementHomeForRole } from '@/lib/placementAuth'
 import { getPlacementNavLinks, getRolePrefix, isPlacementNavActive } from '@/lib/placementNavigation'
 import { isStaffPlacementRole } from '@/lib/placementStaff'
 import { isAllowedStaffLogin } from '@/lib/placementStaffLogins'
-import { PassOutYearFilterProvider } from '@/lib/placementYearFilter'
 import { cn } from '@/lib/utils'
 
 interface PlacementShellProps {
@@ -162,7 +161,6 @@ export function PlacementShell({
   }
 
   return (
-    <PassOutYearFilterProvider>
       <div className="placement-theme flex min-h-screen min-w-0 flex-1 flex-col overflow-x-clip bg-canvas">
         {/* Full-width logo / search / account bar */}
         <div className="sticky top-0 z-50 w-full border-b border-soft bg-canvas/95 px-3 py-2 backdrop-blur-md sm:px-4 lg:px-5">
@@ -300,7 +298,6 @@ export function PlacementShell({
           </main>
         </div>
       </div>
-    </PassOutYearFilterProvider>
   )
 }
 

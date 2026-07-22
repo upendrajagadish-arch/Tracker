@@ -21,7 +21,7 @@ export function PlacementDashboardPage() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { year: batch, setYear: setBatch } = usePassOutYearFilter()
+  const { year: batch } = usePassOutYearFilter()
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null)
   const requestSequence = useRef(0)
 
