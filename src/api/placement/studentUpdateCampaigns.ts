@@ -158,7 +158,7 @@ export async function getCampaignSummary(): Promise<CampaignSummary> {
   ] = await Promise.all([
     client.from('student_update_campaigns').select('id,status,expires_at'),
     client.from('student_profiles').select('registered_via_campaign_id').not('registered_via_campaign_id', 'is', null),
-    client.from('student_update_tokens').select('id,opened_at,completed_at,expires_at').limit(5000),
+    client.from('student_update_tokens').select('id,opened_at,submitted_at,expires_at').limit(5000),
   ])
   if (cErr) throw cErr
   if (rErr) throw rErr
@@ -166,9 +166,9 @@ export async function getCampaignSummary(): Promise<CampaignSummary> {
   const tokenRows = tErr ? [] : tokens ?? []
   const now = Date.now()
   const opened = tokenRows.filter((row) => row.opened_at).length
-  const completed = tokenRows.filter((row) => row.completed_at).length
+  const completed = tokenRows.filter((row) => row.submitted_at).length
   const expired = tokenRows.filter((row) => {
-    if (row.completed_at) return false
+    if (row.submitted_at) return false
     if (!row.expires_at) return false
     return new Date(row.expires_at).getTime() < now
   }).length

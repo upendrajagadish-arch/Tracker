@@ -457,6 +457,7 @@ function LegacyTokenUpdatePortal({ token }: { token: string }) {
           phone: data.editable.phone,
           branch: data.editable.branch,
           batch: data.editable.batch,
+          trainingProgram: data.editable.batch,
           dateOfBirth: data.editable.dateOfBirth,
           cgpa: data.editable.cgpa,
           activeBacklogs: data.editable.activeBacklogs,

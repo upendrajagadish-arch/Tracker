@@ -60,7 +60,7 @@ export function getPlacementNavLinks(role: PlacementRole | null | undefined): Pl
       links.push({ to: `${base}/tech-stack`, label: 'Tech Stack' })
     }
     links.push({ to: `${base}/communication`, label: 'Communication Evaluation' })
-    if (hasPermission(role, 'campaigns:view') || role === 'admin' || role === 'tpo' || role === 'faculty') {
+    if (hasPermission(role, 'campaigns:view')) {
       links.push({ to: `${base}/student-update-campaigns`, label: 'Registration Campaigns' })
     }
     return links

@@ -30,10 +30,6 @@ import {
   type BadgeCountMap,
   type TechStackBadge,
 } from '@/lib/techStackBadge'
-import {
-  classifyCommunicationBadge,
-  formatCommunicationBadge,
-} from '@/lib/communicationBadge'
 import { SectionExportActions } from '@/components/placement/SectionExportActions'
 import { tableSectionExport } from '@/lib/analyticsExports'
 import { cn } from '@/lib/utils'
