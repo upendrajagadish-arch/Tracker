@@ -38,7 +38,7 @@ export function TechStackEvaluatePage() {
   const navigate = useNavigate()
   const canEvaluate = canManageStudentTechStack(placementRole)
   const canCreateSubject = canManageSkillMaster(placementRole)
-  const { year, setYear } = usePassOutYearFilter()
+  const { year } = usePassOutYearFilter()
 
   const [catalog, setCatalog] = useState<TechSkillRow[]>([])
   const [selectedStudentId, setSelectedStudentId] = useState('')

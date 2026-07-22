@@ -32,7 +32,7 @@ export function TechStackStudentsPage() {
   const { placementRole } = useAuth()
   const { base } = usePlacementPaths()
   const canView = canViewTechStack(placementRole)
-  const { year, setYear, graduationYear } = usePassOutYearFilter()
+  const { graduationYear } = usePassOutYearFilter()
   const [rows, setRows] = useState<TechStackStudentRow[]>([])
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)

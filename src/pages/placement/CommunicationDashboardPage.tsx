@@ -52,7 +52,7 @@ export function CommunicationDashboardPage() {
   const { base } = usePlacementPaths()
   const navigate = useNavigate()
   const canView = canViewCommunicationModule(placementRole)
-  const { year, setYear, graduationYear } = usePassOutYearFilter()
+  const { year, graduationYear } = usePassOutYearFilter()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

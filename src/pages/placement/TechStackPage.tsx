@@ -43,7 +43,7 @@ export function TechStackPage() {
   const { placementRole } = useAuth()
   const canView = canViewTechStack(placementRole)
   const canManageMaster = canManageSkillMaster(placementRole)
-  const { year, setYear, graduationYear } = usePassOutYearFilter()
+  const { year, graduationYear } = usePassOutYearFilter()
   const [skills, setSkills] = useState<Awaited<ReturnType<typeof listTechSkills>>>([])
   const [stats, setStats] = useState<Awaited<ReturnType<typeof getTechStackDashboardStats>> | null>(null)
   const [techReadiness, setTechReadiness] = useState<DashboardSnapshot['techReadiness']>([])

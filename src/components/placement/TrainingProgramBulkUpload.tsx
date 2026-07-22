@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,7 +17,6 @@ import {
   PINNACLE_BATCHES,
   pinnacleBatchLabel,
   trainingProgramLabel,
-  trainingProgramSectionValue,
   type PinnacleBatchNumber,
   type TrainingProgramId,
   type TrainingYear,
@@ -60,13 +59,6 @@ export function TrainingProgramBulkUploadDialog({
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<TrainingProgramImportResult | null>(null)
-
-  const sectionLabel = useMemo(() => {
-    if (program === 'pinnacle') {
-      return pinnacleBatch ? pinnacleBatchLabel(pinnacleBatch) : 'Select batch'
-    }
-    return trainingProgramSectionValue(program)
-  }, [program, pinnacleBatch])
 
   if (!open) return null
 

@@ -40,7 +40,7 @@ export function CommunicationEvaluationsPage() {
   const canManage = canEvaluateCommunication(placementRole)
   const canExport = canExportReports(placementRole)
   const canView = canViewCommunicationModule(placementRole)
-  const { year, setYear, graduationYear } = usePassOutYearFilter()
+  const { graduationYear } = usePassOutYearFilter()
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
