@@ -409,14 +409,19 @@
 .saas-table-wrap table tbody tr:nth-child(even) { background: transparent; }
 .saas-table-wrap table tbody tr:hover { background: #2B3139; }
 
+.placement-sidebar {
+  will-change: width;
+}
 .placement-nav-link {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
   border-radius: 6px;
   padding: 0.65rem 0.85rem;
   font-size: 14px;
   font-weight: 600;
   color: #929AA5;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.2s ease, color 0.2s ease, padding 0.2s ease;
 }
 .placement-nav-link:hover {
   background: #2B3139;
@@ -425,6 +430,43 @@
 .placement-nav-link.is-active {
   background: rgba(210, 121, 24, 0.12);
   color: #D27918;
+}
+.placement-nav-dot {
+  display: none;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.55;
+  flex-shrink: 0;
+}
+.placement-nav-link.is-active .placement-nav-dot {
+  opacity: 1;
+  background: #D27918;
+  box-shadow: 0 0 10px rgba(210, 121, 24, 0.55);
+}
+.placement-sidebar.is-collapsed .placement-nav-link.is-icon {
+  justify-content: center;
+  padding-inline: 0.55rem;
+}
+.placement-sidebar.is-collapsed .placement-nav-dot {
+  display: block;
+}
+.placement-sidebar.is-collapsed .placement-nav-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .placement-sidebar {
+    transition: none !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

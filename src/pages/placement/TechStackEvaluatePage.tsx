@@ -30,7 +30,7 @@ import {
 } from '@/api/placement/techSkills'
 import { canManageStudentTechStack, canManageSkillMaster } from '@/lib/placementPermissions'
 import { useAuth } from '@/hooks/useAuth'
-import { PassOutYearFilterBar, usePassOutYearFilter } from '@/lib/placementYearFilter'
+import { usePassOutYearFilter } from '@/lib/placementYearFilter'
 
 export function TechStackEvaluatePage() {
   const { placementRole } = useAuth()
@@ -185,7 +185,6 @@ export function TechStackEvaluatePage() {
       ) : (
         <PlacementPageStack>
           <PlacementAlerts error={error} success={message} />
-          <PassOutYearFilterBar value={year} onChange={setYear} />
 
           {loading ? (
             <p className="text-sm text-muted-foreground">Loading…</p>

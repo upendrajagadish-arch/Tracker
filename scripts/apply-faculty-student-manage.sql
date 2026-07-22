@@ -24,10 +24,12 @@ BEGIN
   IF r = 'admin' THEN RETURN true; END IF;
   CASE perm
     WHEN 'students:view' THEN RETURN r IN ('tpo', 'faculty', 'interviewer');
-    WHEN 'students:create' THEN RETURN r IN ('tpo', 'faculty');
+    WHEN '  students:create: THEN RETURN r IN ('tpo', 'faculty');
     WHEN 'students:update' THEN RETURN r IN ('tpo', 'faculty');
     WHEN 'students:import' THEN RETURN r IN ('tpo', 'faculty');
     WHEN 'students:export' THEN RETURN r = 'tpo';
+    WHEN 'students:delete' THEN RETURN r IN ('tpo');
+
     WHEN 'reports:view' THEN RETURN r IN ('tpo', 'faculty');
     WHEN 'reports:export' THEN RETURN r = 'tpo';
     WHEN 'companies:manage' THEN RETURN r = 'tpo';

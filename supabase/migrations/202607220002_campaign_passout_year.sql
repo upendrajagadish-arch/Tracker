@@ -63,7 +63,7 @@ CREATE OR REPLACE FUNCTION public.submit_public_campaign_registration(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   campaign_status text;
@@ -168,7 +168,7 @@ BEGIN
     program_label := raw_program;
   END IF;
 
-  share_tok := encode(gen_random_bytes(24), 'hex');
+  share_tok := replace(gen_random_uuid()::text || gen_random_uuid()::text, '-', '');
 
   BEGIN
     INSERT INTO public.student_profiles (
@@ -206,10 +206,14 @@ BEGIN
       CASE WHEN allowed ? 'branch' THEN COALESCE(p_payload->>'branch', '') ELSE '' END,
       CASE
         WHEN program_label <> '' THEN program_label
-        WHEN academic_label <> '' THEN academic_label
+        WHEN parsed_grad IS NOT NULL THEN parsed_grad::text
         ELSE COALESCE(p_payload->>'batch', '')
       END,
-      CASE WHEN academic_label <> '' THEN academic_label ELSE COALESCE(p_payload->>'academicBatch', p_payload->>'academic_batch', '') END,
+      CASE
+        WHEN academic_label <> '' THEN academic_label
+        WHEN parsed_grad IS NOT NULL THEN (parsed_grad - 4)::text || '-' || parsed_grad::text
+        ELSE COALESCE(p_payload->>'academicBatch', p_payload->>'academic_batch', '')
+      END,
       COALESCE(program_label, ''),
       parsed_admission,
       parsed_grad,

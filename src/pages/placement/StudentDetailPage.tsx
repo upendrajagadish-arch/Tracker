@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useParams } from '@tanstack/react-router'
+import { useNavigate, useParams } from '@tanstack/react-router'
+import { Trash2 } from 'lucide-react'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { PlacementLink } from '@/components/placement/PlacementLink'
 import { Button } from '@/components/ui/button'
@@ -19,7 +20,7 @@ import {
   PlacementSectionCard,
   formatEnumLabel,
 } from '@/components/placement/PlacementUi'
-import { getStudent } from '@/api/placement/students'
+import { getStudent, deleteStudent } from '@/api/placement/students'
 import {
   ensureStudentCodingProfile,
   getStudentCodingSnapshot,
@@ -90,6 +91,7 @@ function snapshotStatusLabel(snapshot: StudentCodingSnapshotRow | null, syncing:
 }
 
 export function StudentDetailPage() {
+  const navigate = useNavigate()
   const { id } = useParams({ strict: false }) as { id: string }
   const { base, role } = usePlacementPaths()
   const canManage = canManageStudents(role)
@@ -107,6 +109,7 @@ export function StudentDetailPage() {
   const [syncingProfile, setSyncingProfile] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [publicShareUrl, setPublicShareUrl] = useState<string | null>(null)
   const [downloadingPdf, setDownloadingPdf] = useState(false)
   const canShare = hasPermission(role, 'students:update')
@@ -261,6 +264,36 @@ export function StudentDetailPage() {
                   {canManage && base ? (
                     <Button asChild variant="outline" size="sm">
                       <PlacementLink href={`${base}/students/$id/edit`} params={{ id }}>Edit profile</PlacementLink>
+                    </Button>
+                  ) : null}
+                  {canManage ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="text-destructive hover:bg-destructive/10"
+                      disabled={deleting}
+                      onClick={() => {
+                        if (!student) return
+                        const ok = window.confirm(
+                          `Delete student profile for ${student.full_name} (${student.roll_number})? They will be removed from the active tracker.`,
+                        )
+                        if (!ok) return
+                        setDeleting(true)
+                        void deleteStudent(student.id)
+                          .then(() => {
+                            if (base) {
+                              void navigate({ to: `${base}/students` as never })
+                            }
+                          })
+                          .catch((e) => {
+                            setError(e instanceof Error ? e.message : 'Failed to delete student')
+                            setDeleting(false)
+                          })
+                      }}
+                    >
+                      <Trash2 className="size-3.5" />
+                      {deleting ? 'Deleting…' : 'Delete'}
                     </Button>
                   ) : null}
                   {canShare ? (

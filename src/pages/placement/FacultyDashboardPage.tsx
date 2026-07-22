@@ -29,7 +29,6 @@ import {
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
 import { TrainingProgramCards } from '@/components/placement/TrainingProgramCards'
-import { WorkspaceTabs } from '@/components/placement/WorkspaceTabs'
 import {
   LuxuryBarChart,
   LuxuryDonutChart,
@@ -41,15 +40,19 @@ import {
   resolveStudentGraduationYear,
   resolveStudentTrainingAssignment,
   type TrainingProgramId,
+  type TrainingYear,
 } from '@/lib/trainingPrograms'
+import { usePassOutYearFilter, studentMatchesPassOutYear } from '@/lib/placementYearFilter'
 import { tableSectionExport } from '@/lib/analyticsExports'
 
 export function FacultyDashboardPage() {
   const { base } = usePlacementPaths()
+  const { year, setYear, graduationYear } = usePassOutYearFilter()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [rollSearch, setRollSearch] = useState('')
   const [appliedRoll, setAppliedRoll] = useState('')
+  const [sectionFilter, setSectionFilter] = useState<string | undefined>()
   const [students, setStudents] = useState<Awaited<ReturnType<typeof listStudents>>['data']>([])
   const [campaignSummary, setCampaignSummary] = useState<Awaited<
     ReturnType<typeof getCampaignSummary>
@@ -62,21 +65,25 @@ export function FacultyDashboardPage() {
       const [result, summary] = await Promise.all([
         listStudents({
           page: 1,
-          limit: 100,
+          limit: 500,
           orderBy: 'full_name',
           orderAscending: true,
           q: appliedRoll || undefined,
+          graduationYear,
+          section: sectionFilter,
         }),
         getCampaignSummary().catch(() => null),
       ])
-      setStudents(result.data)
+      setStudents(
+        result.data.filter((student) => studentMatchesPassOutYear(student, year)),
+      )
       setCampaignSummary(summary)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load registered students')
     } finally {
       setLoading(false)
     }
-  }, [appliedRoll])
+  }, [appliedRoll, graduationYear, sectionFilter, year])
 
   useEffect(() => {
     void load()
@@ -99,10 +106,7 @@ export function FacultyDashboardPage() {
 
   return (
     <PlacementShell title="Faculty Dashboard">
-      <WorkspaceTabs active="placement" />
       <PlacementPageHeader
-        title="Faculty Dashboard"
-        description="Registered students from shared campaign links — open Ignite, Pinnacle, or Connect for program details, or search any roll number."
         actions={
           base ? (
             <Button asChild size="sm">
@@ -116,7 +120,11 @@ export function FacultyDashboardPage() {
         <PlacementAlerts error={error} />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <PlacementStatCard label="Students on page" value={students.length} hint="Matching search" />
+          <PlacementStatCard
+            label={year === 'all' ? 'Students on page' : `${year} students`}
+            value={students.length}
+            hint={appliedRoll ? 'Matching search' : 'Active in current year scope'}
+          />
           <PlacementStatCard label="Campaign registered" value={registeredCount} hint="Via shared link" />
           {TRAINING_PROGRAMS.map((program) => (
             <PlacementStatCard
@@ -166,13 +174,16 @@ export function FacultyDashboardPage() {
         ) : null}
 
         <TrainingProgramCards
+          selectedYear={year === 'all' ? 'all' : (Number(year) as TrainingYear)}
+          onYearChange={(next) => {
+            setYear(next === 'all' ? 'all' : String(next) as typeof year)
+            setSectionFilter(undefined)
+          }}
           onFilter={(filter) => {
             setRollSearch('')
             setAppliedRoll('')
-            if (base && filter.section) {
-              // Student Tracker deep-link via existing filter flow is handled on that page;
-              // keep dashboard focused on registrations.
-            }
+            setYear(filter.year === 'all' ? 'all' : String(filter.year) as typeof year)
+            setSectionFilter(filter.section)
           }}
         />
 
@@ -227,7 +238,7 @@ export function FacultyDashboardPage() {
         >
           {students.length ? (
             <PlacementTableCard
-              title="Registered student details"
+              title={year === 'all' ? 'Registered student details' : `Registered students · ${year}`}
               count={students.length}
               exportSection={tableSectionExport(
                 'Faculty registered students',

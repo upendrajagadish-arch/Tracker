@@ -39,20 +39,58 @@ export function pinnacleBatchLabel(batch: PinnacleBatchNumber): string {
   return `Batch ${batch}`
 }
 
-/** Graduation year from profile fields (prefers graduation_year, then academic batch end year). */
+/** Graduation / pass-out year from profile fields.
+ * Pass-out year is the dashboard cohort key (Ignite/Pinnacle/Connect can come later).
+ * Priority: explicit graduation_year → academic_batch → non-program batch label → roll fallback.
+ * Never move a student from their chosen pass-out year to another year via roll inference.
+ */
 export function resolveStudentGraduationYear(student: {
   graduation_year?: number | null
   academic_batch?: string | null
   batch?: string | null
+  roll_number?: string | null
 }): number | null {
-  if (student.graduation_year != null && Number.isFinite(Number(student.graduation_year))) {
-    return Number(student.graduation_year)
+  const validPassOut = (year: number | null | undefined): number | null => {
+    if (year == null || !Number.isFinite(Number(year))) return null
+    const value = Number(year)
+    if (value < 2027 || value > 2035) return null
+    return value
   }
-  const academic = String(student.academic_batch || student.batch || '').trim()
-  const range = academic.match(/^(\d{4})\s*[-–]\s*(\d{4})$/)
-  if (range) return Number(range[2])
-  const yearOnly = academic.match(/^(\d{4})$/)
-  if (yearOnly) return Number(yearOnly[1])
+
+  const parsePassOutFromLabel = (raw: string): number | null => {
+    const value = raw.trim()
+    if (!value) return null
+    // Training program names are not pass-out years.
+    if (/\b(ignite|pinnacle|connect)\b/i.test(value)) return null
+    const range = value.match(/^(\d{4})\s*[-–]\s*(\d{4})$/)
+    if (range) return validPassOut(Number(range[2]))
+    const yearOnly = value.match(/^(\d{4})$/)
+    if (yearOnly) return validPassOut(Number(yearOnly[1]))
+    return null
+  }
+
+  const fromGraduation = validPassOut(
+    student.graduation_year != null && Number.isFinite(Number(student.graduation_year))
+      ? Number(student.graduation_year)
+      : null,
+  )
+  if (fromGraduation != null) return fromGraduation
+
+  const fromAcademic = parsePassOutFromLabel(String(student.academic_batch || ''))
+  if (fromAcademic != null) return fromAcademic
+
+  const fromBatch = parsePassOutFromLabel(String(student.batch || ''))
+  if (fromBatch != null) return fromBatch
+
+  const roll = String(student.roll_number || '').trim().toUpperCase()
+  const rollMatch = roll.match(/^(\d{2})[A-Z]/)
+  if (rollMatch) {
+    const admission = 2000 + Number(rollMatch[1])
+    if (admission >= 2018 && admission <= 2032) {
+      return validPassOut(admission + 4)
+    }
+  }
+
   return null
 }
 

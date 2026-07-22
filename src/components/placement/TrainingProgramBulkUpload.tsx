@@ -145,8 +145,8 @@ export function TrainingProgramBulkUploadDialog({
               Bulk upload · {trainingProgramLabel(program)} · {year}
             </h3>
             <p className="text-xs text-muted-foreground">
-              Students are assigned to <span className="font-medium text-foreground">{sectionLabel}</span>
-              {' '}and pass-out year {year}. Existing roll numbers are updated into this batch.
+              New students are created in pass-out year {year}. Existing students already in another
+              pass-out year are skipped — they stay in their own year dashboard.
             </p>
           </div>
           <Button type="button" variant="ghost" size="icon" onClick={onClose} aria-label="Close bulk upload">

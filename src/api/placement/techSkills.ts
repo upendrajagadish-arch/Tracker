@@ -4,6 +4,7 @@ import {
   classifyTechStackBadgeFromSkills,
   techStackBadgePercent,
 } from '@/lib/techStackBadge'
+import { resolveStudentGraduationYear } from '@/lib/trainingPrograms'
 import type { Database } from '@/types/supabase'
 
 export type TechSkillRow = Database['public']['Tables']['tech_skills']['Row']
@@ -531,11 +532,7 @@ function rowMatchesFilters(row: TechStackStudentRow, filters: TechStackFilters) 
   if (filters.verificationStatus && !row.skills.some((skill) => skill.verification_status === filters.verificationStatus)) return false
   if (filters.roleInterest && !row.roleInterests.some((interest) => interest.role_name === filters.roleInterest)) return false
   if (filters.graduationYear != null) {
-    const year =
-      row.student.graduation_year != null
-        ? Number(row.student.graduation_year)
-        : Number(String(row.student.academic_batch || row.student.batch || '').match(/(\d{4})\s*$/)?.[1] ?? NaN)
-    if (year !== filters.graduationYear) return false
+    if (resolveStudentGraduationYear(row.student) !== filters.graduationYear) return false
   }
   return true
 }

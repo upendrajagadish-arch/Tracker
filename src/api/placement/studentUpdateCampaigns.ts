@@ -413,18 +413,33 @@ export async function getPublicCampaignRegistrationForm(campaignId: string): Pro
 export async function submitPublicCampaignRegistration(
   campaignId: string,
   payload: Record<string, unknown>,
-): Promise<{ ok: boolean; error?: string; studentProfileId?: string }> {
+): Promise<{ ok: boolean; error?: string; studentProfileId?: string; updated?: boolean }> {
   const client = requireSupabase()
   const { data, error } = await client.rpc('submit_public_campaign_registration', {
     p_campaign_id: campaignId,
     p_payload: payload as Json,
   })
-  if (error) throw error
-  const result = (data ?? {}) as { ok?: boolean; error?: string; studentProfileId?: string }
+  if (error) {
+    const message = error.message || 'Registration failed'
+    // PostgREST maps missing SQL functions (e.g. gen_random_bytes) to HTTP 404.
+    if (/gen_random_bytes|schema cache|could not find the function|42883/i.test(message)) {
+      throw new Error(
+        'Registration is temporarily unavailable (database function needs a small update). Ask placement staff to apply scripts/fix-registration-gen-random-bytes.sql and scripts/allow-registration-upsert-by-roll.sql.',
+      )
+    }
+    throw error
+  }
+  const result = (data ?? {}) as {
+    ok?: boolean
+    error?: string
+    studentProfileId?: string
+    updated?: boolean
+  }
   return {
     ok: Boolean(result.ok),
     error: result.error,
     studentProfileId: result.studentProfileId,
+    updated: Boolean(result.updated),
   }
 }
 

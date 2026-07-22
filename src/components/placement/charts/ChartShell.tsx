@@ -19,7 +19,7 @@ export function MeasuredChart({
     const el = ref.current
     if (!el) return
     const update = (w: number) => {
-      if (w > 0) setWidth(w)
+      if (w > 0) setWidth(Math.floor(w))
     }
     update(el.getBoundingClientRect().width)
     const ro = new ResizeObserver((entries) => update(entries[0]?.contentRect.width ?? 0))
@@ -28,7 +28,11 @@ export function MeasuredChart({
   }, [])
 
   return (
-    <div ref={ref} className={cn('w-full', className)} style={{ height }}>
+    <div
+      ref={ref}
+      className={cn('relative min-w-0 w-full max-w-full overflow-hidden', className)}
+      style={{ height }}
+    >
       {width > 0 ? children(width) : null}
     </div>
   )
@@ -50,7 +54,7 @@ export function ChartPanel({
   return (
     <Card
       className={cn(
-        'relative overflow-hidden border-soft bg-gradient-to-b from-[#14181E] to-[#0E1217] shadow-[0_0_0_1px_rgba(210,121,24,0.08),0_22px_50px_-30px_rgba(0,0,0,0.85)] transition duration-300 hover:shadow-[0_0_0_1px_rgba(210,121,24,0.18),0_28px_60px_-28px_rgba(210,121,24,0.25)]',
+        'relative min-w-0 w-full max-w-full overflow-hidden border-soft bg-gradient-to-b from-[#14181E] to-[#0E1217] shadow-[0_0_0_1px_rgba(210,121,24,0.08),0_22px_50px_-30px_rgba(0,0,0,0.85)] transition duration-300 hover:shadow-[0_0_0_1px_rgba(210,121,24,0.18),0_28px_60px_-28px_rgba(210,121,24,0.25)]',
         className,
       )}
     >
@@ -66,9 +70,9 @@ export function ChartPanel({
         aria-hidden
         className="pointer-events-none absolute -bottom-24 -left-10 size-40 rounded-full bg-[#0ECB81]/6 blur-3xl"
       />
-      <CardContent className="relative flex h-full flex-col pt-1">
+      <CardContent className="relative flex h-full min-w-0 flex-col pt-1">
         <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
+          <div className="min-w-0">
             <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-primary/80">Analytics</p>
             <h3 className="mt-1 font-heading text-[16px] font-semibold tracking-tight text-foreground">
               {title}
@@ -79,7 +83,7 @@ export function ChartPanel({
           </div>
           {actions ? <div className="shrink-0">{actions}</div> : null}
         </div>
-        {children}
+        <div className="min-w-0 w-full max-w-full">{children}</div>
       </CardContent>
     </Card>
   )

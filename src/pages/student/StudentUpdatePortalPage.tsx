@@ -88,7 +88,7 @@ function RegistrationFields({
   return (
     <>
       <label className={fieldClass('roll_number')}>
-        <span className="text-muted-foreground">Roll number *</span>
+        <span className="text-muted-foreground">Roll number * (unique — resubmit to update)</span>
         <Input className="mt-1 border-border bg-card" required value={form.rollNumber} onChange={(e) => set('rollNumber', e.target.value)} />
       </label>
       <label className={fieldClass('full_name')}>
@@ -108,11 +108,12 @@ function RegistrationFields({
         <Input className="mt-1 border-border bg-card" value={form.branch} onChange={(e) => set('branch', e.target.value)} />
       </label>
       <label className={fieldClass('batch')}>
-        <span className="text-muted-foreground">Year of pass out</span>
+        <span className="text-muted-foreground">Year of pass out *</span>
         <select
           className="mt-1 flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm"
           value={form.batch}
           onChange={(e) => set('batch', e.target.value)}
+          required={isAllowed('batch') || isAllowed('academic_batch')}
         >
           <option value="">Select year</option>
           <option value="2027">2027</option>
@@ -122,14 +123,13 @@ function RegistrationFields({
         </select>
       </label>
       <label className={showTrainingProgram ? 'text-sm' : 'hidden'}>
-        <span className="text-muted-foreground">Training program (batch name) *</span>
+        <span className="text-muted-foreground">Training program (optional for now)</span>
         <select
           className="mt-1 flex h-9 w-full rounded-md border border-border bg-card px-3 text-sm"
           value={form.trainingProgram}
           onChange={(e) => set('trainingProgram', e.target.value)}
-          required={showTrainingProgram}
         >
-          <option value="">Select Ignite / Pinnacle / Connect</option>
+          <option value="">Skip for now — Ignite / Pinnacle / Connect later</option>
           <option value="Ignite">Ignite</option>
           <option value="Pinnacle">Pinnacle</option>
           <option value="Connect">Connect</option>
@@ -283,6 +283,10 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
       }
       const allowed = new Set(meta.allowlistedFields)
       const has = (field: string) => allowed.has(field)
+      if ((has('batch') || has('academic_batch')) && !form.batch.trim()) {
+        setError('Select year of pass out. Students are placed into that year dashboard only.')
+        return
+      }
       const selectedPlatformHandles = Object.fromEntries(
         Object.entries(form.platformHandles).filter(
           ([platform]) => has('platform_handles') || has(`platform_handles.${platform}`),
@@ -339,7 +343,11 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
         }
       }
 
-      setSuccess('Registration successful. Your profile and resume (if uploaded) are now in the placement application.')
+      setSuccess(
+        result.updated
+          ? 'Details updated. Your newest information is saved for this roll number.'
+          : 'Registration successful. Your profile and resume (if uploaded) are now in the placement application.',
+      )
       setForm(emptyRegistrationForm)
       setResumeFile(null)
       setFileInputKey((key) => key + 1)
@@ -384,7 +392,8 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
           <p className="text-[12px] font-semibold uppercase tracking-wide text-muted">{BRAND_NAME}</p>
           <h1 className="mt-2 font-heading text-[28px] font-bold tracking-tight">{meta.campaignTitle}</h1>
           <p className="mt-2 text-[14px] text-secondary">
-            {meta.campaignDescription || 'Fill in your details below to register. Your profile will appear in the placement application automatically.'}
+            {meta.campaignDescription ||
+              'Fill in your details below to register. Roll number is unique — submit again with the same roll to correct any wrong details.'}
           </p>
           {meta.expiresAt ? (
             <p className="mt-2 text-[12px] text-muted">Link expires {new Date(meta.expiresAt).toLocaleString()}.</p>

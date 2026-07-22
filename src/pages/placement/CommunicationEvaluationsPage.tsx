@@ -32,7 +32,7 @@ import {
 } from '@/api/placement/communicationEvaluations'
 import { canEvaluateCommunication, canExportReports, canViewCommunicationModule } from '@/lib/placementNavigation'
 import { useAuth } from '@/hooks/useAuth'
-import { PassOutYearFilterBar, usePassOutYearFilter } from '@/lib/placementYearFilter'
+import { usePassOutYearFilter } from '@/lib/placementYearFilter'
 
 export function CommunicationEvaluationsPage() {
   const { placementRole } = useAuth()
@@ -139,7 +139,6 @@ export function CommunicationEvaluationsPage() {
       ) : (
       <PlacementPageStack>
         <PlacementAlerts error={error} />
-        <PassOutYearFilterBar value={year} onChange={setYear} />
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <PlacementStatCard label="Total evaluated" value={summary.totalEvaluated} />

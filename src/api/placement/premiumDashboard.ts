@@ -13,7 +13,7 @@ import {
   type TechStackBadge,
 } from '@/lib/techStackBadge'
 import type { Database, PlacementRole } from '@/types/supabase'
-import { TRAINING_YEARS } from '@/lib/trainingPrograms'
+import { TRAINING_YEARS, resolveStudentGraduationYear } from '@/lib/trainingPrograms'
 
 export type PlacementEventRow = Database['public']['Tables']['placement_events']['Row']
 export type CompanyShareLinkRow = Database['public']['Tables']['company_share_links']['Row']
@@ -137,11 +137,13 @@ export function resolveStudentGraduationBatch(student: {
   graduation_year: number | null
   academic_batch: string | null
   batch: string
+  roll_number?: string | null
 }): string {
-  if (student.graduation_year) return String(student.graduation_year)
+  const year = resolveStudentGraduationYear(student)
+  if (year != null) return String(year)
   const academicEnd = student.academic_batch?.match(/(\d{4})\s*$/)?.[1]
   if (academicEnd) return academicEnd
-  const batchEnd = student.batch?.match(/(\d{4})\s*$/)?.[1]
+  const batchEnd = String(student.batch || '').match(/(\d{4})\s*$/)?.[1]
   return batchEnd || student.batch || 'Unassigned'
 }
 
@@ -171,9 +173,33 @@ function scoreFromLevel(level: string): number {
 async function optionalRows<T>(
   query: PromiseLike<{ data: T[] | null; error: { message?: string } | null }>,
 ): Promise<T[]> {
-  const { data, error } = await query
-  if (error) throw new Error(error.message || 'Dashboard query failed')
-  return data ?? []
+  try {
+    const { data, error } = await query
+    if (error) {
+      console.warn('[dashboard] optional query failed:', error.message)
+      return []
+    }
+    return data ?? []
+  } catch (error) {
+    console.warn('[dashboard] optional query threw:', error)
+    return []
+  }
+}
+
+async function optionalRpc<T>(
+  query: PromiseLike<{ data: T | null; error: { message?: string } | null }>,
+): Promise<T | null> {
+  try {
+    const { data, error } = await query
+    if (error) {
+      console.warn('[dashboard] optional rpc failed:', error.message)
+      return null
+    }
+    return data ?? null
+  } catch (error) {
+    console.warn('[dashboard] optional rpc threw:', error)
+    return null
+  }
 }
 
 type DashboardStudentRow = Pick<
@@ -215,15 +241,23 @@ async function listAllDashboardTechRows() {
     tech_skill_id: string
     proficiency_level: string
   }> = []
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await client
-      .from('student_tech_skills')
-      .select('student_profile_id,tech_skill_id,proficiency_level')
-      .order('id')
-      .range(from, from + 999)
-    if (error) throw error
-    rows.push(...(data ?? []))
-    if (!data || data.length < 1000) return rows
+  try {
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await client
+        .from('student_tech_skills')
+        .select('student_profile_id,tech_skill_id,proficiency_level')
+        .order('id')
+        .range(from, from + 999)
+      if (error) {
+        console.warn('[dashboard] tech skills query failed:', error.message)
+        return rows
+      }
+      rows.push(...(data ?? []))
+      if (!data || data.length < 1000) return rows
+    }
+  } catch (error) {
+    console.warn('[dashboard] tech skills query threw:', error)
+    return rows
   }
 }
 
@@ -271,18 +305,26 @@ async function listAllDashboardCommunicationRows() {
   const client = requireSupabase()
   const parameterColumns = COMMUNICATION_PARAMETERS.map((param) => param.key).join(',')
   const rows: CommunicationEvaluationRow[] = []
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await client
-      .from('communication_evaluations')
-      .select(
-        `student_profile_id,percentage,total_score,grade,evaluation_date,presentation_skills_total,${parameterColumns}`,
-      )
-      .eq('is_active', true)
-      .order('evaluation_date', { ascending: false })
-      .range(from, from + 999)
-    if (error) throw error
-    rows.push(...((data ?? []) as unknown as CommunicationEvaluationRow[]))
-    if (!data || data.length < 1000) return rows
+  try {
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await client
+        .from('communication_evaluations')
+        .select(
+          `student_profile_id,percentage,total_score,grade,evaluation_date,presentation_skills_total,${parameterColumns}`,
+        )
+        .eq('is_active', true)
+        .order('evaluation_date', { ascending: false })
+        .range(from, from + 999)
+      if (error) {
+        console.warn('[dashboard] communication query failed:', error.message)
+        return rows
+      }
+      rows.push(...((data ?? []) as unknown as CommunicationEvaluationRow[]))
+      if (!data || data.length < 1000) return rows
+    }
+  } catch (error) {
+    console.warn('[dashboard] communication query threw:', error)
+    return rows
   }
 }
 
@@ -299,8 +341,8 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
     links,
     companies,
     activities,
-    leaderboardResultRaw,
-    dashboardAggregateResult,
+    leaderboardData,
+    dashboardAggregateData,
   ] = await Promise.all([
     listAllDashboardStudents(),
     listAllDashboardTechRows(),
@@ -332,17 +374,17 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
         .order('created_at', { ascending: false })
         .limit(8),
     ),
-    client.rpc('get_public_leaderboard', {
-      p_search: null,
-      p_limit: batch === 'all' ? 8 : 200,
-      p_offset: 0,
-    }),
-    client.rpc('get_placement_dashboard', { p_batch: batch }),
+    optionalRpc(
+      client.rpc('get_public_leaderboard', {
+        p_search: null,
+        p_limit: batch === 'all' ? 8 : 200,
+        p_offset: 0,
+        p_year: batch === 'all' ? null : Number(batch),
+      }),
+    ),
+    optionalRpc(client.rpc('get_placement_dashboard', { p_batch: batch })),
   ])
 
-  if (leaderboardResultRaw.error) throw leaderboardResultRaw.error
-  if (dashboardAggregateResult.error) throw dashboardAggregateResult.error
-  const leaderboardResult = leaderboardResultRaw
   const availableBatches = Array.from(
     new Set([
       ...TRAINING_YEARS.map(String),
@@ -355,25 +397,24 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
       : allStudents.filter((student) => resolveStudentGraduationBatch(student) === batch)
   const studentIds = new Set(students.map((student) => student.id))
   const rpcAggregate =
-    dashboardAggregateResult.data &&
-    typeof dashboardAggregateResult.data === 'object' &&
-    !Array.isArray(dashboardAggregateResult.data)
-      ? (dashboardAggregateResult.data as Record<string, unknown>)
+    dashboardAggregateData &&
+    typeof dashboardAggregateData === 'object' &&
+    !Array.isArray(dashboardAggregateData)
+      ? (dashboardAggregateData as Record<string, unknown>)
       : null
 
   const placed = students.filter((student) =>
-    ['PLACED', 'OFFERED'].includes(student.placement_status.toUpperCase()),
+    ['PLACED', 'OFFERED'].includes(String(student.placement_status || '').toUpperCase()),
   ).length
   const readiness = students.map((student) => Number(student.readiness_score) || 0)
   const localEligibility = placementEligibilityCounts(readiness)
-  const above60 = Number(rpcAggregate?.above60 ?? localEligibility.above60)
-  const above70 = Number(rpcAggregate?.above70 ?? localEligibility.above70)
-  const above80 = Number(rpcAggregate?.above80 ?? localEligibility.above80)
-  const aggregatePlaced = Number(rpcAggregate?.placed ?? placed)
-  const aggregateTotal = Number(rpcAggregate?.totalStudents ?? students.length)
-  const placementRate = Number(
-    rpcAggregate?.placementPercentage ?? placementPercentage(aggregatePlaced, aggregateTotal),
-  )
+  // Prefer live student rows so newly registered students always appear in totals.
+  const aggregateTotal = Math.max(students.length, Number(rpcAggregate?.totalStudents ?? 0))
+  const above60 = Math.max(localEligibility.above60, Number(rpcAggregate?.above60 ?? 0))
+  const above70 = Math.max(localEligibility.above70, Number(rpcAggregate?.above70 ?? 0))
+  const above80 = Math.max(localEligibility.above80, Number(rpcAggregate?.above80 ?? 0))
+  const aggregatePlaced = Math.max(placed, Number(rpcAggregate?.placed ?? 0))
+  const placementRate = placementPercentage(aggregatePlaced, aggregateTotal)
 
   const distribution = [0, 20, 40, 60, 80].map(
     (start) => readiness.filter((score) => score >= start && score < start + 20).length,
@@ -448,8 +489,8 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
   )
 
   const leaderboardPayload =
-    leaderboardResult.data && typeof leaderboardResult.data === 'object'
-      ? (leaderboardResult.data as { rows?: Array<Record<string, unknown>> })
+    leaderboardData && typeof leaderboardData === 'object'
+      ? (leaderboardData as { rows?: Array<Record<string, unknown>> })
       : {}
 
   const skillsByStudent = new Map<string, Array<{ proficiency_level: string }>>()
@@ -557,22 +598,43 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
       description: activity.description,
       createdAt: activity.created_at,
     })),
-    leaderboard: (leaderboardPayload.rows ?? [])
-      .filter((row) => {
-        if (batch === 'all') return true
-        const year =
-          row.graduationYear != null
-            ? String(row.graduationYear)
-            : String(row.academicBatch ?? row.batch ?? '').match(/(\d{4})\s*$/)?.[1] ?? ''
-        return year === batch
-      })
-      .slice(0, 8)
-      .map((row, index) => ({
-        rank: Number(row.rank ?? index + 1),
-        fullName: String(row.fullName ?? ''),
-        rollNumber: String(row.rollNumber ?? ''),
-        fameXp: Number(row.fameXp ?? row.readinessScore ?? 0),
-      })),
+    leaderboard: (() => {
+      const fromRpc = (leaderboardPayload.rows ?? [])
+        .filter((row) => {
+          if (batch === 'all') return true
+          const year = resolveStudentGraduationYear({
+            graduation_year:
+              row.graduationYear != null && Number.isFinite(Number(row.graduationYear))
+                ? Number(row.graduationYear)
+                : null,
+            academic_batch: row.academicBatch == null ? null : String(row.academicBatch),
+            batch: row.batch == null ? null : String(row.batch),
+            roll_number: row.rollNumber == null ? null : String(row.rollNumber),
+          })
+          return year != null && String(year) === batch
+        })
+        .slice(0, 8)
+        .map((row, index) => ({
+          rank: Number(row.rank ?? index + 1),
+          fullName: String(row.fullName ?? ''),
+          rollNumber: String(row.rollNumber ?? ''),
+          fameXp: Number(row.fameXp ?? row.readinessScore ?? 0),
+        }))
+      if (fromRpc.length) return fromRpc
+      return [...students]
+        .sort((a, b) => {
+          const scoreDiff = (Number(b.readiness_score) || 0) - (Number(a.readiness_score) || 0)
+          if (scoreDiff !== 0) return scoreDiff
+          return a.roll_number.localeCompare(b.roll_number, undefined, { numeric: true })
+        })
+        .slice(0, 8)
+        .map((student, index) => ({
+          rank: index + 1,
+          fullName: student.full_name,
+          rollNumber: student.roll_number,
+          fameXp: Number(student.readiness_score) || 0,
+        }))
+    })(),
     studentDetails: students.map((student) => ({
       id: student.id,
       fullName: student.full_name,

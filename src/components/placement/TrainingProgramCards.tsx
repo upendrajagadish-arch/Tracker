@@ -23,10 +23,11 @@ import {
   type TrainingProgramId,
   type TrainingYear,
 } from '@/lib/trainingPrograms'
+import { usePassOutYearFilter } from '@/lib/placementYearFilter'
 
 export interface TrainingProgramFilter {
-  year: TrainingYear
-  program: TrainingProgramId
+  year: TrainingYear | 'all'
+  program?: TrainingProgramId
   pinnacleBatch?: PinnacleBatchNumber
   section?: string
 }
@@ -85,13 +86,14 @@ function studentMetrics(students: ProgramBatchStudent[]) {
   return { placed, avgReadiness }
 }
 
-function filterYearStudents(students: ProgramBatchStudent[], year: TrainingYear) {
+function filterYearStudents(students: ProgramBatchStudent[], year: TrainingYear | 'all') {
+  if (year === 'all') return students
   return students.filter((student) => resolveStudentGraduationYear(student) === year)
 }
 
 function filterProgramStudents(
   students: ProgramBatchStudent[],
-  year: TrainingYear,
+  year: TrainingYear | 'all',
   programId: TrainingProgramId,
 ) {
   return filterYearStudents(students, year).filter((student) => {
@@ -101,6 +103,17 @@ function filterProgramStudents(
       student.academic_batch,
     )
     return assignment.program === programId
+  })
+}
+
+function filterUnassignedStudents(students: ProgramBatchStudent[], year: TrainingYear | 'all') {
+  return filterYearStudents(students, year).filter((student) => {
+    const assignment = resolveStudentTrainingAssignment(
+      student.section,
+      student.batch,
+      student.academic_batch,
+    )
+    return assignment.program == null
   })
 }
 
@@ -330,7 +343,7 @@ function ProgramDashboardModal({
   canBulkUpload?: boolean
   onClose: () => void
   onFilter?: (filter: TrainingProgramFilter) => void
-  onBulkUpload: (pinnacleBatch?: PinnacleBatchNumber | null) => void
+  onBulkUpload?: (pinnacleBatch?: PinnacleBatchNumber | null) => void
 }) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const isPinnacle = program.id === 'pinnacle'
@@ -391,7 +404,7 @@ function ProgramDashboardModal({
             </p>
           </div>
           {canBulkUpload && !isPinnacle ? (
-            <Button type="button" size="sm" variant="outline" onClick={() => onBulkUpload(null)}>
+            <Button type="button" size="sm" variant="outline" onClick={() => onBulkUpload?.(null)}>
               <Upload className="size-3.5" />
               Bulk upload
             </Button>
@@ -435,7 +448,7 @@ function ProgramDashboardModal({
                     title={pinnacleBatchLabel(batch)}
                     students={rows}
                     accent={program.accent}
-                    onBulkUpload={canBulkUpload ? () => onBulkUpload(batch) : undefined}
+                    onBulkUpload={canBulkUpload ? () => onBulkUpload?.(batch) : undefined}
                     onOpenTracker={
                       onFilter
                         ? () => {
@@ -458,7 +471,7 @@ function ProgramDashboardModal({
               title={`${program.label} students`}
               students={students}
               accent={program.accent}
-              onBulkUpload={canBulkUpload ? () => onBulkUpload(null) : undefined}
+              onBulkUpload={canBulkUpload ? () => onBulkUpload?.(null) : undefined}
               onOpenTracker={
                 onFilter
                   ? () => {
@@ -481,21 +494,30 @@ function ProgramDashboardModal({
 
 export function TrainingProgramCards({
   onFilter,
+  selectedYear,
+  onYearChange,
 }: {
   onFilter?: (filter: TrainingProgramFilter) => void
+  selectedYear?: TrainingYear | 'all'
+  onYearChange?: (year: TrainingYear | 'all') => void
 }) {
   const { role } = usePlacementPaths()
   const canBulkUpload = canImportStudents(role)
+  const { year: sharedYear } = usePassOutYearFilter()
   const [students, setStudents] = useState<ProgramBatchStudent[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [year, setYear] = useState<TrainingYear>(TRAINING_YEARS[0])
   const [openProgramId, setOpenProgramId] = useState<TrainingProgramId | null>(null)
   const [uploadTarget, setUploadTarget] = useState<{
     program: TrainingProgramId
     pinnacleBatch?: PinnacleBatchNumber | null
   } | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [unassignedOpen, setUnassignedOpen] = useState(false)
+
+  const year: TrainingYear | 'all' =
+    selectedYear ??
+    (sharedYear === 'all' ? 'all' : (Number(sharedYear) as TrainingYear))
 
   useEffect(() => {
     let active = true
@@ -504,7 +526,8 @@ export function TrainingProgramCards({
       setError(null)
       try {
         const rows = await listStudentsForTrainingYears([...TRAINING_YEARS])
-        if (active) setStudents(rows)
+        if (!active) return
+        setStudents(rows)
       } catch (e) {
         if (active) setError(e instanceof Error ? e.message : 'Failed to load training programs')
       } finally {
@@ -526,6 +549,11 @@ export function TrainingProgramCards({
     return next
   }, [students, year])
 
+  const unassignedStudents = useMemo(
+    () => filterUnassignedStudents(students, year),
+    [students, year],
+  )
+
   const openProgram = openProgramId
     ? TRAINING_PROGRAMS.find((program) => program.id === openProgramId) ?? null
     : null
@@ -534,38 +562,9 @@ export function TrainingProgramCards({
 
   return (
     <section className="space-y-3">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h2 className="font-heading text-lg font-bold tracking-tight">Training programs</h2>
-          <p className="text-sm text-secondary">
-            Choose a graduation year, then open Ignite, Pinnacle, or Connect. Use Bulk upload on each card to add students batch-wise.
-          </p>
-        </div>
-        {loading ? <p className="text-xs text-muted-foreground">Loading cohort counts…</p> : null}
-      </div>
-
-      <div className="flex w-full max-w-full gap-1 overflow-x-auto rounded-card border border-soft bg-elevated p-1">
-        {TRAINING_YEARS.map((tabYear) => {
-          const active = tabYear === year
-          const total = filterYearStudents(students, tabYear).length
-          return (
-            <button
-              key={tabYear}
-              type="button"
-              onClick={() => setYear(tabYear)}
-              className={`min-w-[5.5rem] flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                active
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-background/60 hover:text-foreground'
-              }`}
-            >
-              <span className="block">{tabYear}</span>
-              <span className={`tnum block text-[10px] ${active ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                {total} students
-              </span>
-            </button>
-          )
-        })}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-heading text-base font-bold tracking-tight">Training programs</h2>
+        {loading ? <p className="text-xs text-muted-foreground">Loading…</p> : null}
       </div>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -577,11 +576,18 @@ export function TrainingProgramCards({
           <ProgramCard
             key={program.id}
             program={program}
-            year={year}
+            year={year === 'all' ? TRAINING_YEARS[0] : year}
             count={counts[program.id]}
-            onOpen={() => setOpenProgramId(program.id)}
+            onOpen={() => {
+              setOpenProgramId(program.id)
+              onFilter?.({
+                year,
+                program: program.id,
+                section: program.label,
+              })
+            }}
             onBulkUpload={
-              canBulkUpload
+              canBulkUpload && year !== 'all'
                 ? () => setUploadTarget({ program: program.id, pinnacleBatch: null })
                 : undefined
             }
@@ -589,7 +595,25 @@ export function TrainingProgramCards({
         ))}
       </div>
 
-      {openProgram ? (
+      {unassignedStudents.length ? (
+        <button
+          type="button"
+          onClick={() => setUnassignedOpen(true)}
+          className="placement-glass flex w-full items-center justify-between gap-3 rounded-2xl border border-dashed border-primary/35 px-4 py-3 text-left transition hover:border-primary/60"
+        >
+          <div>
+            <p className="text-sm font-semibold text-foreground">Unassigned registrants</p>
+            <p className="text-xs text-muted-foreground">
+              {year === 'all' ? 'Pass-out year set — training program later' : `${year} · no training program yet`}
+            </p>
+          </div>
+          <span className="tnum rounded-lg bg-primary/15 px-3 py-1 text-sm font-bold text-binance">
+            {unassignedStudents.length}
+          </span>
+        </button>
+      ) : null}
+
+      {openProgram && year !== 'all' ? (
         <ProgramDashboardModal
           program={openProgram}
           year={year}
@@ -603,7 +627,49 @@ export function TrainingProgramCards({
         />
       ) : null}
 
-      {uploadTarget ? (
+      {openProgram && year === 'all' ? (
+        <ProgramDashboardModal
+          program={openProgram}
+          year={TRAINING_YEARS[0]}
+          students={openStudents}
+          canBulkUpload={false}
+          onClose={() => setOpenProgramId(null)}
+          onFilter={onFilter}
+        />
+      ) : null}
+
+      {unassignedOpen ? (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Unassigned students ${year}`}
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setUnassignedOpen(false)
+          }}
+        >
+          <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-soft bg-card shadow-2xl">
+            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+              <div>
+                <h3 className="font-heading text-lg font-bold">
+                  Pass-out {year === 'all' ? 'All years' : year}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {unassignedStudents.length} students · training program optional
+                </p>
+              </div>
+              <Button type="button" variant="ghost" size="icon" onClick={() => setUnassignedOpen(false)}>
+                <X className="size-4" />
+              </Button>
+            </div>
+            <div className="overflow-y-auto p-4">
+              <StudentPreviewList students={unassignedStudents} showAll />
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {uploadTarget && year !== 'all' ? (
         <TrainingProgramBulkUploadDialog
           key={`${uploadTarget.program}-${uploadTarget.pinnacleBatch ?? 'none'}-${year}`}
           open

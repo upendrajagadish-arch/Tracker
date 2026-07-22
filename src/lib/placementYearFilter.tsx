@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react'
 import { TRAINING_YEARS, resolveStudentGraduationYear, type TrainingYear } from '@/lib/trainingPrograms'
 import { cn } from '@/lib/utils'
 
@@ -40,6 +47,7 @@ export function studentMatchesPassOutYear(
     graduation_year?: number | null
     academic_batch?: string | null
     batch?: string | null
+    roll_number?: string | null
   },
   year: PassOutYearFilter,
 ): boolean {
@@ -47,21 +55,56 @@ export function studentMatchesPassOutYear(
   return resolveStudentGraduationYear(student) === Number(year)
 }
 
-export function usePassOutYearFilter(initial?: PassOutYearFilter) {
-  const [year, setYearState] = useState<PassOutYearFilter>(() => initial ?? readStoredPassOutYearFilter())
+type PassOutYearFilterContextValue = {
+  year: PassOutYearFilter
+  setYear: (year: PassOutYearFilter) => void
+  graduationYear: number | undefined
+}
 
-  useEffect(() => {
-    if (initial) setYearState(initial)
-  }, [initial])
+const PassOutYearFilterContext = createContext<PassOutYearFilterContextValue | null>(null)
+
+export function PassOutYearFilterProvider({ children }: { children: ReactNode }) {
+  const [year, setYearState] = useState<PassOutYearFilter>(() => readStoredPassOutYearFilter())
 
   const setYear = useCallback((next: PassOutYearFilter) => {
     setYearState(next)
     writeStoredPassOutYearFilter(next)
   }, [])
 
-  return { year, setYear, graduationYear: year === 'all' ? undefined : Number(year) }
+  const value = useMemo(
+    () => ({
+      year,
+      setYear,
+      graduationYear: year === 'all' ? undefined : Number(year),
+    }),
+    [year, setYear],
+  )
+
+  return (
+    <PassOutYearFilterContext.Provider value={value}>{children}</PassOutYearFilterContext.Provider>
+  )
 }
 
+export function usePassOutYearFilter(_initial?: PassOutYearFilter) {
+  const ctx = useContext(PassOutYearFilterContext)
+  const [fallbackYear, setFallbackYear] = useState<PassOutYearFilter>(() =>
+    _initial ?? readStoredPassOutYearFilter(),
+  )
+
+  const setFallback = useCallback((next: PassOutYearFilter) => {
+    setFallbackYear(next)
+    writeStoredPassOutYearFilter(next)
+  }, [])
+
+  if (ctx) return ctx
+  return {
+    year: fallbackYear,
+    setYear: setFallback,
+    graduationYear: fallbackYear === 'all' ? undefined : Number(fallbackYear),
+  }
+}
+
+/** Compact year pills — right-aligned, same style as dashboard WorkspaceTabs. */
 export function PassOutYearFilterBar({
   value,
   onChange,
@@ -72,21 +115,24 @@ export function PassOutYearFilterBar({
   className?: string
 }) {
   return (
-    <div className={cn('flex flex-wrap items-center gap-2 rounded-card border border-soft bg-elevated p-2', className)}>
-      <span className="px-2 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-        Pass-out year
-      </span>
+    <div
+      className={cn('ml-auto flex flex-wrap items-center justify-end gap-1.5', className)}
+      role="group"
+      aria-label="Pass-out year"
+    >
       {PASS_OUT_YEAR_FILTERS.map((option) => (
         <button
           key={option}
           type="button"
           onClick={() => onChange(option)}
           className={cn(
-            'rounded-md px-3 py-2 text-sm font-semibold transition',
-            value === option ? 'bg-card text-binance' : 'text-secondary hover:text-foreground',
+            'rounded-md px-2 py-1 text-[11px] font-semibold transition duration-200',
+            value === option
+              ? 'bg-primary/15 text-binance ring-1 ring-primary/35'
+              : 'text-secondary hover:bg-card hover:text-foreground',
           )}
         >
-          {option === 'all' ? 'All years' : option}
+          {option === 'all' ? 'All' : option}
         </button>
       ))}
     </div>

@@ -159,15 +159,15 @@ export const publicLeaderboardRoute = createRoute({
   component: PublicLeaderboardPage,
 })
 
-export const studentUpdatePortalRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: '/student/update/$token',
-  component: StudentUpdatePortalPage,
-})
-
 export const studentUpdateCampaignPortalRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/student/update/campaign/$campaignId',
+  component: StudentUpdatePortalPage,
+})
+
+export const studentUpdatePortalRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/student/update/$token',
   component: StudentUpdatePortalPage,
 })
 
@@ -200,8 +200,8 @@ const routeTree = rootRoute.addChildren([
   ...createPlacementRoutes(rootRoute),
   publicStudentPerformanceRoute,
   publicLeaderboardRoute,
-  studentUpdatePortalRoute,
   studentUpdateCampaignPortalRoute,
+  studentUpdatePortalRoute,
   studentDriveRegistrationRoute,
   publicProfileRoute,
 ])

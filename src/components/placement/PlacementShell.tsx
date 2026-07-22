@@ -1,21 +1,21 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { asPlacementPath } from '@/components/placement/PlacementLink'
-import { LogOut } from 'lucide-react'
+import { ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AppFooter } from '@/components/AppFooter'
 import { PlacementTopBar } from '@/components/placement/PlacementTopBar'
+import { WorkspaceTabs } from '@/components/placement/WorkspaceTabs'
 import { useAuth } from '@/hooks/useAuth'
 import { signOut } from '@/api/savedProfiles'
 import { placementHomeForRole } from '@/lib/placementAuth'
 import { getPlacementNavLinks, getRolePrefix, isPlacementNavActive } from '@/lib/placementNavigation'
 import { isStaffPlacementRole } from '@/lib/placementStaff'
 import { isAllowedStaffLogin } from '@/lib/placementStaffLogins'
+import { PassOutYearFilterProvider } from '@/lib/placementYearFilter'
 import { cn } from '@/lib/utils'
-import { BRAND_NAME } from '@/lib/brand'
 
 interface PlacementShellProps {
   title?: string
@@ -24,6 +24,8 @@ interface PlacementShellProps {
   headerShareUrl?: string | null
   headerShareTitle?: string
 }
+
+const SIDEBAR_KEY = 'codetrace-placement-sidebar-collapsed'
 
 function PlacementMessageCard({
   title,
@@ -53,13 +55,34 @@ function PlacementMessageCard({
 }
 
 export function PlacementShell({
-  title,
+  title: _title,
   children,
   requireRole = true,
 }: PlacementShellProps) {
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { user, placementRole, placementLoading, isLoading, isConfigured, placementProfile } = useAuth()
+  const [collapsed, setCollapsed] = useState(false)
+
+  useEffect(() => {
+    try {
+      setCollapsed(window.localStorage.getItem(SIDEBAR_KEY) === '1')
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev
+      try {
+        window.localStorage.setItem(SIDEBAR_KEY, next ? '1' : '0')
+      } catch {
+        /* ignore */
+      }
+      return next
+    })
+  }
 
   const navLinks = getPlacementNavLinks(placementRole)
   const homePath = placementHomeForRole(placementRole)
@@ -85,7 +108,7 @@ export function PlacementShell({
 
   if (isLoading || placementLoading) {
     return (
-      <div className="flex flex-1 flex-col px-4 py-6 sm:px-6 md:px-8">
+      <div className="flex min-h-screen flex-1 flex-col px-4 py-6 sm:px-6 md:px-8">
         <div className="mx-auto w-full max-w-[1280px] space-y-4">
           <Skeleton className="h-12 w-full rounded-card" />
           <Skeleton className="h-10 w-full max-w-3xl rounded-card" />
@@ -139,24 +162,65 @@ export function PlacementShell({
   }
 
   return (
-    <div className="placement-theme flex min-w-0 flex-1 flex-col overflow-x-clip">
-      <div className="flex min-w-0 flex-1 px-3 py-4 sm:px-5 sm:py-5 xl:px-7">
-        <div className="mx-auto flex min-w-0 w-full max-w-[1440px] gap-4 lg:gap-5">
-          <aside className="sticky top-5 hidden w-56 shrink-0 self-start rounded-card border border-soft bg-card p-3 lg:flex lg:flex-col lg:top-6 lg:w-60">
-            <Link
-              to={asPlacementPath(homePath)}
-              className="mb-4 px-2 font-heading text-[16px] font-bold text-foreground transition-colors hover:text-binance"
-            >
-              Placement
-            </Link>
+    <PassOutYearFilterProvider>
+      <div className="placement-theme flex min-h-screen min-w-0 flex-1 flex-col overflow-x-clip bg-canvas">
+        {/* Full-width logo / search / account bar */}
+        <div className="sticky top-0 z-50 w-full border-b border-soft bg-canvas/95 px-3 py-2 backdrop-blur-md sm:px-4 lg:px-5">
+          <PlacementTopBar
+            base={getRolePrefix(placementRole) ? `${getRolePrefix(placementRole)}/placement` : null}
+          />
+        </div>
 
-            <p className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wide text-muted">
-              Modules
-            </p>
+        {/* Sidebar + content under the top bar */}
+        <div className="flex min-h-0 min-w-0 flex-1">
+          <motion.aside
+            initial={false}
+            animate={{ width: collapsed ? 72 : 240 }}
+            transition={{ type: 'spring', stiffness: 320, damping: 34, mass: 0.85 }}
+            className={cn(
+              'placement-sidebar sticky top-[4.25rem] hidden h-[calc(100vh-4.25rem)] shrink-0 self-start overflow-hidden border-r border-soft bg-card p-3 lg:flex lg:flex-col',
+              collapsed && 'is-collapsed',
+            )}
+          >
+            <div className={cn('mb-4 flex items-center gap-2', collapsed ? 'justify-center' : 'justify-between px-2')}>
+              <AnimatePresence initial={false} mode="wait">
+                {!collapsed ? (
+                  <motion.div
+                    key="brand"
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -8 }}
+                    transition={{ duration: 0.18 }}
+                    className="min-w-0"
+                  >
+                    <Link
+                      to={asPlacementPath(homePath)}
+                      className="block truncate font-heading text-[16px] font-bold text-foreground transition-colors hover:text-binance"
+                    >
+                      Placement
+                    </Link>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+              <button
+                type="button"
+                onClick={toggleCollapsed}
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-soft bg-elevated text-muted-foreground transition duration-200 hover:border-primary/40 hover:bg-primary/10 hover:text-binance"
+                aria-label={collapsed ? 'Open sidebar' : 'Close sidebar'}
+                aria-expanded={!collapsed}
+              >
+                {collapsed ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
+              </button>
+            </div>
 
-            <nav className="flex-1 space-y-0.5 overflow-y-auto">
+            <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden">
               {navLinks.map((link) => {
                 const active = !link.external && isPlacementNavActive(pathname, link)
+                const label = (
+                  <span className={cn('placement-nav-label block truncate', collapsed && 'sr-only')}>
+                    {link.label}
+                  </span>
+                )
                 if (link.external) {
                   return (
                     <a
@@ -164,9 +228,11 @@ export function PlacementShell({
                       href={link.to}
                       target="_blank"
                       rel="noreferrer"
-                      className="placement-nav-link"
+                      title={link.label}
+                      className={cn('placement-nav-link', collapsed && 'is-icon')}
                     >
-                      {link.label}
+                      <span className="placement-nav-dot" aria-hidden />
+                      {label}
                     </a>
                   )
                 }
@@ -174,93 +240,67 @@ export function PlacementShell({
                   <Link
                     key={link.to}
                     to={asPlacementPath(link.to)}
-                    className={cn('placement-nav-link', active && 'is-active')}
+                    title={link.label}
+                    className={cn('placement-nav-link', active && 'is-active', collapsed && 'is-icon')}
                   >
-                    {link.label}
+                    <span className="placement-nav-dot" aria-hidden />
+                    {label}
                   </Link>
                 )
               })}
             </nav>
+          </motion.aside>
 
-            <div className="mt-4 border-t border-soft px-2 pt-4">
-              <p className="truncate text-[13px] font-semibold text-foreground">
-                {placementProfile?.full_name || user.email}
-              </p>
-              {placementRole ? (
-                <Badge variant="secondary" className="mt-2 capitalize">
-                  {placementRole}
-                </Badge>
-              ) : null}
-              <div className="mt-3 flex flex-col gap-1">
-                <Button asChild variant="ghost" size="sm" className="justify-start">
-                  <Link to="/app">{BRAND_NAME} home</Link>
-                </Button>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="justify-start"
-                  onClick={() => void handleSignOut()}
-                >
-                  <LogOut className="size-3.5" strokeWidth={2} />
-                  Sign out
-                </Button>
+          <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden">
+            <div className="app-stack flex min-h-0 flex-1 flex-col px-3 py-3 sm:px-4 sm:py-4 lg:px-5 lg:py-4">
+              <div className="flex max-w-full gap-2 overflow-x-auto rounded-card border border-soft bg-card p-2 lg:hidden">
+                {navLinks.map((link) =>
+                  link.external ? (
+                    <a
+                      key={link.to}
+                      href={link.to}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="shrink-0 rounded-button border border-soft px-3 py-1.5 text-[12px] font-semibold text-secondary"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      key={link.to}
+                      to={asPlacementPath(link.to)}
+                      className={cn(
+                        'shrink-0 rounded-button border px-3 py-1.5 text-[12px] font-semibold',
+                        isPlacementNavActive(pathname, link)
+                          ? 'border-primary/40 bg-primary/10 text-binance'
+                          : 'border-soft text-secondary',
+                      )}
+                    >
+                      {link.label}
+                    </Link>
+                  ),
+                )}
+              </div>
+
+              <WorkspaceTabs active="placement" syncYear />
+
+              <motion.div
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.18 }}
+                className="app-stack flex min-h-0 min-w-0 flex-1 flex-col"
+              >
+                {children}
+              </motion.div>
+
+              <div className="mt-auto border-t border-soft pt-4">
+                <AppFooter className="mt-0 border-0 pt-0" />
               </div>
             </div>
-          </aside>
-
-          <main className="app-stack min-w-0 max-w-full flex-1">
-            <PlacementTopBar base={getRolePrefix(placementRole) ? `${getRolePrefix(placementRole)}/placement` : null} />
-
-            <div className="flex max-w-full gap-2 overflow-x-auto rounded-card border border-soft bg-card p-2 lg:hidden">
-              {navLinks.map((link) =>
-                link.external ? (
-                  <a
-                    key={link.to}
-                    href={link.to}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="shrink-0 rounded-button border border-soft px-3 py-1.5 text-[12px] font-semibold text-secondary"
-                  >
-                    {link.label}
-                  </a>
-                ) : (
-                  <Link
-                    key={link.to}
-                    to={asPlacementPath(link.to)}
-                    className={cn(
-                      'shrink-0 rounded-button border px-3 py-1.5 text-[12px] font-semibold',
-                      isPlacementNavActive(pathname, link)
-                        ? 'border-primary/40 bg-primary/10 text-binance'
-                        : 'border-soft text-secondary',
-                    )}
-                  >
-                    {link.label}
-                  </Link>
-                ),
-              )}
-            </div>
-
-            {title ? (
-              <p className="text-[12px] font-semibold uppercase tracking-wide text-muted">
-                {title}
-              </p>
-            ) : null}
-
-            <motion.div
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.18 }}
-              className="app-stack"
-            >
-              {children}
-            </motion.div>
           </main>
         </div>
       </div>
-      <div className="border-t border-soft px-4 py-6 sm:px-6 md:px-8">
-        <AppFooter className="mt-0 border-0 pt-0" />
-      </div>
-    </div>
+    </PassOutYearFilterProvider>
   )
 }
 

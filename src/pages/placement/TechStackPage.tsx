@@ -37,7 +37,7 @@ import {
 import { getPremiumDashboard, type DashboardSnapshot } from '@/api/placement/premiumDashboard'
 import { useAuth } from '@/hooks/useAuth'
 import { canManageSkillMaster, canViewTechStack } from '@/lib/placementPermissions'
-import { PassOutYearFilterBar, usePassOutYearFilter } from '@/lib/placementYearFilter'
+import { usePassOutYearFilter } from '@/lib/placementYearFilter'
 
 export function TechStackPage() {
   const { placementRole } = useAuth()
@@ -162,7 +162,6 @@ export function TechStackPage() {
       ) : (
         <PlacementPageStack>
           <PlacementAlerts error={error} success={message} />
-          <PassOutYearFilterBar value={year} onChange={setYear} />
 
           <PlacementPageBody loading={loading} loadingLabel="Loading tech stack…">
             <div className="space-y-6">

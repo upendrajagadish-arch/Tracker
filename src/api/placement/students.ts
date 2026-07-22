@@ -9,6 +9,7 @@ import {
 } from '@/lib/studentImport'
 import {
   trainingProgramSectionValue,
+  resolveStudentGraduationYear,
   type PinnacleBatchNumber,
   type TrainingProgramId,
 } from '@/lib/trainingPrograms'
@@ -193,6 +194,7 @@ export async function listStudents(filters: StudentListFilters = {}): Promise<Pa
   let query = client
     .from('student_profiles')
     .select('*', { count: 'exact' })
+    .eq('is_active', true)
     .order(filters.orderBy ?? 'updated_at', {
       ascending: filters.orderAscending ?? false,
     })
@@ -223,7 +225,18 @@ export async function listStudents(filters: StudentListFilters = {}): Promise<Pa
   }
   if (filters.graduationYear != null) {
     const year = filters.graduationYear
-    query = query.or(`graduation_year.eq.${year},academic_batch.ilike.%-${year},batch.eq.${year}`)
+    // Admission year from RCEE rolls (e.g. pass-out 2028 → roll prefix 24).
+    const rollPrefix = String(year - 4).slice(-2)
+    // Broad fetch — exact cohort matching uses resolveStudentGraduationYear below.
+    query = query.or(
+      [
+        `graduation_year.eq.${year}`,
+        `academic_batch.ilike."%-${year}"`,
+        `academic_batch.eq.${year}`,
+        `batch.eq.${year}`,
+        `roll_number.ilike.${rollPrefix}%`,
+      ].join(','),
+    )
   }
   if (filters.placementStatus) query = query.eq('placement_status', filters.placementStatus)
   if (filters.readinessStatus) query = query.eq('readiness_status', filters.readinessStatus)
@@ -237,10 +250,17 @@ export async function listStudents(filters: StudentListFilters = {}): Promise<Pa
     query = query.or(`full_name.ilike.${term},roll_number.ilike.${term},email.ilike.${term}`)
   }
 
-  const { data, error, count } = await query.range(from, to)
+  // When filtering by year, pull a wider page then rank client-side so Top 5 is true for that year.
+  const yearScoped = filters.graduationYear != null
+  const fetchTo = yearScoped ? Math.max(to, 499) : to
+  const { data, error, count } = await query.range(from, yearScoped ? fetchTo : to)
   if (error) throw error
 
   let rows = data ?? []
+
+  if (filters.graduationYear != null) {
+    rows = rows.filter((row) => resolveStudentGraduationYear(row) === filters.graduationYear)
+  }
 
   // Post-filter resume / coding flags (keeps query simple and compatible)
   if (filters.resumeMissing || filters.resumePendingApproval || filters.codingConnected || filters.codingMissing) {
@@ -268,6 +288,32 @@ export async function listStudents(filters: StudentListFilters = {}): Promise<Pa
       if (filters.codingMissing && hasCoding) return false
       return true
     })
+  }
+
+  if (yearScoped) {
+    const orderBy = filters.orderBy ?? 'updated_at'
+    const ascending = filters.orderAscending ?? false
+    rows = [...rows].sort((a, b) => {
+      const av = a[orderBy]
+      const bv = b[orderBy]
+      if (typeof av === 'number' && typeof bv === 'number') {
+        return ascending ? av - bv : bv - av
+      }
+      return ascending
+        ? String(av ?? '').localeCompare(String(bv ?? ''), undefined, { numeric: true })
+        : String(bv ?? '').localeCompare(String(av ?? ''), undefined, { numeric: true })
+    })
+    const totalFiltered = rows.length
+    rows = rows.slice(0, limit)
+    return {
+      data: rows,
+      pagination: {
+        page: 1,
+        limit,
+        total: totalFiltered,
+        pages: totalFiltered ? Math.ceil(totalFiltered / limit) : 0,
+      },
+    }
   }
 
   const total = count ?? 0
@@ -348,12 +394,8 @@ export async function listStudentsForTrainingYears(years: number[]): Promise<Pro
   }
 
   return rows.filter((student) => {
-    if (student.graduation_year != null && uniqueYears.includes(student.graduation_year)) return true
-    const academic = String(student.academic_batch || student.batch || '').trim()
-    const range = academic.match(/^(\d{4})\s*[-–]\s*(\d{4})$/)
-    if (range && uniqueYears.includes(Number(range[2]))) return true
-    const yearOnly = academic.match(/^(\d{4})$/)
-    return Boolean(yearOnly && uniqueYears.includes(Number(yearOnly[1])))
+    const year = resolveStudentGraduationYear(student)
+    return year != null && uniqueYears.includes(year)
   })
 }
 
@@ -446,6 +488,32 @@ export async function updateStudent(studentId: string, input: UpdateStudentInput
   return data
 }
 
+/** Soft-delete a student profile (keeps history; hides from active dashboards). */
+export async function deleteStudent(studentId: string): Promise<void> {
+  const client = requireSupabase()
+  const { data: existing, error: loadError } = await client
+    .from('student_profiles')
+    .select('id, roll_number, full_name, is_active')
+    .eq('id', studentId)
+    .maybeSingle()
+  if (loadError) throw loadError
+  if (!existing) throw new Error('Student not found.')
+
+  const { error } = await client
+    .from('student_profiles')
+    .update({ is_active: false })
+    .eq('id', studentId)
+  if (error) throw error
+
+  await logPlacementAudit({
+    action: 'student.delete',
+    entityType: 'student_profile',
+    entityId: studentId,
+    description: `Deleted student ${existing.roll_number} (${existing.full_name})`,
+    metadata: { rollNumber: existing.roll_number, soft: true },
+  })
+}
+
 export interface CsvImportResult {
   imported: number
   skipped: number
@@ -466,6 +534,25 @@ export async function listStudentIdsByRollNumber(): Promise<Map<string, string>>
   const map = new Map<string, string>()
   for (const row of data ?? []) {
     if (row.roll_number) map.set(row.roll_number, row.id)
+  }
+  return map
+}
+
+async function listStudentYearByRollNumber(): Promise<
+  Map<string, { id: string; passOutYear: number | null }>
+> {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('student_profiles')
+    .select('id,roll_number,graduation_year,academic_batch,batch')
+  if (error) throw error
+  const map = new Map<string, { id: string; passOutYear: number | null }>()
+  for (const row of data ?? []) {
+    if (!row.roll_number) continue
+    map.set(row.roll_number, {
+      id: row.id,
+      passOutYear: resolveStudentGraduationYear(row),
+    })
   }
   return map
 }
@@ -540,11 +627,11 @@ export async function importStudentsIntoTrainingProgram(
     throw new Error('Select a Pinnacle batch (1–4) before uploading.')
   }
 
-  const rollToId = await listStudentIdsByRollNumber()
+  const rollToProfile = await listStudentYearByRollNumber()
   const preview = previewStudentImport(
     records,
     'quick',
-    new Set(rollToId.keys()),
+    new Set(rollToProfile.keys()),
     { allowUpdateExisting: true },
   )
 
@@ -565,19 +652,31 @@ export async function importStudentsIntoTrainingProgram(
     }
 
     const payload = withTrainingProgramAssignment(row.input, assignment)
-    const existingId = rollToId.get(payload.rollNumber.trim())
+    const existing = rollToProfile.get(payload.rollNumber.trim())
 
     try {
-      if (existingId) {
-        await updateStudent(existingId, {
+      if (existing) {
+        // Never move a student from their existing pass-out year into another year card.
+        if (existing.passOutYear != null && existing.passOutYear !== assignment.year) {
+          result.skipped += 1
+          result.errors.push({
+            row: row.rowNumber,
+            message: `${payload.rollNumber} is pass-out ${existing.passOutYear}; cannot assign into ${assignment.year}.`,
+          })
+          continue
+        }
+        await updateStudent(existing.id, {
           fullName: payload.fullName,
           email: payload.email || undefined,
           phone: payload.phone || undefined,
           branch: payload.branch || undefined,
           section: payload.section,
-          graduationYear: payload.graduationYear,
-          academicBatch: payload.academicBatch,
-          batch: payload.batch,
+          graduationYear: existing.passOutYear ?? payload.graduationYear,
+          academicBatch:
+            existing.passOutYear != null
+              ? `${existing.passOutYear - 4}-${existing.passOutYear}`
+              : payload.academicBatch,
+          batch: existing.passOutYear != null ? String(existing.passOutYear) : payload.batch,
         })
         result.updated += 1
       } else {

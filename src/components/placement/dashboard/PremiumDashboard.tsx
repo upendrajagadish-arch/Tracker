@@ -1075,7 +1075,7 @@ export function PremiumDashboard({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="min-w-0 w-full max-w-full space-y-5">
       {detail ? <DetailModal detail={detail} onClose={() => setDetail(null)} /> : null}
       {skillsOpen && snapshot.skillBadges ? (
         <SkillsBadgeYearModal
@@ -1084,7 +1084,7 @@ export function PremiumDashboard({
           onClose={() => setSkillsOpen(false)}
         />
       ) : null}
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <section className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <MetricCard
           title="Total Students"
           value={overview.totalStudents}
@@ -1144,7 +1144,7 @@ export function PremiumDashboard({
         />
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <section className="grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <ManagementCard
           title="Company Links"
           value={management.companyLinks}
@@ -1235,7 +1235,7 @@ export function PremiumDashboard({
       ) : null}
 
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid min-w-0 gap-4 lg:grid-cols-3">
         <Panel
           title="Upcoming Drives"
           description="Next placement activities for the selected batch"

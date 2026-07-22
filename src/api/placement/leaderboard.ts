@@ -1,5 +1,6 @@
 import { requireSupabase } from '@/lib/supabase'
 import { fameLevelFromXp } from '@/lib/leaderboardFame'
+import { resolveStudentGraduationYear } from '@/lib/trainingPrograms'
 
 export interface LeaderboardRow {
   rank: number
@@ -38,13 +39,15 @@ export interface LeaderboardResult {
 }
 
 function resolveGraduationYear(raw: Record<string, unknown>): number | null {
-  if (raw.graduationYear != null && Number.isFinite(Number(raw.graduationYear))) {
-    return Number(raw.graduationYear)
-  }
-  const academic = String(raw.academicBatch ?? raw.batch ?? '').trim()
-  const range = academic.match(/(\d{4})\s*$/)
-  if (range) return Number(range[1])
-  return null
+  return resolveStudentGraduationYear({
+    graduation_year:
+      raw.graduationYear != null && Number.isFinite(Number(raw.graduationYear))
+        ? Number(raw.graduationYear)
+        : null,
+    academic_batch: raw.academicBatch == null ? null : String(raw.academicBatch),
+    batch: raw.batch == null ? null : String(raw.batch),
+    roll_number: raw.rollNumber == null ? null : String(raw.rollNumber),
+  })
 }
 
 function toRow(raw: Record<string, unknown>): LeaderboardRow {

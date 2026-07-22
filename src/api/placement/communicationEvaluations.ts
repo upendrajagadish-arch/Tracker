@@ -17,6 +17,7 @@ import {
   badgeStudentsToCsv,
   type CommunicationBadge,
 } from '@/lib/communicationBadge'
+import { resolveStudentGraduationYear } from '@/lib/trainingPrograms'
 import type { Database } from '@/types/supabase'
 
 export type CommunicationEvaluationRow = Database['public']['Tables']['communication_evaluations']['Row']
@@ -145,11 +146,7 @@ export async function listCommunicationEvaluations(filters: CommunicationListFil
       (profiles ?? [])
         .filter((profile) => {
           if (filters.graduationYear == null) return true
-          const year =
-            profile.graduation_year != null
-              ? Number(profile.graduation_year)
-              : Number(String(profile.academic_batch || profile.batch || '').match(/(\d{4})\s*$/)?.[1] ?? NaN)
-          return year === filters.graduationYear
+          return resolveStudentGraduationYear(profile) === filters.graduationYear
         })
         .map((p) => p.id),
     )
@@ -782,11 +779,7 @@ async function loadLatestEvaluatedStudents(filters: CommunicationDashboardFilter
     const name = (profile.full_name || evalRow.student_name || '').trim()
 
     if (graduationYear != null) {
-      const year =
-        profile.graduation_year != null
-          ? Number(profile.graduation_year)
-          : Number(displayBatch.match(/(\d{4})\s*$/)?.[1] ?? NaN)
-      if (year !== graduationYear) continue
+      if (resolveStudentGraduationYear(profile) !== graduationYear) continue
     }
     if (academicBatch && displayBatch !== academicBatch && !displayBatch.includes(academicBatch)) continue
     if (branch && displayBranch !== branch) continue

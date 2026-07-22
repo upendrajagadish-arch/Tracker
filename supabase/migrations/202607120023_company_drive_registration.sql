@@ -321,7 +321,7 @@ CREATE OR REPLACE FUNCTION public.schedule_company_drive_with_registration(
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY INVOKER
-SET search_path = public
+SET search_path = public, extensions
 AS $$
 DECLARE
   created_event public.placement_events%ROWTYPE;

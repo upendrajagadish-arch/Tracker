@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Trophy } from 'lucide-react'
+import { Trash2, Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -30,7 +30,7 @@ import {
   PlacementPageStack,
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
-import { listStudents, type StudentListFilters } from '@/api/placement/students'
+import { deleteStudent, listStudents, type StudentListFilters } from '@/api/placement/students'
 import { listTechStackStudents } from '@/api/placement/techSkills'
 import {
   BULK_PDF_CAP,
@@ -48,6 +48,8 @@ import {
 } from '@/lib/placementNavigation'
 import { TrainingProgramCards } from '@/components/placement/TrainingProgramCards'
 import { tableSectionExport } from '@/lib/analyticsExports'
+import { usePassOutYearFilter } from '@/lib/placementYearFilter'
+import type { TrainingYear } from '@/lib/trainingPrograms'
 
 const TOP_LIMIT = 5
 
@@ -66,17 +68,34 @@ export function StudentsPage() {
   const canManage = canManageStudents(role)
   const canImport = canImportStudents(role)
   const canAssign = canAssignStudentBranch(role)
-  const [filters, setFilters] = useState<StudentListFilters>(defaultTopFilters())
+  const { year, setYear } = usePassOutYearFilter()
+  const [filters, setFilters] = useState<StudentListFilters>(() =>
+    defaultTopFilters(year === 'all' ? {} : { graduationYear: Number(year) }),
+  )
   const [rollSearch, setRollSearch] = useState('')
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   const [exportingPdf, setExportingPdf] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [pdfProgress, setPdfProgress] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
   const [result, setResult] = useState<Awaited<ReturnType<typeof listStudents>> | null>(null)
   const [rosterTotal, setRosterTotal] = useState<number | null>(null)
 
   const isSearching = Boolean(filters.q?.trim())
+  const activeYearLabel = filters.graduationYear != null ? String(filters.graduationYear) : 'All years'
+
+  const applyYearFilter = useCallback((nextYear: TrainingYear | 'all', section?: string) => {
+    setYear(nextYear === 'all' ? 'all' : String(nextYear) as '2027' | '2028' | '2029' | '2030')
+    setRollSearch('')
+    setFilters(
+      defaultTopFilters({
+        graduationYear: nextYear === 'all' ? undefined : nextYear,
+        section,
+      }),
+    )
+  }, [setYear])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -98,24 +117,59 @@ export function StudentsPage() {
     void load()
   }, [load])
 
+  // Keep Top 5 in sync when year is changed from WorkspaceTabs / shared session filter.
+  useEffect(() => {
+    const nextYear = year === 'all' ? undefined : Number(year)
+    setFilters((prev) => {
+      if (prev.graduationYear === nextYear) return prev
+      return defaultTopFilters({
+        graduationYear: nextYear,
+        section: prev.section,
+        q: prev.q,
+      })
+    })
+  }, [year])
+
   const applyRollSearch = (e: FormEvent) => {
     e.preventDefault()
     const roll = rollSearch.trim()
     if (!roll) {
-      setFilters(defaultTopFilters())
+      applyYearFilter(year === 'all' ? 'all' : (Number(year) as TrainingYear))
       return
     }
     setFilters(
       defaultTopFilters({
         q: roll,
         limit: TOP_LIMIT,
+        graduationYear: filters.graduationYear,
+        section: filters.section,
       }),
     )
   }
 
   const clearSearch = () => {
     setRollSearch('')
-    setFilters(defaultTopFilters())
+    applyYearFilter(year === 'all' ? 'all' : (Number(year) as TrainingYear), filters.section)
+  }
+
+  const handleDelete = async (studentId: string, label: string) => {
+    if (!canManage) return
+    const ok = window.confirm(
+      `Delete student profile for ${label}? They will be removed from the active tracker and dashboards.`,
+    )
+    if (!ok) return
+    setDeletingId(studentId)
+    setError(null)
+    setSuccess(null)
+    try {
+      await deleteStudent(studentId)
+      setSuccess(`Deleted ${label}`)
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete student')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   const handleExport = async () => {
@@ -225,8 +279,6 @@ export function StudentsPage() {
   return (
     <PlacementShell title="Student Tracker">
       <PlacementPageHeader
-        title="Student Tracker"
-        description="Top performers at a glance — search by roll number to open any student dossier."
         actions={
           base ? (
             <>
@@ -279,29 +331,29 @@ export function StudentsPage() {
       />
 
       <PlacementPageStack>
-        <PlacementAlerts error={error} />
+        <PlacementAlerts error={error} success={success} />
         {pdfProgress ? (
           <p className="text-sm text-muted-foreground">{pdfProgress}</p>
         ) : null}
 
         <TrainingProgramCards
+          selectedYear={year === 'all' ? 'all' : (Number(year) as TrainingYear)}
+          onYearChange={(next) => applyYearFilter(next)}
           onFilter={(filter) => {
-            setRollSearch('')
-            setFilters(
-              defaultTopFilters({
-                graduationYear: filter.year,
-                section: filter.section,
-              }),
-            )
+            applyYearFilter(filter.year, filter.section)
           }}
         />
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <PlacementStatCard label="Total students" value={rosterTotal ?? '—'} hint="Active roster" />
           <PlacementStatCard
-            label={isSearching ? 'Search matches' : 'Showing top'}
+            label={filters.graduationYear != null ? `${filters.graduationYear} students` : 'Total students'}
+            value={rosterTotal ?? '—'}
+            hint={filters.graduationYear != null ? 'Active in selected pass-out year' : 'Active roster (all years)'}
+          />
+          <PlacementStatCard
+            label={isSearching ? 'Search matches' : `Top 5 · ${activeYearLabel}`}
             value={rows.length}
-            hint={isSearching ? 'Roll number search' : 'Highest readiness scores'}
+            hint={isSearching ? 'Roll number search' : 'Highest readiness in current year scope'}
           />
         </div>
 
@@ -351,10 +403,10 @@ export function StudentsPage() {
         >
           {rows.length ? (
             <PlacementTableCard
-              title={isSearching ? 'Search results' : 'Top students'}
+              title={isSearching ? 'Search results' : `Top 5 students · ${activeYearLabel}`}
               count={rows.length}
               exportSection={tableSectionExport(
-                isSearching ? 'Student roll search' : 'Top 5 students',
+                isSearching ? 'Student roll search' : `Top 5 students ${activeYearLabel}`,
                 [
                   'Roll Number',
                   'Name',
@@ -377,7 +429,7 @@ export function StudentsPage() {
                   String(student.readiness_score ?? 0),
                   String(student.profile_completeness ?? 0),
                 ]),
-                { fileBase: isSearching ? 'student_roll_search' : 'top_students' },
+                { fileBase: isSearching ? 'student_roll_search' : `top_students_${activeYearLabel.replace(/\s+/g, '_')}` },
               )}
             >
               <Table>
@@ -440,6 +492,21 @@ export function StudentsPage() {
                           >
                             PDF
                           </Button>
+                          {canManage ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="text-destructive hover:bg-destructive/10"
+                              disabled={deletingId === student.id}
+                              onClick={() =>
+                                void handleDelete(student.id, `${student.full_name} (${student.roll_number})`)
+                              }
+                            >
+                              <Trash2 className="size-3.5" />
+                              {deletingId === student.id ? 'Deleting…' : 'Delete'}
+                            </Button>
+                          ) : null}
                         </div>
                       </TableCell>
                     </TableRow>

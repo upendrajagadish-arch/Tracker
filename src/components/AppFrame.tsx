@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useRouterState } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
 import { CollegeBrandMark } from '@/components/CollegeBrand'
 
@@ -8,10 +9,21 @@ interface AppFrameProps {
 }
 
 /**
- * Global page outline — every route sits inside a bordered workspace
- * with the shared college brand lockup (logo + T&P) top-left.
+ * Global page outline. Placement uses a full-bleed frame so the logo bar
+ * and sidebar can span/align to the whole viewport.
  */
 export function AppFrame({ children, className }: AppFrameProps) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const isPlacement = /\/placement(\/|$)/.test(pathname)
+
+  if (isPlacement) {
+    return (
+      <div className={cn('flex min-h-screen w-full flex-col bg-canvas', className)}>
+        {children}
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-canvas p-3 sm:p-4 md:p-5">
       <div
@@ -21,13 +33,8 @@ export function AppFrame({ children, className }: AppFrameProps) {
         )}
       >
         <div className="flex shrink-0 items-center border-b border-soft/70 bg-card/40 px-3 py-2.5 sm:px-4 sm:py-3">
-          <CollegeBrandMark
-            size="md"
-            framed
-            className="min-w-0"
-          />
+          <CollegeBrandMark size="md" framed className="min-w-0" />
         </div>
-
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
       </div>
     </div>

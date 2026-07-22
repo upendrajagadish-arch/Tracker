@@ -26,7 +26,7 @@ import { listTechStackStudents, type TechStackStudentRow } from '@/api/placement
 import { classifyTechStackBadgeFromSkills, formatTechStackBadge } from '@/lib/techStackBadge'
 import { canViewTechStack } from '@/lib/placementPermissions'
 import { useAuth } from '@/hooks/useAuth'
-import { PassOutYearFilterBar, usePassOutYearFilter } from '@/lib/placementYearFilter'
+import { usePassOutYearFilter } from '@/lib/placementYearFilter'
 
 export function TechStackStudentsPage() {
   const { placementRole } = useAuth()
@@ -79,7 +79,6 @@ export function TechStackStudentsPage() {
       ) : (
         <PlacementPageStack>
           <PlacementAlerts error={error} />
-          <PassOutYearFilterBar value={year} onChange={setYear} />
           <PlacementFilterCard
             actions={
               <Button type="button" size="sm" onClick={() => void load()}>

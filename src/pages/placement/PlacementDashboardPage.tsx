@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Download, FileSpreadsheet, RefreshCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { PlacementShell, usePlacementPaths } from '@/components/placement/PlacementShell'
-import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
 import {
   PlacementAlerts,
   PlacementPageStack,
@@ -15,8 +13,8 @@ import {
 import { getPremiumDashboard, type DashboardSnapshot } from '@/api/placement/premiumDashboard'
 import { exportDashboardPdf, exportDashboardXlsx } from '@/lib/dashboardExports'
 import { isSupabaseConfigured, requireSupabase } from '@/lib/supabase'
-import { WorkspaceTabs } from '@/components/placement/WorkspaceTabs'
-import { PassOutYearFilterBar, usePassOutYearFilter } from '@/lib/placementYearFilter'
+import { usePassOutYearFilter } from '@/lib/placementYearFilter'
+import { cn } from '@/lib/utils'
 
 export function PlacementDashboardPage() {
   const { base } = usePlacementPaths()
@@ -80,51 +78,8 @@ export function PlacementDashboardPage() {
   }, [batch, load])
 
   return (
-    <PlacementShell title="Dashboard">
-      <WorkspaceTabs active="placement" />
-
-      <PlacementPageHeader
-        title="Placement Dashboard"
-        description="Filter by pass-out year to drill into eligibility, placement progress, and readiness analytics."
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={refreshing}
-              onClick={() => void load(true)}
-            >
-              <RefreshCw className={`size-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={!snapshot}
-              onClick={() => snapshot && exportDashboardPdf(snapshot)}
-            >
-              <Download className="size-3.5" /> PDF
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={!snapshot}
-              onClick={() => {
-                if (snapshot) void exportDashboardXlsx(snapshot)
-              }}
-            >
-              <FileSpreadsheet className="size-3.5" /> Excel
-            </Button>
-          </div>
-        }
-      />
-
+    <PlacementShell>
       <PlacementPageStack>
-        <PassOutYearFilterBar value={batch} onChange={setBatch} />
-
         <PlacementAlerts error={error} />
         {loading ? <PremiumDashboardSkeleton /> : snapshot ? <PremiumDashboard snapshot={snapshot} base={base} /> : null}
       </PlacementPageStack>
@@ -132,6 +87,40 @@ export function PlacementDashboardPage() {
       {!loading && !snapshot && !error ? (
         <PlacementErrorAlert message="Dashboard data is unavailable." />
       ) : null}
+
+      <div className="mt-auto flex flex-wrap items-center justify-end gap-3 border-t border-soft pt-3">
+        <button
+          type="button"
+          disabled={refreshing}
+          onClick={() => void load(true)}
+          className={cn(
+            'inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground transition hover:text-binance disabled:opacity-50',
+          )}
+        >
+          <RefreshCw className={cn('size-3', refreshing && 'animate-spin')} />
+          Refresh
+        </button>
+        <button
+          type="button"
+          disabled={!snapshot}
+          onClick={() => snapshot && exportDashboardPdf(snapshot)}
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground transition hover:text-binance disabled:opacity-50"
+        >
+          <Download className="size-3" />
+          PDF
+        </button>
+        <button
+          type="button"
+          disabled={!snapshot}
+          onClick={() => {
+            if (snapshot) void exportDashboardXlsx(snapshot)
+          }}
+          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground transition hover:text-binance disabled:opacity-50"
+        >
+          <FileSpreadsheet className="size-3" />
+          Excel
+        </button>
+      </div>
     </PlacementShell>
   )
 }

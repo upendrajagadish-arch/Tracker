@@ -33,7 +33,7 @@ import {
 } from '@/lib/communicationBadge'
 import { canViewCommunicationModule } from '@/lib/placementNavigation'
 import { useAuth } from '@/hooks/useAuth'
-import { PassOutYearFilterBar, usePassOutYearFilter } from '@/lib/placementYearFilter'
+import { usePassOutYearFilter } from '@/lib/placementYearFilter'
 
 const BADGE_CARDS: CommunicationBadge[] = COMMUNICATION_BADGE_ORDER
 
@@ -185,7 +185,6 @@ export function CommunicationDashboardPage() {
       ) : (
         <PlacementPageStack>
           <PlacementAlerts error={error} />
-          <PassOutYearFilterBar value={year} onChange={setYear} />
 
           <PlacementFilterCard
             actions={
