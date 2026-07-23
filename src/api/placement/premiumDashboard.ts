@@ -214,6 +214,11 @@ type DashboardStudentRow = Pick<
   | 'graduation_year'
   | 'placement_status'
   | 'readiness_score'
+  | 'communication_score'
+  | 'aptitude_score'
+  | 'verbal_score'
+  | 'codenow_score'
+  | 'cgpa'
   | 'is_active'
 >
 
@@ -224,7 +229,7 @@ async function listAllDashboardStudents(): Promise<DashboardStudentRow[]> {
     const { data, error } = await client
       .from('student_profiles')
       .select(
-        'id,full_name,roll_number,branch,batch,academic_batch,graduation_year,placement_status,readiness_score,is_active',
+        'id,full_name,roll_number,branch,batch,academic_batch,graduation_year,placement_status,readiness_score,communication_score,aptitude_score,verbal_score,codenow_score,cgpa,is_active',
       )
       .eq('is_active', true)
       .order('id')
