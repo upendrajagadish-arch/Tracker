@@ -7,7 +7,6 @@ import {
   PremiumDashboard,
   PremiumDashboardSkeleton,
 } from '@/components/placement/dashboard/PremiumDashboard'
-import { HomeSkeleton } from '@/components/placement/home/HomeKit'
 import { AdminHomeLanding } from '@/components/placement/home/AdminHomeLanding'
 import { TpoHomeLanding } from '@/components/placement/home/TpoHomeLanding'
 import { getPremiumDashboard, type DashboardSnapshot } from '@/api/placement/premiumDashboard'
@@ -83,7 +82,7 @@ function usePremiumDashboardSnapshot(channelKey: string) {
   return { loading, refreshing, error, batch, setYear, snapshot, load }
 }
 
-/** Classic PremiumDashboard (previous version) — also used under Home. */
+/** Classic PremiumDashboard — Dashboard nav item only. */
 export function ClassicPremiumDashboardPage() {
   const { base } = usePlacementPaths()
   const { loading, refreshing, error, batch, setYear, snapshot, load } =
@@ -154,7 +153,7 @@ export function ClassicPremiumDashboardPage() {
   )
 }
 
-/** Home = inspirational landing + previous PremiumDashboard (unchanged fields). */
+/** Home = welcome + news + app updates only (no dashboard metrics). */
 export function PlacementDashboardPage({
   roleVariant = 'admin',
   mode = 'home',
@@ -162,10 +161,7 @@ export function PlacementDashboardPage({
   roleVariant?: RoleVariant
   mode?: PageMode
 }) {
-  const { base } = usePlacementPaths()
   const { placementProfile, user } = useAuth()
-  const { loading, refreshing, error, batch, setYear, snapshot, load } =
-    usePremiumDashboardSnapshot(`home-${roleVariant}`)
 
   const displayName =
     placementProfile?.full_name?.trim() ||
@@ -178,72 +174,11 @@ export function PlacementDashboardPage({
 
   return (
     <PlacementShell>
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
-        <button
-          type="button"
-          disabled={refreshing}
-          onClick={() => void load(true)}
-          className={cn(
-            'inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground transition hover:text-binance disabled:opacity-50',
-          )}
-        >
-          <RefreshCw className={cn('size-3', refreshing && 'animate-spin')} />
-          Refresh
-        </button>
-        <PassOutYearFilterBar value={batch} onChange={setYear} />
-      </div>
-
-      <PlacementPageStack>
-        <PlacementAlerts error={error} />
-        {loading ? (
-          <HomeSkeleton />
-        ) : snapshot ? (
-          <>
-            {roleVariant === 'tpo' ? (
-              <TpoHomeLanding snapshot={snapshot} base={base} displayName={displayName} />
-            ) : (
-              <AdminHomeLanding snapshot={snapshot} base={base} displayName={displayName} />
-            )}
-
-            <section className="space-y-3 border-t border-soft pt-6">
-              <div>
-                <h2 className="font-heading text-[20px] font-bold text-white">Placement dashboard</h2>
-                <p className="mt-1 text-[13px] text-[#A1A1AA]">
-                  Full operational dashboard — same metrics and charts as before.
-                </p>
-              </div>
-              <PremiumDashboard snapshot={snapshot} base={base} />
-            </section>
-          </>
-        ) : null}
-      </PlacementPageStack>
-
-      {!loading && !snapshot && !error ? (
-        <PlacementErrorAlert message="Dashboard data is unavailable." />
-      ) : null}
-
-      <div className="mt-auto flex flex-wrap items-center justify-end gap-3 border-t border-soft pt-3">
-        <button
-          type="button"
-          disabled={!snapshot}
-          onClick={() => snapshot && exportDashboardPdf(snapshot)}
-          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground transition hover:text-binance disabled:opacity-50"
-        >
-          <Download className="size-3" />
-          PDF
-        </button>
-        <button
-          type="button"
-          disabled={!snapshot}
-          onClick={() => {
-            if (snapshot) void exportDashboardXlsx(snapshot)
-          }}
-          className="inline-flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground transition hover:text-binance disabled:opacity-50"
-        >
-          <FileSpreadsheet className="size-3" />
-          Excel
-        </button>
-      </div>
+      {roleVariant === 'tpo' ? (
+        <TpoHomeLanding displayName={displayName} />
+      ) : (
+        <AdminHomeLanding displayName={displayName} />
+      )}
     </PlacementShell>
   )
 }

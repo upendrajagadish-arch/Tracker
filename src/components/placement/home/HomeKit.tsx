@@ -225,15 +225,10 @@ export function HomeEmptyState({ title, description }: { title: string; descript
 export function HomeSkeleton() {
   return (
     <div className="space-y-4">
-      <Skeleton className="h-[450px] w-full rounded-[24px]" />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-28 rounded-[20px]" />
-        ))}
-      </div>
+      <Skeleton className="h-[320px] w-full rounded-[24px]" />
       <div className="grid gap-4 lg:grid-cols-2">
-        <Skeleton className="h-72 rounded-[20px]" />
-        <Skeleton className="h-72 rounded-[20px]" />
+        <Skeleton className="h-64 rounded-[20px]" />
+        <Skeleton className="h-64 rounded-[20px]" />
       </div>
     </div>
   )

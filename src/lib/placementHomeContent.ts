@@ -1,7 +1,6 @@
-import type { DashboardSnapshot } from '@/api/placement/premiumDashboard'
 import type { PlacementRole } from '@/lib/placementPermissions'
 
-export type HomeRole = Extract<PlacementRole, 'admin' | 'tpo' | 'faculty'>
+export type HomeRole = Extract<PlacementRole, 'admin' | 'tpo' | 'faculty' | 'interviewer'>
 
 export interface HomeQuote {
   quote: string
@@ -41,7 +40,7 @@ const TPO_QUOTES: HomeQuote[] = [
     subtitle: 'Your guidance creates careers. Your effort creates opportunities.',
   },
   {
-    quote: 'Behind every offer letter is someone\'s hard work.',
+    quote: "Behind every offer letter is someone's hard work.",
     subtitle: 'Turn readiness into opportunity — one student at a time.',
   },
 ]
@@ -56,6 +55,159 @@ const FACULTY_QUOTES: HomeQuote[] = [
     subtitle: 'Mentor with patience. Measure growth. Celebrate progress.',
   },
 ]
+
+const INTERVIEWER_QUOTES: HomeQuote[] = [
+  {
+    quote: 'A great interview unlocks potential that scores alone cannot show.',
+    subtitle: 'Listen carefully. Assess fairly. Help talent rise.',
+  },
+  {
+    quote: 'Every candidate deserves a clear, respectful evaluation.',
+    subtitle: 'Your judgment shapes careers — stay thorough and kind.',
+  },
+]
+
+/** Shared product updates shown on every role home. */
+export const APP_UPDATES: HomeTimelineItem[] = [
+  {
+    id: 'classic-dashboard',
+    title: 'Classic dashboard moved',
+    description: 'Full metrics, charts, and exports now live under Dashboard in the sidebar — Home stays focused on welcome and updates.',
+    date: 'New',
+    tone: 'success',
+  },
+  {
+    id: 'fame-leaderboard',
+    title: 'Fame XP leaderboard',
+    description: 'Public and staff leaderboards rank students by Fame XP with stronger weight on coding, CodeNow, and tech stack.',
+    date: 'Update',
+    tone: 'default',
+  },
+  {
+    id: 'year-filter',
+    title: 'Pass-out year filters',
+    description: 'Trackers and dashboards scope students by graduation / pass-out year so each cohort stays clean.',
+    date: 'Update',
+    tone: 'default',
+  },
+  {
+    id: 'campaigns',
+    title: 'Student update campaigns',
+    description: 'Share registration links so students self-update profiles into the correct pass-out year dashboard.',
+    date: 'Feature',
+    tone: 'success',
+  },
+]
+
+const ADMIN_NEWS: HomeNewsItem[] = [
+  {
+    id: 'ops',
+    icon: '📌',
+    title: 'Use Dashboard for live metrics',
+    description: 'Placement rate, readiness, drives, and exports are on the Dashboard page — not on Home.',
+    time: 'Tip',
+  },
+  {
+    id: 'reports',
+    icon: '📊',
+    title: 'Reports stay export-ready',
+    description: 'PDF and Excel exports for the cohort remain available from Dashboard and Reports.',
+    time: 'Info',
+  },
+  {
+    id: 'access',
+    icon: '🔐',
+    title: 'Role access reminder',
+    description: 'Admin, TPO, Faculty, and Interviewer each see navigation matched to their permissions.',
+    time: 'Info',
+  },
+]
+
+const TPO_NEWS: HomeNewsItem[] = [
+  {
+    id: 'drives',
+    icon: '🚀',
+    title: 'Plan drives from Operations',
+    description: 'Create and track campus placement activity under Operations — Home only surfaces news and product updates.',
+    time: 'Tip',
+  },
+  {
+    id: 'eligible',
+    icon: '🎯',
+    title: 'Eligibility lives on Dashboard',
+    description: 'Cohort readiness, placed counts, and company pulse are on Dashboard for focused planning.',
+    time: 'Info',
+  },
+  {
+    id: 'campaigns-news',
+    icon: '📨',
+    title: 'Campaigns for profile updates',
+    description: 'Share student update links so registrations land in the right pass-out year.',
+    time: 'Tip',
+  },
+]
+
+const FACULTY_NEWS: HomeNewsItem[] = [
+  {
+    id: 'mentor',
+    icon: '🎓',
+    title: 'Mentoring tools stay in the sidebar',
+    description: 'Students, Training, and Performance pages hold evaluations and cohort work — Home is welcome-only.',
+    time: 'Tip',
+  },
+  {
+    id: 'eval',
+    icon: '✍️',
+    title: 'Communication evaluations',
+    description: 'Record performance reviews from the Performance module; results feed readiness views elsewhere.',
+    time: 'Info',
+  },
+  {
+    id: 'training',
+    icon: '🧩',
+    title: 'Ignite · Pinnacle · Connect',
+    description: 'Training program cohorts and bulk uploads live under Training — open Dashboard for the full faculty table.',
+    time: 'Info',
+  },
+]
+
+const INTERVIEWER_NEWS: HomeNewsItem[] = [
+  {
+    id: 'students',
+    icon: '👥',
+    title: 'Student dossiers',
+    description: 'Open Students from the sidebar to review profiles ahead of campus interviews.',
+    time: 'Tip',
+  },
+  {
+    id: 'ops-int',
+    icon: '🗓️',
+    title: 'Placement operations',
+    description: 'Check Operations for drive context and scheduling notes relevant to interviews.',
+    time: 'Info',
+  },
+  {
+    id: 'fair',
+    icon: '⚖️',
+    title: 'Fair assessment',
+    description: 'Keep notes consistent and evidence-based so every candidate gets a clear outcome.',
+    time: 'Reminder',
+  },
+]
+
+const ROLE_NEWS: Record<HomeRole, HomeNewsItem[]> = {
+  admin: ADMIN_NEWS,
+  tpo: TPO_NEWS,
+  faculty: FACULTY_NEWS,
+  interviewer: INTERVIEWER_NEWS,
+}
+
+const ROLE_ILLUSTRATION: Record<HomeRole, string> = {
+  admin: 'Leadership',
+  tpo: 'Careers',
+  faculty: 'Mentoring',
+  interviewer: 'Interviews',
+}
 
 export function greetingForHour(hour = new Date().getHours()): 'Good Morning' | 'Good Afternoon' | 'Good Evening' {
   if (hour < 12) return 'Good Morning'
@@ -73,130 +225,21 @@ export function formatHomeDate(date = new Date()): string {
 }
 
 export function pickRoleQuote(role: HomeRole, seed = Date.now()): HomeQuote {
-  const pool = role === 'admin' ? ADMIN_QUOTES : role === 'tpo' ? TPO_QUOTES : FACULTY_QUOTES
+  const pool =
+    role === 'admin'
+      ? ADMIN_QUOTES
+      : role === 'tpo'
+        ? TPO_QUOTES
+        : role === 'faculty'
+          ? FACULTY_QUOTES
+          : INTERVIEWER_QUOTES
   return pool[seed % pool.length]!
 }
 
-function relativeTime(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime()
-  const mins = Math.max(0, Math.round(ms / 60000))
-  if (mins < 60) return `${mins || 1}m ago`
-  const hours = Math.round(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.round(hours / 24)
-  return `${days}d ago`
+export function importantNewsForRole(role: HomeRole): HomeNewsItem[] {
+  return ROLE_NEWS[role]
 }
 
-export function buildAdminNews(snapshot: DashboardSnapshot | null): HomeNewsItem[] {
-  if (!snapshot) return []
-  const items: HomeNewsItem[] = []
-  const { overview, management, skillBadges, activities } = snapshot
-
-  if (overview.totalStudents > 0) {
-    items.push({
-      id: 'students',
-      icon: '🎓',
-      title: `${overview.totalStudents.toLocaleString()} students in scope`,
-      description: `${overview.placementPercentage}% placement progress · ${overview.above70} at 70%+ readiness.`,
-      time: 'Live',
-    })
-  }
-  if (management.upcomingDrives > 0) {
-    items.push({
-      id: 'drives',
-      icon: '🚀',
-      title: `${management.upcomingDrives} upcoming drive${management.upcomingDrives === 1 ? '' : 's'}`,
-      description: `${management.activeCompanies} active companies · ${management.companyLinks} share links ready.`,
-      time: 'Upcoming',
-    })
-  }
-  const gold = skillBadges.tech.gold + skillBadges.communication.gold
-  if (gold > 0) {
-    items.push({
-      id: 'badges',
-      icon: '🏆',
-      title: `${gold} gold badges earned`,
-      description: 'Tech and communication excellence across the cohort.',
-      time: 'This cycle',
-    })
-  }
-  for (const activity of activities.slice(0, 4)) {
-    items.push({
-      id: activity.id,
-      icon: '📈',
-      title: activity.action,
-      description: activity.description,
-      time: relativeTime(activity.createdAt),
-    })
-  }
-  return items
-}
-
-export function buildTpoNews(snapshot: DashboardSnapshot | null): HomeNewsItem[] {
-  if (!snapshot) return []
-  const items = buildAdminNews(snapshot)
-  if (snapshot.overview.placed > 0) {
-    items.unshift({
-      id: 'placed',
-      icon: '🎉',
-      title: `${snapshot.overview.placed} students marked placed`,
-      description: `${snapshot.overview.unplaced} still preparing — keep coaching momentum.`,
-      time: 'Live',
-    })
-  }
-  return items
-}
-
-export function buildTpoTimeline(snapshot: DashboardSnapshot | null): HomeTimelineItem[] {
-  if (!snapshot) return []
-  const fromEvents = snapshot.upcomingEvents.slice(0, 6).map((event) => ({
-    id: event.id,
-    title: event.title || 'Campus event',
-    description: event.notes || event.event_type || event.venue || 'Placement activity',
-    date: event.starts_at
-      ? new Date(event.starts_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-      : 'TBD',
-    tone: 'default' as const,
-  }))
-  if (fromEvents.length) return fromEvents
-  return [
-    {
-      id: 'resume',
-      title: 'Resume review sessions',
-      description: 'Schedule targeted reviews for eligible students.',
-      date: 'Plan',
-      tone: 'warn',
-    },
-    {
-      id: 'mock',
-      title: 'Mock interviews',
-      description: 'Build confidence before company drives.',
-      date: 'Plan',
-      tone: 'default',
-    },
-  ]
-}
-
-export function branchInsight(snapshot: DashboardSnapshot | null): { label: string; value: string } | null {
-  if (!snapshot?.studentDetails.length) return null
-  const counts = new Map<string, number>()
-  for (const student of snapshot.studentDetails) {
-    const branch = student.branch?.trim() || 'Unassigned'
-    counts.set(branch, (counts.get(branch) ?? 0) + 1)
-  }
-  const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]
-  if (!top) return null
-  return { label: 'Most active department', value: `${top[0]} · ${top[1]} students` }
-}
-
-export function topBatchInsight(snapshot: DashboardSnapshot | null): { label: string; value: string } | null {
-  if (!snapshot) return null
-  const year = snapshot.skillBadges.byYear
-    .filter((row) => row.year !== 'All')
-    .sort((a, b) => b.techAvg + b.communicationAvg - (a.techAvg + a.communicationAvg))[0]
-  if (!year) return null
-  return {
-    label: 'Top performing batch',
-    value: `${year.year} · avg ${Math.round((year.techAvg + year.communicationAvg) / 2)}`,
-  }
+export function illustrationLabelForRole(role: HomeRole): string {
+  return ROLE_ILLUSTRATION[role]
 }
