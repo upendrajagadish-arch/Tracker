@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+﻿import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -45,7 +45,7 @@ import {
 import { usePassOutYearFilter, studentMatchesPassOutYear } from '@/lib/placementYearFilter'
 import { tableSectionExport } from '@/lib/analyticsExports'
 
-/** Previous faculty operational dashboard (stats, campaigns, table) — unchanged fields. */
+/** Previous faculty operational dashboard (stats, campaigns, table) â€” unchanged fields. */
 export function FacultyClassicDashboard() {
   const { base } = usePlacementPaths()
   const { year, setYear, graduationYear } = usePassOutYearFilter()
@@ -195,7 +195,7 @@ export function FacultyClassicDashboard() {
             }}
           >
             <div className="min-w-0 flex-1">
-              <PlacementField label="Search by roll number" hint="Plain text — no dropdown">
+              <PlacementField label="Search by roll number" hint="Plain text â€” no dropdown">
                 <Input
                   className="border-border bg-card font-mono"
                   placeholder="e.g. 24ME1A0538"
@@ -225,19 +225,19 @@ export function FacultyClassicDashboard() {
 
         <PlacementPageBody
           loading={loading}
-          loadingLabel="Loading registered students…"
+          loadingLabel="Loading registered studentsâ€¦"
           empty={
             !students.length ? (
               <PlacementEmptyState
                 title="No registered students found"
-                description="Students who register through the shared campaign link will appear here with Ignite / Pinnacle / Connect assignment."
+                description="Students who register through the shared campaign link appear here by pass-out year. Training program is optional for now."
               />
             ) : undefined
           }
         >
           {students.length ? (
             <PlacementTableCard
-              title={year === 'all' ? 'Registered student details' : `Registered students · ${year}`}
+              title={year === 'all' ? 'Registered student details' : `Registered students Â· ${year}`}
               count={students.length}
               exportSection={tableSectionExport(
                 'Faculty registered students',
@@ -311,14 +311,14 @@ export function FacultyClassicDashboard() {
                           )}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
-                          {student.email || '—'}
+                          {student.email || 'â€”'}
                         </TableCell>
-                        <TableCell>{student.branch || '—'}</TableCell>
+                        <TableCell>{student.branch || 'â€”'}</TableCell>
                         <TableCell className="capitalize">
-                          {program.program ?? (student.section || student.batch || '—')}
+                          {program.program ?? (student.section || student.batch || 'â€”')}
                         </TableCell>
-                        <TableCell>{resolveStudentGraduationYear(student) ?? '—'}</TableCell>
-                        <TableCell>{student.cgpa ?? '—'}</TableCell>
+                        <TableCell>{resolveStudentGraduationYear(student) ?? 'â€”'}</TableCell>
+                        <TableCell>{student.cgpa ?? 'â€”'}</TableCell>
                         <TableCell>
                           <PlacementStatusBadge status={student.placement_status} />
                         </TableCell>

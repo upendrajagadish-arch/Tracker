@@ -51,14 +51,15 @@ import { tableSectionExport } from '@/lib/analyticsExports'
 import { usePassOutYearFilter } from '@/lib/placementYearFilter'
 import type { TrainingYear } from '@/lib/trainingPrograms'
 
-const TOP_LIMIT = 5
+/** Year-wise roster while collecting registrations — training program not required. */
+const ROSTER_LIMIT = 200
 
-function defaultTopFilters(extra: Partial<StudentListFilters> = {}): StudentListFilters {
+function defaultRosterFilters(extra: Partial<StudentListFilters> = {}): StudentListFilters {
   return {
     page: 1,
-    limit: TOP_LIMIT,
-    orderBy: 'readiness_score',
-    orderAscending: false,
+    limit: ROSTER_LIMIT,
+    orderBy: 'full_name',
+    orderAscending: true,
     ...extra,
   }
 }
@@ -70,7 +71,7 @@ export function StudentsPage() {
   const canAssign = canAssignStudentBranch(role)
   const { year, setYear } = usePassOutYearFilter()
   const [filters, setFilters] = useState<StudentListFilters>(() =>
-    defaultTopFilters(year === 'all' ? {} : { graduationYear: Number(year) }),
+    defaultRosterFilters(year === 'all' ? {} : { graduationYear: Number(year) }),
   )
   const [rollSearch, setRollSearch] = useState('')
   const [loading, setLoading] = useState(true)
@@ -90,9 +91,10 @@ export function StudentsPage() {
     setYear(nextYear === 'all' ? 'all' : String(nextYear) as '2027' | '2028' | '2029' | '2030')
     setRollSearch('')
     setFilters(
-      defaultTopFilters({
+      defaultRosterFilters({
         graduationYear: nextYear === 'all' ? undefined : nextYear,
-        section,
+        // Only apply section when drilling into a training program; year roster ignores it.
+        section: section?.trim() || undefined,
       }),
     )
   }, [setYear])
@@ -122,14 +124,13 @@ export function StudentsPage() {
     void load()
   }, [load])
 
-  // Keep Top 5 in sync when year is changed from WorkspaceTabs / shared session filter.
+  // Keep year roster in sync when year is changed from WorkspaceTabs / shared session filter.
   useEffect(() => {
     const nextYear = year === 'all' ? undefined : Number(year)
     setFilters((prev) => {
-      if (prev.graduationYear === nextYear) return prev
-      return defaultTopFilters({
+      if (prev.graduationYear === nextYear && !prev.section) return prev
+      return defaultRosterFilters({
         graduationYear: nextYear,
-        section: prev.section,
         q: prev.q,
       })
     })
@@ -143,18 +144,16 @@ export function StudentsPage() {
       return
     }
     setFilters(
-      defaultTopFilters({
+      defaultRosterFilters({
         q: roll,
-        limit: TOP_LIMIT,
         graduationYear: filters.graduationYear,
-        section: filters.section,
       }),
     )
   }
 
   const clearSearch = () => {
     setRollSearch('')
-    applyYearFilter(year === 'all' ? 'all' : (Number(year) as TrainingYear), filters.section)
+    applyYearFilter(year === 'all' ? 'all' : (Number(year) as TrainingYear))
   }
 
   const handleDelete = async (studentId: string, label: string) => {
@@ -356,9 +355,15 @@ export function StudentsPage() {
             hint={filters.graduationYear != null ? 'Active in selected pass-out year' : 'Active roster (all years)'}
           />
           <PlacementStatCard
-            label={isSearching ? 'Search matches' : `Top 5 · ${activeYearLabel}`}
+            label={isSearching ? 'Search matches' : `On this page · ${activeYearLabel}`}
             value={rows.length}
-            hint={isSearching ? 'Roll number search' : 'Highest readiness in current year scope'}
+            hint={
+              isSearching
+                ? 'Roll number search'
+                : filters.section
+                  ? `Filtered by training · ${filters.section}`
+                  : 'Year-wise roster (training program optional)'
+            }
           />
         </div>
 
@@ -381,6 +386,16 @@ export function StudentsPage() {
               <Button type="button" size="sm" variant="outline" onClick={clearSearch}>
                 Clear
               </Button>
+              {filters.section ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => applyYearFilter(year === 'all' ? 'all' : (Number(year) as TrainingYear))}
+                >
+                  Clear training filter
+                </Button>
+              ) : null}
             </div>
           </form>
         </PlacementFilterCard>
@@ -393,8 +408,8 @@ export function StudentsPage() {
               title={isSearching ? 'No student found' : 'No students yet'}
               description={
                 isSearching
-                  ? 'Try a different roll number, or clear search to see the top 5.'
-                  : 'Bulk add students to get started.'
+                  ? 'Try a different roll number, or clear search to see the year roster.'
+                  : 'Share a registration campaign link, or bulk add students.'
               }
               action={
                 canImport && base ? (
@@ -408,10 +423,16 @@ export function StudentsPage() {
         >
           {rows.length ? (
             <PlacementTableCard
-              title={isSearching ? 'Search results' : `Top 5 students · ${activeYearLabel}`}
+              title={
+                isSearching
+                  ? 'Search results'
+                  : filters.section
+                    ? `${filters.section} · ${activeYearLabel}`
+                    : `Students · ${activeYearLabel}`
+              }
               count={rows.length}
               exportSection={tableSectionExport(
-                isSearching ? 'Student roll search' : `Top 5 students ${activeYearLabel}`,
+                isSearching ? 'Student roll search' : `Students ${activeYearLabel}`,
                 [
                   'Roll Number',
                   'Name',
@@ -434,7 +455,7 @@ export function StudentsPage() {
                   String(student.readiness_score ?? 0),
                   String(student.profile_completeness ?? 0),
                 ]),
-                { fileBase: isSearching ? 'student_roll_search' : `top_students_${activeYearLabel.replace(/\s+/g, '_')}` },
+                { fileBase: isSearching ? 'student_roll_search' : `students_${activeYearLabel.replace(/\s+/g, '_')}` },
               )}
             >
               <Table>

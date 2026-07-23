@@ -30,7 +30,7 @@ const FIELD_GROUPS = [
     fields: [
       { key: 'branch', label: 'Branch' },
       { key: 'batch', label: 'Year of pass out (2027–2030)' },
-      { key: 'section', label: 'Training program (Ignite / Pinnacle / Connect)' },
+      { key: 'section', label: 'Training program (optional later — not needed now)' },
       { key: 'cgpa', label: 'CGPA' },
       { key: 'active_backlogs', label: 'Active backlogs' },
     ],
@@ -73,7 +73,7 @@ export function StudentUpdateCampaignCreatePage() {
   const [expiresAt, setExpiresAt] = useState('')
   const [selectedFields, setSelectedFields] = useState<string[]>(() => [
     ...REQUIRED_FIELDS,
-    ...OPTIONAL_FIELDS,
+    ...OPTIONAL_FIELDS.filter((field) => field !== 'section'),
   ])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)

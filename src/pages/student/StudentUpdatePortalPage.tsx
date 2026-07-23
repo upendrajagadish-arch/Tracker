@@ -83,7 +83,8 @@ function RegistrationFields({
     (platform) => isAllowed('platform_handles') || isAllowed(`platform_handles.${platform}`),
   )
   const resumeAllowed = isAllowed('resume') || Boolean(allowedFields?.includes('platform_handles'))
-  const showTrainingProgram = isAllowed('section') || isAllowed('batch') || isAllowed('academic_batch')
+  // Year-wise data collection only for now — training program / batch not required.
+  const showTrainingProgram = false
 
   return (
     <>
@@ -300,14 +301,13 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
         ...(has('branch') ? { branch: form.branch } : {}),
         ...(has('batch') || has('academic_batch') || has('section')
           ? {
-              // Year of pass out → academic_batch / graduation_year
+              // Year of pass out only — training program / batch not required while collecting data.
               academicBatch: form.batch,
               graduationYear: form.batch ? Number(form.batch) : null,
               passOutYear: form.batch ? Number(form.batch) : null,
-              // Training program name → batch + section so Ignite/Pinnacle/Connect cards populate
-              batch: form.trainingProgram || form.batch,
-              section: form.trainingProgram,
-              trainingProgram: form.trainingProgram,
+              batch: form.batch,
+              section: '',
+              trainingProgram: '',
             }
           : {}),
         ...(has('date_of_birth') ? { dateOfBirth: form.dateOfBirth } : {}),

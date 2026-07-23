@@ -18,6 +18,7 @@ import {
   pinnacleBatchLabel,
   resolveStudentGraduationYear,
   resolveStudentTrainingAssignment,
+  trainingProgramLabel,
   type PinnacleBatchNumber,
   type TrainingProgram,
   type TrainingProgramId,
@@ -250,7 +251,11 @@ function StudentPreviewList({
                 {student.email || 'Email n/a'} · {student.branch || 'Branch n/a'}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                Program {program.program ?? (student.section || student.batch || 'n/a')}
+                {program.program
+                  ? `Program ${trainingProgramLabel(program.program)}${
+                      program.pinnacleBatch ? ` · Batch ${program.pinnacleBatch}` : ''
+                    }`
+                  : 'Year cohort · training program not set'}
                 {student.graduation_year != null ? ` · Pass-out ${student.graduation_year}` : ''}
                 {' · '}
                 {student.placement_status?.replace(/_/g, ' ') || 'Status n/a'}
@@ -512,7 +517,7 @@ export function TrainingProgramCards({
     pinnacleBatch?: PinnacleBatchNumber | null
   } | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
-  const [unassignedOpen, setUnassignedOpen] = useState(false)
+  const [yearRosterOpen, setYearRosterOpen] = useState(false)
 
   const year: TrainingYear | 'all' =
     selectedYear ??
@@ -562,7 +567,12 @@ export function TrainingProgramCards({
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-heading text-base font-bold tracking-tight">Training programs</h2>
+        <div>
+          <h2 className="font-heading text-base font-bold tracking-tight">Pass-out year students</h2>
+          <p className="text-xs text-muted-foreground">
+            Collect by year for now — Ignite / Pinnacle / Connect are optional later.
+          </p>
+        </div>
         {loading ? <p className="text-xs text-muted-foreground">Loading…</p> : null}
       </div>
 
@@ -570,46 +580,62 @@ export function TrainingProgramCards({
 
       <DashboardStrip students={yearStudents} />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        {TRAINING_PROGRAMS.map((program) => (
-          <ProgramCard
-            key={program.id}
-            program={program}
-            year={year === 'all' ? TRAINING_YEARS[0] : year}
-            count={counts[program.id]}
-            onOpen={() => {
-              setOpenProgramId(program.id)
-              onFilter?.({
-                year,
-                program: program.id,
-                section: program.label,
-              })
-            }}
-            onBulkUpload={
-              canBulkUpload && year !== 'all'
-                ? () => setUploadTarget({ program: program.id, pinnacleBatch: null })
-                : undefined
-            }
-          />
-        ))}
+      <button
+        type="button"
+        onClick={() => {
+          onFilter?.({ year })
+          onYearChange?.(year)
+          setYearRosterOpen(true)
+        }}
+        className="placement-glass flex w-full items-center justify-between gap-3 rounded-2xl border border-primary/40 px-4 py-3 text-left transition hover:border-primary/70"
+      >
+        <div>
+          <p className="text-sm font-semibold text-foreground">
+            {year === 'all' ? 'All registered students' : `${year} year roster`}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Training batch not required — students who registered via link appear here by pass-out year
+          </p>
+        </div>
+        <span className="tnum rounded-lg bg-primary/15 px-3 py-1 text-sm font-bold text-binance">
+          {yearStudents.length}
+        </span>
+      </button>
+
+      <div className="space-y-2">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Training programs (optional)
+        </p>
+        <div className="grid gap-4 md:grid-cols-3">
+          {TRAINING_PROGRAMS.map((program) => (
+            <ProgramCard
+              key={program.id}
+              program={program}
+              year={year === 'all' ? TRAINING_YEARS[0] : year}
+              count={counts[program.id]}
+              onOpen={() => {
+                setOpenProgramId(program.id)
+                onFilter?.({
+                  year,
+                  program: program.id,
+                  section: program.label,
+                })
+              }}
+              onBulkUpload={
+                canBulkUpload && year !== 'all'
+                  ? () => setUploadTarget({ program: program.id, pinnacleBatch: null })
+                  : undefined
+              }
+            />
+          ))}
+        </div>
       </div>
 
       {unassignedStudents.length ? (
-        <button
-          type="button"
-          onClick={() => setUnassignedOpen(true)}
-          className="placement-glass flex w-full items-center justify-between gap-3 rounded-2xl border border-dashed border-primary/35 px-4 py-3 text-left transition hover:border-primary/60"
-        >
-          <div>
-            <p className="text-sm font-semibold text-foreground">Unassigned registrants</p>
-            <p className="text-xs text-muted-foreground">
-              {year === 'all' ? 'Pass-out year set — training program later' : `${year} · no training program yet`}
-            </p>
-          </div>
-          <span className="tnum rounded-lg bg-primary/15 px-3 py-1 text-sm font-bold text-binance">
-            {unassignedStudents.length}
-          </span>
-        </button>
+        <p className="text-xs text-muted-foreground">
+          {unassignedStudents.length} of {yearStudents.length} in this year have no Ignite / Pinnacle / Connect
+          label yet — that is fine while collecting data.
+        </p>
       ) : null}
 
       {openProgram && year !== 'all' ? (
@@ -637,14 +663,14 @@ export function TrainingProgramCards({
         />
       ) : null}
 
-      {unassignedOpen ? (
+      {yearRosterOpen ? (
         <div
           className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-label={`Unassigned students ${year}`}
+          aria-label={`Year students ${year}`}
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setUnassignedOpen(false)
+            if (event.target === event.currentTarget) setYearRosterOpen(false)
           }}
         >
           <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-soft bg-card shadow-2xl">
@@ -654,15 +680,15 @@ export function TrainingProgramCards({
                   Pass-out {year === 'all' ? 'All years' : year}
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  {unassignedStudents.length} students · training program optional
+                  {yearStudents.length} students · year-wise collection · training optional
                 </p>
               </div>
-              <Button type="button" variant="ghost" size="icon" onClick={() => setUnassignedOpen(false)}>
+              <Button type="button" variant="ghost" size="icon" onClick={() => setYearRosterOpen(false)}>
                 <X className="size-4" />
               </Button>
             </div>
             <div className="overflow-y-auto p-4">
-              <StudentPreviewList students={unassignedStudents} showAll />
+              <StudentPreviewList students={yearStudents} showAll />
             </div>
           </div>
         </div>
