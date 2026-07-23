@@ -9,8 +9,10 @@ import { AppFooter } from '@/components/AppFooter'
 import { PlatformIcon } from '@/components/PlatformIcon'
 import { useAuth } from '@/hooks/useAuth'
 import { signInWithPassword } from '@/api/savedProfiles'
+import { asPlacementPath } from '@/components/placement/PlacementLink'
 import { fetchPlacementProfile, placementHomeForRole } from '@/lib/placementAuth'
 import { isStaffPlacementRole } from '@/lib/placementStaff'
+import { isAllowedStaffLogin } from '@/lib/placementStaffLogins'
 import { requireSupabase } from '@/lib/supabase'
 import { ALL_PLATFORMS } from '@/api/unifiedClient'
 import { CollegeBrandMark } from '@/components/CollegeBrand'
@@ -50,7 +52,7 @@ export function LoginPage() {
       return
     }
     if (placementRole && isStaffPlacementRole(placementRole)) {
-      router.history.push(placementHomeForRole(placementRole))
+      router.history.push(asPlacementPath(placementHomeForRole(placementRole)))
       return
     }
     navigate({ to: '/account' })
@@ -62,6 +64,9 @@ export function LoginPage() {
     const normalizedEmail = email.trim().toLowerCase()
     setIsSigningIn(true)
     try {
+      if (!isAllowedStaffLogin(normalizedEmail)) {
+        throw new Error('Only dedicated RCEE staff accounts can sign in here.')
+      }
       await signInWithPassword(normalizedEmail, password)
       await refreshPlacementProfile()
       const client = requireSupabase()
@@ -69,9 +74,12 @@ export function LoginPage() {
       if (auth.user) {
         const profile = await fetchPlacementProfile(auth.user.id)
         if (profile?.role && isStaffPlacementRole(profile.role)) {
-          router.history.push(placementHomeForRole(profile.role))
+          router.history.push(asPlacementPath(placementHomeForRole(profile.role)))
           return
         }
+        throw new Error(
+          'Signed in, but no placement staff role is assigned to this account. Ask admin to set role (admin/tpo/faculty/interviewer).',
+        )
       }
       if (next) router.history.push(next)
       else navigate({ to: '/account' })

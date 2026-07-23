@@ -54,7 +54,7 @@ export function placementHomeForRole(role: PlacementRole | null | undefined): st
     case 'faculty':
       return '/faculty/placement'
     case 'interviewer':
-      return '/interviewer/placement/students'
+      return '/interviewer/placement'
     default:
       return '/app'
   }

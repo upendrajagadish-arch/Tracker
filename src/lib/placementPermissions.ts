@@ -62,6 +62,7 @@ export function getPlacementPrefix(role: PlacementRole | null | undefined): stri
   if (role === 'admin') return '/admin'
   if (role === 'tpo') return '/tpo'
   if (role === 'faculty') return '/faculty'
+  if (role === 'interviewer') return '/interviewer'
   if (role === 'student') return '/student'
   return null
 }

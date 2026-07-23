@@ -3,13 +3,15 @@ import { PlacementShell, usePlacementPaths } from '@/components/placement/Placem
 import { PlacementAlerts, PlacementPageStack } from '@/components/placement/PlacementUi'
 import { HomeSkeleton } from '@/components/placement/home/HomeKit'
 import { FacultyHomeLanding } from '@/components/placement/home/FacultyHomeLanding'
+import { FacultyClassicDashboard } from '@/components/placement/home/FacultyClassicDashboard'
 import { listStudents } from '@/api/placement/students'
 import { getCampaignSummary } from '@/api/placement/studentUpdateCampaigns'
 import { PassOutYearFilterBar, studentMatchesPassOutYear, usePassOutYearFilter } from '@/lib/placementYearFilter'
 import { useAuth } from '@/hooks/useAuth'
 import type { TrainingYear } from '@/lib/trainingPrograms'
 
-export function FacultyDashboardPage() {
+/** Home landing + previous faculty operational dashboard. */
+export function FacultyDashboardPage({ mode = 'home' }: { mode?: 'home' | 'dashboard' }) {
   const { base } = usePlacementPaths()
   const { placementProfile, user } = useAuth()
   const { year, setYear, graduationYear } = usePassOutYearFilter()
@@ -52,6 +54,23 @@ export function FacultyDashboardPage() {
     void load()
   }, [load])
 
+  if (mode === 'dashboard') {
+    return (
+      <PlacementShell>
+        <div className="mb-1 flex justify-end">
+          <PassOutYearFilterBar
+            value={year}
+            onChange={(next) => {
+              setYear(next)
+              setSectionFilter(undefined)
+            }}
+          />
+        </div>
+        <FacultyClassicDashboard />
+      </PlacementShell>
+    )
+  }
+
   return (
     <PlacementShell>
       <div className="mb-1 flex justify-end">
@@ -69,20 +88,36 @@ export function FacultyDashboardPage() {
         {loading ? (
           <HomeSkeleton />
         ) : (
-          <FacultyHomeLanding
-            students={students}
-            campaignSummary={campaignSummary}
-            base={base}
-            displayName={displayName}
-            year={year === 'all' ? 'all' : (Number(year) as TrainingYear)}
-            onYearChange={(next) => {
-              setYear(next === 'all' ? 'all' : (String(next) as typeof year))
-              setSectionFilter(undefined)
-            }}
-            onProgramFilter={(section) => setSectionFilter(section)}
-          />
+          <>
+            <FacultyHomeLanding
+              students={students}
+              campaignSummary={campaignSummary}
+              base={base}
+              displayName={displayName}
+              year={year === 'all' ? 'all' : (Number(year) as TrainingYear)}
+              onYearChange={(next) => {
+                setYear(next === 'all' ? 'all' : (String(next) as typeof year))
+                setSectionFilter(undefined)
+              }}
+              onProgramFilter={(section) => setSectionFilter(section)}
+            />
+
+            <section className="space-y-3 border-t border-soft pt-6">
+              <div>
+                <h2 className="font-heading text-[20px] font-bold text-white">Faculty dashboard</h2>
+                <p className="mt-1 text-[13px] text-[#A1A1AA]">
+                  Full operational view — same fields and tables as before.
+                </p>
+              </div>
+              <FacultyClassicDashboard />
+            </section>
+          </>
         )}
       </PlacementPageStack>
     </PlacementShell>
   )
+}
+
+export function FacultyClassicDashboardPage() {
+  return <FacultyDashboardPage mode="dashboard" />
 }

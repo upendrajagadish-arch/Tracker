@@ -12,6 +12,7 @@ import {
 
 export type PlacementNavIcon =
   | 'home'
+  | 'dashboard'
   | 'students'
   | 'operations'
   | 'campaigns'
@@ -40,10 +41,7 @@ export function isPlacementNavActive(pathname: string, link: PlacementNavLink): 
 }
 
 export function getRolePrefix(role: PlacementRole | null | undefined): string | null {
-  const prefix = getPlacementPrefix(role)
-  if (prefix) return prefix
-  if (role === 'interviewer') return '/interviewer'
-  return null
+  return getPlacementPrefix(role)
 }
 
 export function getPlacementBasePath(role: PlacementRole | null | undefined): string | null {
@@ -55,8 +53,10 @@ export function getPlacementBasePath(role: PlacementRole | null | undefined): st
 export function isPlacementHomePath(pathname: string, role: PlacementRole | null | undefined): boolean {
   const prefix = getRolePrefix(role)
   if (!prefix) return false
-  const home = `${prefix}/placement`.replace(/\/$/, '')
-  return pathname.replace(/\/$/, '') === home
+  const normalized = pathname.replace(/\/$/, '')
+  const home = `${prefix}/placement`
+  const dashboard = `${prefix}/placement/dashboard`
+  return normalized === home || normalized === dashboard
 }
 
 export function getPlacementNavLinks(role: PlacementRole | null | undefined): PlacementNavLink[] {
@@ -68,9 +68,10 @@ export function getPlacementNavLinks(role: PlacementRole | null | undefined): Pl
   const base = `${prefix}/placement`
   const links: PlacementNavLink[] = []
 
-  // Faculty workspace: dashboard, tracker, tech/communication evaluate, campaigns.
+  // Faculty workspace: home (+ classic dashboard), tracker, tech/communication, campaigns.
   if (role === 'faculty') {
     links.push({ to: `${base}`, label: 'Home', icon: 'home', exact: true })
+    links.push({ to: `${base}/dashboard`, label: 'Dashboard', icon: 'dashboard', exact: true })
     if (canViewStudents(role)) {
       links.push({ to: `${base}/students`, label: 'Students', icon: 'students' })
     }
@@ -84,18 +85,28 @@ export function getPlacementNavLinks(role: PlacementRole | null | undefined): Pl
     return links
   }
 
-  if (role === 'admin' || role === 'tpo') {
+  if (role === 'interviewer') {
     links.push({ to: `${base}`, label: 'Home', icon: 'home', exact: true })
+    links.push({ to: `${base}/operations`, label: 'Operations', icon: 'operations' })
+    if (canViewStudents(role)) {
+      links.push({ to: `${base}/students`, label: 'Students', icon: 'students' })
+    }
+    return links
   }
 
-  if (role === 'admin' || role === 'tpo' || role === 'interviewer') {
+  if (role === 'admin' || role === 'tpo') {
+    links.push({ to: `${base}`, label: 'Home', icon: 'home', exact: true })
+    links.push({ to: `${base}/dashboard`, label: 'Dashboard', icon: 'dashboard', exact: true })
+  }
+
+  if (role === 'admin' || role === 'tpo') {
     links.push({ to: `${base}/operations`, label: 'Operations', icon: 'operations' })
   }
 
   if (canViewStudents(role)) {
     links.push({
       to: `${base}/students`,
-      label: role === 'interviewer' ? 'Students' : 'Students',
+      label: 'Students',
       icon: 'students',
     })
   }

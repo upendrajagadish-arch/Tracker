@@ -7,6 +7,7 @@ import {
   BriefcaseBusiness,
   ChevronsLeft,
   ChevronsRight,
+  CircleGauge,
   GraduationCap,
   Home,
   LogOut,
@@ -46,6 +47,7 @@ const SIDEBAR_KEY = 'codetrace-placement-sidebar-collapsed'
 
 const NAV_ICONS: Record<PlacementNavIcon, LucideIcon> = {
   home: Home,
+  dashboard: CircleGauge,
   students: Users,
   operations: BriefcaseBusiness,
   campaigns: Megaphone,
