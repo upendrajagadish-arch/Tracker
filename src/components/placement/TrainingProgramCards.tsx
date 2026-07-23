@@ -500,6 +500,7 @@ function ProgramDashboardModal({
 export function TrainingProgramCards({
   onFilter,
   selectedYear,
+  onYearChange,
 }: {
   onFilter?: (filter: TrainingProgramFilter) => void
   selectedYear?: TrainingYear | 'all'
