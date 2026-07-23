@@ -88,15 +88,23 @@ function createRolePlacementRoutes(parent: AnyRoute, prefix: 'admin' | 'tpo' | '
       path: `${prefix}/placement`,
       component: Dashboard,
     }),
-    ...(prefix === 'admin' || prefix === 'tpo' || prefix === 'faculty'
+    ...(prefix === 'admin' || prefix === 'tpo'
       ? [
           createRoute({
             getParentRoute: () => parent,
             path: `${prefix}/placement/dashboard`,
-            component: prefix === 'faculty' ? FacultyClassicDashboardPage : ClassicPremiumDashboardPage,
+            component: ClassicPremiumDashboardPage,
           }),
         ]
-      : []),
+      : prefix === 'faculty'
+        ? [
+            createRoute({
+              getParentRoute: () => parent,
+              path: `${prefix}/placement/dashboard`,
+              component: FacultyClassicDashboardPage,
+            }),
+          ]
+        : []),
     createRoute({
       getParentRoute: () => parent,
       path: `${prefix}/placement/operations`,
