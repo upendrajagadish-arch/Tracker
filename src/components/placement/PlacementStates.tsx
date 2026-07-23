@@ -13,11 +13,15 @@ export function PlacementStatCard({
   hint?: string
   className?: string
 }) {
+  const display =
+    value === null || value === undefined || value === ''
+      ? '—'
+      : value
   return (
     <Card className={cn(className)}>
       <CardContent className="pt-1">
         <p className="text-[12px] font-semibold text-secondary">{label}</p>
-        <p className="tnum mt-2 text-[28px] font-bold tracking-tight text-binance">{value ?? '—'}</p>
+        <p className="tnum mt-2 text-[28px] font-bold tracking-tight text-binance">{display}</p>
         {hint ? <p className="mt-1.5 text-[12px] text-muted">{hint}</p> : null}
       </CardContent>
     </Card>

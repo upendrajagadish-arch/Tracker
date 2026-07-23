@@ -30,7 +30,7 @@ import {
   PlacementPageStack,
   PlacementTableCard,
 } from '@/components/placement/PlacementUi'
-import { deleteStudent, listStudents, type StudentListFilters } from '@/api/placement/students'
+import { deleteStudent, listStudents, countActiveStudents, type StudentListFilters } from '@/api/placement/students'
 import { listTechStackStudents } from '@/api/placement/techSkills'
 import {
   BULK_PDF_CAP,
@@ -101,11 +101,16 @@ export function StudentsPage() {
     setLoading(true)
     setError(null)
     try {
-      const page = await listStudents(filters)
+      const [page, total] = await Promise.all([
+        listStudents(filters),
+        countActiveStudents({
+          graduationYear: filters.graduationYear,
+          section: filters.section,
+          // Roster KPI stays year/section scoped — ignore search so Total students never blanks.
+        }),
+      ])
       setResult(page)
-      if (!filters.q?.trim()) {
-        setRosterTotal(page.pagination.total)
-      }
+      setRosterTotal(total)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load students')
     } finally {
@@ -347,7 +352,7 @@ export function StudentsPage() {
         <div className="grid gap-4 sm:grid-cols-2">
           <PlacementStatCard
             label={filters.graduationYear != null ? `${filters.graduationYear} students` : 'Total students'}
-            value={rosterTotal ?? '—'}
+            value={rosterTotal == null ? (loading ? '…' : '—') : rosterTotal}
             hint={filters.graduationYear != null ? 'Active in selected pass-out year' : 'Active roster (all years)'}
           />
           <PlacementStatCard

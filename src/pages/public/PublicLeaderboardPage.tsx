@@ -11,10 +11,12 @@ import {
   type LeaderboardRow,
 } from '@/api/placement/leaderboard'
 import { publicStudentPerformanceUrl } from '@/api/placement/studentShare'
+import { compareLeaderboardByFame } from '@/lib/leaderboardFame'
 import { TRAINING_YEARS, type TrainingYear } from '@/lib/trainingPrograms'
 import { cn } from '@/lib/utils'
 
-const PAGE_SIZE = 50
+/** Load a full year board in one pass (RPC caps at 500). */
+const PAGE_SIZE = 500
 const LIVE_REFRESH_MS = 20_000
 
 const PODIUM_STYLES = [
@@ -68,12 +70,12 @@ function streakLabel(xp: number): string | null {
   return null
 }
 
-function ScoreBar({ score, className }: { score: number; className?: string }) {
+function ScoreBar({ score, className, label = 'Avg score' }: { score: number; className?: string; label?: string }) {
   const clamped = Math.max(0, Math.min(100, score))
   return (
     <div className={cn('w-full', className)}>
       <div className="mb-1 flex items-center justify-between gap-2 text-[10px]">
-        <span className="font-semibold uppercase tracking-wide text-[#D27918]">Avg score</span>
+        <span className="font-semibold uppercase tracking-wide text-[#D27918]">{label}</span>
         <span className="tnum text-secondary">{clamped}/100</span>
       </div>
       <div className="h-2.5 overflow-hidden rounded-full bg-[#0B0E11]/90 ring-1 ring-[#2B3139]">
@@ -105,10 +107,10 @@ function scoreChips(row: LeaderboardRow) {
     <>
       <StatChip
         label="Comm"
-        value={row.communicationScore != null ? `${row.communicationScore}%` : '—'}
+        value={row.communicationScore != null ? `${Math.round(row.communicationScore)}` : '—'}
       />
-      <StatChip label="Tech Stack" value={`${row.readinessScore}%`} />
-      <StatChip label="Solved" value={String(row.totalSolved)} />
+      <StatChip label="Tech" value={`${Math.round(row.techStackScore)}`} />
+      <StatChip label="Coding" value={`${Math.round(row.codingScore)}`} />
       <StatChip label="Avg" value={`${row.avgScore}`} />
     </>
   )
@@ -142,7 +144,7 @@ function PodiumCard({
   displayRank: number
 }) {
   const style = PODIUM_STYLES[place]
-  const streak = streakLabel(row.avgScore)
+  const streak = streakLabel(row.fameXp)
   return (
     <StudentLink
       row={row}
@@ -210,10 +212,13 @@ function PodiumCard({
         </span>
       ) : null}
       <p className={cn('tnum mt-2 text-[32px] font-black tracking-tight', style.text)}>
-        {row.avgScore}
-        <span className="ml-1 text-[12px] font-semibold text-secondary">Avg</span>
+        {row.fameXp}
+        <span className="ml-1 text-[12px] font-semibold text-secondary">XP</span>
       </p>
-      <ScoreBar score={row.avgScore} className="mt-3 w-full max-w-[220px]" />
+      <p className="mt-0.5 text-[11px] font-medium text-secondary">
+        {row.fameLevel} · Avg {row.avgScore}
+      </p>
+      <ScoreBar score={row.avgScore} label="Avg of all parameters" className="mt-3 w-full max-w-[220px]" />
       <div className="mt-3 grid w-full max-w-[240px] grid-cols-2 gap-1.5">{scoreChips(row)}</div>
       <p className="mt-3 text-[12px] text-secondary">
         {row.branch}
@@ -269,7 +274,14 @@ export function PublicLeaderboardPage() {
         })
         setTotal(result.total)
         setGeneratedAt(result.generatedAt)
-        setRows((prev) => (append ? [...prev, ...result.rows] : result.rows))
+        setRows((prev) => {
+          const merged = append ? [...prev, ...result.rows] : result.rows
+          const byRoll = new Map<string, LeaderboardRow>()
+          for (const row of merged) byRoll.set(row.rollNumber, row)
+          return [...byRoll.values()]
+            .sort(compareLeaderboardByFame)
+            .map((row, index) => ({ ...row, rank: index + 1 }))
+        })
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Failed to load leaderboard'
         if (/get_public_leaderboard|schema cache|function/i.test(message)) {
@@ -297,14 +309,9 @@ export function PublicLeaderboardPage() {
   }
 
   const rankedRows = useMemo<Array<LeaderboardRow & { displayRank: number }>>(() => {
-    const sorted = [...rows].sort((a, b) => {
-      const avgDiff = (b.avgScore ?? 0) - (a.avgScore ?? 0)
-      if (avgDiff !== 0) return avgDiff
-      const fameDiff = (b.fameXp ?? 0) - (a.fameXp ?? 0)
-      if (fameDiff !== 0) return fameDiff
-      return a.rollNumber.localeCompare(b.rollNumber, undefined, { numeric: true })
-    })
-    return sorted.map((row, index) => ({ ...row, displayRank: index + 1 }))
+    return [...rows]
+      .sort(compareLeaderboardByFame)
+      .map((row, index) => ({ ...row, displayRank: index + 1 }))
   }, [rows])
 
   const podium = useMemo(() => (search ? [] : rankedRows.filter((r) => r.displayRank <= 3).slice(0, 3)), [rankedRows, search])
@@ -315,7 +322,7 @@ export function PublicLeaderboardPage() {
     <>
       <SeoHead
         title="Leaderboard · Student Performance"
-        description="Live leaderboard ranked by average of Communication, Tech Stack, and coding problems solved."
+        description="Live leaderboard ranked by Fame XP. Higher weight on coding, CodeNow, and tech stack; then communication, aptitude, and verbal."
       />
       <div className="relative min-h-screen overflow-hidden bg-[#0B0E11]">
         <div
@@ -351,15 +358,15 @@ export function PublicLeaderboardPage() {
 
             <div className="relative inline-flex items-center gap-2 rounded-full border border-[#D27918]/40 bg-[#D27918]/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.22em] text-[#D27918]">
               <Zap className="size-3.5" />
-              Live arena · Avg score ranks
+              Live arena · Fame XP ranks
               <Sparkles className="size-3.5" />
             </div>
             <h1 className="relative mt-4 font-heading text-[40px] font-black tracking-tight text-foreground sm:text-[46px]">
               Leaderboard
             </h1>
             <p className="relative mx-auto mt-2 max-w-xl text-[14px] leading-relaxed text-secondary">
-              Year-wise ranks by Communication, Tech Stack, and coding problems solved.
-              Students with score 0 still appear on their pass-out year board.
+              Ranked by Fame XP. Higher priority: Coding 20%, CodeNow 18%, Tech Stack 18%. Then Readiness 12%,
+              Communication 12%, Aptitude 10%, Verbal 10%. Cards show Comm, Tech, Coding, and Avg of all parameters.
             </p>
 
             <div className="relative mx-auto mt-5 flex max-w-xl flex-wrap items-center justify-center gap-2">
@@ -386,10 +393,13 @@ export function PublicLeaderboardPage() {
 
             <div className="relative mx-auto mt-4 flex max-w-2xl flex-wrap items-center justify-center gap-2">
               {[
-                { label: 'Communication', color: '#3B82F6' },
-                { label: 'Tech Stack', color: '#D27918' },
-                { label: 'Problems Solved', color: '#0ECB81' },
-                { label: 'Avg Score', color: '#F0B90B' },
+                { label: 'Coding 20%', color: '#F6465D' },
+                { label: 'CodeNow 18%', color: '#F0B90B' },
+                { label: 'Tech 18%', color: '#D27918' },
+                { label: 'Ready 12%', color: '#0ECB81' },
+                { label: 'Comm 12%', color: '#3B82F6' },
+                { label: 'Apt 10%', color: '#A78BFA' },
+                { label: 'Verbal 10%', color: '#22D3EE' },
               ].map((item) => (
                 <span
                   key={item.label}
@@ -511,7 +521,7 @@ export function PublicLeaderboardPage() {
                         {search ? `Results for “${search}”` : `${year} Live Rankings`}
                       </h2>
                       <p className="text-[11px] text-secondary">
-                        Pass-out year {year} · includes score 0 · Comm · Tech · Solved · Avg
+                        Pass-out year {year} · Comm · Tech · Coding · Avg · Fame XP
                       </p>
                     </div>
                     <p className="tnum rounded-full border border-[#D27918]/35 bg-[#D27918]/10 px-3 py-1 text-[12px] font-semibold text-[#D27918]">
@@ -521,7 +531,7 @@ export function PublicLeaderboardPage() {
                   <ul className="divide-y divide-[#2B3139]/80">
                     <AnimatePresence initial={false}>
                       {listRows.map((row, index) => {
-                        const streak = streakLabel(row.avgScore)
+                        const streak = streakLabel(row.fameXp)
                         return (
                           <motion.li
                             key={row.rollNumber}
@@ -570,6 +580,9 @@ export function PublicLeaderboardPage() {
                                       {streak}
                                     </span>
                                   ) : null}
+                                  <span className="rounded-full border border-[#2B3139] px-1.5 py-0.5 text-[9px] font-semibold text-secondary">
+                                    {row.fameLevel}
+                                  </span>
                                 </div>
                                 <p className="tnum truncate text-[12px] text-secondary group-hover:text-[#D27918] group-hover:underline">
                                   {row.rollNumber}
@@ -581,18 +594,19 @@ export function PublicLeaderboardPage() {
                                     </span>
                                   ) : null}
                                 </p>
-                                <ScoreBar score={row.avgScore} className="mt-2 max-w-xs" />
+                                <ScoreBar score={row.avgScore} label="Avg of all" className="mt-2 max-w-xs" />
                               </div>
                               <div className="hidden shrink-0 grid-cols-2 gap-1.5 lg:grid">
                                 {scoreChips(row)}
                               </div>
                               <div className="shrink-0 text-right">
                                 <p className="tnum text-[11px] uppercase tracking-wide text-secondary">
-                                  Avg
+                                  Fame XP
                                 </p>
                                 <p className="tnum text-[20px] font-black text-[#D27918]">
-                                  {row.avgScore}
+                                  {row.fameXp}
                                 </p>
+                                <p className="tnum text-[11px] text-secondary">Avg {row.avgScore}</p>
                               </div>
                             </StudentLink>
                           </motion.li>

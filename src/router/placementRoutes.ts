@@ -1,6 +1,6 @@
 import { createRoute } from '@tanstack/react-router'
 import type { AnyRoute } from '@tanstack/react-router'
-import { PlacementDashboardPage } from '@/pages/placement/PlacementDashboardPage'
+import { PlacementDashboardPage, AdminHomePage, TpoHomePage } from '@/pages/placement/PlacementDashboardPage'
 import { FacultyDashboardPage } from '@/pages/placement/FacultyDashboardPage'
 import { StudentsPage } from '@/pages/placement/StudentsPage'
 import { StudentDetailPage } from '@/pages/placement/StudentDetailPage'
@@ -73,7 +73,14 @@ function createStaffPlacementRoutes(parent: AnyRoute, prefix: 'admin' | 'tpo' | 
 }
 
 function createRolePlacementRoutes(parent: AnyRoute, prefix: 'admin' | 'tpo' | 'faculty' | 'interviewer') {
-  const Dashboard = prefix === 'faculty' ? FacultyDashboardPage : PlacementDashboardPage
+  const Dashboard =
+    prefix === 'faculty'
+      ? FacultyDashboardPage
+      : prefix === 'tpo'
+        ? TpoHomePage
+        : prefix === 'admin'
+          ? AdminHomePage
+          : PlacementDashboardPage
   return [
     createRoute({
       getParentRoute: () => parent,

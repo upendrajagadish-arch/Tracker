@@ -252,7 +252,7 @@ export async function listStudents(filters: StudentListFilters = {}): Promise<Pa
 
   // When filtering by year, pull a wider page then rank client-side so Top 5 is true for that year.
   const yearScoped = filters.graduationYear != null
-  const fetchTo = yearScoped ? Math.max(to, 499) : to
+  const fetchTo = yearScoped ? Math.max(to, 999) : to
   const { data, error, count } = await query.range(from, yearScoped ? fetchTo : to)
   if (error) throw error
 
@@ -303,7 +303,12 @@ export async function listStudents(filters: StudentListFilters = {}): Promise<Pa
         ? String(av ?? '').localeCompare(String(bv ?? ''), undefined, { numeric: true })
         : String(bv ?? '').localeCompare(String(av ?? ''), undefined, { numeric: true })
     })
-    const totalFiltered = rows.length
+    // Accurate year total (not capped by the Top-N fetch window).
+    const totalFiltered = await countActiveStudents({
+      graduationYear: filters.graduationYear,
+      section: filters.section,
+      q: filters.q,
+    }).catch(() => rows.length)
     rows = rows.slice(0, limit)
     return {
       data: rows,
@@ -326,6 +331,59 @@ export async function listStudents(filters: StudentListFilters = {}): Promise<Pa
       pages: total ? Math.ceil(total / limit) : 0,
     },
   }
+}
+
+/** Exact active-student count for roster KPIs (year-aware via graduation resolver). */
+export async function countActiveStudents(filters: {
+  graduationYear?: number
+  section?: string
+  q?: string
+} = {}): Promise<number> {
+  const client = requireSupabase()
+
+  // Fast path: no year resolver needed.
+  if (filters.graduationYear == null && !filters.section?.trim() && !filters.q?.trim()) {
+    const { count, error } = await client
+      .from('student_profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('is_active', true)
+    if (error) throw error
+    return count ?? 0
+  }
+
+  const rows: Array<{
+    id: string
+    graduation_year: number | null
+    academic_batch: string | null
+    batch: string
+    roll_number: string
+    section: string | null
+  }> = []
+
+  for (let from = 0; ; from += 1000) {
+    let query = client
+      .from('student_profiles')
+      .select('id,graduation_year,academic_batch,batch,roll_number,section')
+      .eq('is_active', true)
+      .order('id')
+      .range(from, from + 999)
+
+    if (filters.q?.trim()) {
+      const term = `%${filters.q.trim()}%`
+      query = query.or(`full_name.ilike.${term},roll_number.ilike.${term},email.ilike.${term}`)
+    }
+    if (filters.section?.trim()) {
+      query = query.ilike('section', `%${filters.section.trim()}%`)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    rows.push(...(data ?? []))
+    if (!data || data.length < 1000) break
+  }
+
+  if (filters.graduationYear == null) return rows.length
+  return rows.filter((row) => resolveStudentGraduationYear(row) === filters.graduationYear).length
 }
 
 export async function getStudentByRollNumber(rollNumber: string): Promise<StudentProfileRow | null> {

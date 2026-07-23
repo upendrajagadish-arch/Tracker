@@ -10,9 +10,20 @@ import {
   type PlacementRole,
 } from '@/lib/placementPermissions'
 
+export type PlacementNavIcon =
+  | 'home'
+  | 'students'
+  | 'operations'
+  | 'campaigns'
+  | 'tech'
+  | 'communication'
+  | 'reports'
+  | 'logout'
+
 export interface PlacementNavLink {
   to: string
   label: string
+  icon?: PlacementNavIcon
   /** When true, only highlight on an exact path match (used for dashboard). */
   exact?: boolean
   /** Open as a public absolute path (e.g. Leaderboard). */
@@ -41,6 +52,13 @@ export function getPlacementBasePath(role: PlacementRole | null | undefined): st
   return `${prefix}/placement/students`
 }
 
+export function isPlacementHomePath(pathname: string, role: PlacementRole | null | undefined): boolean {
+  const prefix = getRolePrefix(role)
+  if (!prefix) return false
+  const home = `${prefix}/placement`.replace(/\/$/, '')
+  return pathname.replace(/\/$/, '') === home
+}
+
 export function getPlacementNavLinks(role: PlacementRole | null | undefined): PlacementNavLink[] {
   if (!role || role === 'student') return []
 
@@ -52,45 +70,50 @@ export function getPlacementNavLinks(role: PlacementRole | null | undefined): Pl
 
   // Faculty workspace: dashboard, tracker, tech/communication evaluate, campaigns.
   if (role === 'faculty') {
-    links.push({ to: `${base}`, label: 'Faculty Dashboard', exact: true })
+    links.push({ to: `${base}`, label: 'Home', icon: 'home', exact: true })
     if (canViewStudents(role)) {
-      links.push({ to: `${base}/students`, label: 'Student Tracker' })
+      links.push({ to: `${base}/students`, label: 'Students', icon: 'students' })
     }
     if (canViewTechStack(role)) {
-      links.push({ to: `${base}/tech-stack`, label: 'Tech Stack' })
+      links.push({ to: `${base}/tech-stack`, label: 'Training', icon: 'tech' })
     }
-    links.push({ to: `${base}/communication`, label: 'Communication Evaluation' })
+    links.push({ to: `${base}/communication`, label: 'Performance', icon: 'communication' })
     if (hasPermission(role, 'campaigns:view')) {
-      links.push({ to: `${base}/student-update-campaigns`, label: 'Registration Campaigns' })
+      links.push({ to: `${base}/student-update-campaigns`, label: 'Campaigns', icon: 'campaigns' })
     }
     return links
   }
 
   if (role === 'admin' || role === 'tpo') {
-    links.push({ to: `${base}`, label: 'Dashboard', exact: true })
+    links.push({ to: `${base}`, label: 'Home', icon: 'home', exact: true })
   }
 
   if (role === 'admin' || role === 'tpo' || role === 'interviewer') {
-    links.push({ to: `${base}/operations`, label: 'Placement Operations' })
+    links.push({ to: `${base}/operations`, label: 'Operations', icon: 'operations' })
   }
 
   if (canViewStudents(role)) {
     links.push({
       to: `${base}/students`,
-      label: role === 'interviewer' ? 'Students' : 'Student Tracker',
+      label: role === 'interviewer' ? 'Students' : 'Students',
+      icon: 'students',
     })
   }
 
   if (hasPermission(role, 'campaigns:view') || role === 'admin' || role === 'tpo') {
-    links.push({ to: `${base}/student-update-campaigns`, label: 'Student Update Campaigns' })
+    links.push({ to: `${base}/student-update-campaigns`, label: 'Campaigns', icon: 'campaigns' })
   }
 
   if (canViewTechStack(role)) {
-    links.push({ to: `${base}/tech-stack`, label: 'Tech Stack' })
+    links.push({ to: `${base}/tech-stack`, label: 'Training', icon: 'tech' })
   }
 
   if (hasPermission(role, 'readiness:view') || role === 'admin' || role === 'tpo') {
-    links.push({ to: `${base}/communication`, label: 'Communication Evaluation' })
+    links.push({ to: `${base}/communication`, label: 'Performance', icon: 'communication' })
+  }
+
+  if (canExportReports(role) || role === 'admin' || role === 'tpo') {
+    links.push({ to: `${base}/reports`, label: 'Reports', icon: 'reports' })
   }
 
   return links

@@ -14,6 +14,7 @@ import {
 } from '@/lib/techStackBadge'
 import type { Database, PlacementRole } from '@/types/supabase'
 import { TRAINING_YEARS, resolveStudentGraduationYear } from '@/lib/trainingPrograms'
+import { compareLeaderboardByFame, computeFameXp } from '@/lib/leaderboardFame'
 
 export type PlacementEventRow = Database['public']['Tables']['placement_events']['Row']
 export type CompanyShareLinkRow = Database['public']['Tables']['company_share_links']['Row']
@@ -624,26 +625,65 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
           })
           return year != null && String(year) === batch
         })
+        .map((row) => {
+          const fameXp = computeFameXp({
+            communicationScore: row.communicationScore == null ? null : Number(row.communicationScore),
+            aptitudeScore: row.aptitudeScore == null ? null : Number(row.aptitudeScore),
+            verbalScore: row.verbalScore == null ? null : Number(row.verbalScore),
+            codeNowScore: row.codeNowScore == null ? null : Number(row.codeNowScore),
+            readinessScore: Number(row.readinessScore ?? 0),
+            techStackScore: row.techStackScore == null ? 0 : Number(row.techStackScore),
+            totalSolved: Number(row.totalSolved ?? 0),
+          })
+          return {
+            rank: Number(row.rank ?? 0),
+            fullName: String(row.fullName ?? ''),
+            rollNumber: String(row.rollNumber ?? ''),
+            fameXp,
+            readinessScore: Number(row.readinessScore ?? 0),
+            communicationScore: row.communicationScore == null ? null : Number(row.communicationScore),
+            techStackScore: row.techStackScore == null ? 0 : Number(row.techStackScore),
+            codeNowScore: row.codeNowScore == null ? null : Number(row.codeNowScore),
+            totalSolved: Number(row.totalSolved ?? 0),
+            cgpa: row.cgpa == null ? null : Number(row.cgpa),
+          }
+        })
+        .sort(compareLeaderboardByFame)
         .slice(0, 8)
         .map((row, index) => ({
-          rank: Number(row.rank ?? index + 1),
-          fullName: String(row.fullName ?? ''),
-          rollNumber: String(row.rollNumber ?? ''),
-          fameXp: Number(row.fameXp ?? row.readinessScore ?? 0),
+          rank: index + 1,
+          fullName: row.fullName,
+          rollNumber: row.rollNumber,
+          fameXp: row.fameXp,
         }))
       if (fromRpc.length) return fromRpc
       return [...students]
-        .sort((a, b) => {
-          const scoreDiff = (Number(b.readiness_score) || 0) - (Number(a.readiness_score) || 0)
-          if (scoreDiff !== 0) return scoreDiff
-          return a.roll_number.localeCompare(b.roll_number, undefined, { numeric: true })
-        })
+        .map((student) => ({
+          fullName: student.full_name,
+          rollNumber: student.roll_number,
+          fameXp: computeFameXp({
+            communicationScore: student.communication_score,
+            aptitudeScore: student.aptitude_score,
+            verbalScore: student.verbal_score,
+            codeNowScore: student.codenow_score,
+            readinessScore: student.readiness_score,
+            techStackScore: 0,
+            totalSolved: 0,
+          }),
+          readinessScore: Number(student.readiness_score) || 0,
+          communicationScore: student.communication_score,
+          techStackScore: 0,
+          codeNowScore: student.codenow_score,
+          totalSolved: 0,
+          cgpa: student.cgpa,
+        }))
+        .sort(compareLeaderboardByFame)
         .slice(0, 8)
         .map((student, index) => ({
           rank: index + 1,
-          fullName: student.full_name,
-          rollNumber: student.roll_number,
-          fameXp: Number(student.readiness_score) || 0,
+          fullName: student.fullName,
+          rollNumber: student.rollNumber,
+          fameXp: student.fameXp,
         }))
     })(),
     studentDetails: students.map((student) => ({

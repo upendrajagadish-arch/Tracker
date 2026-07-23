@@ -40,54 +40,54 @@
   --color-binance-yellow: var(--brand);
   --color-binance-yellow-hover: var(--brand-hover);
 
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-  --radius-2xl: 12px;
-  --radius-3xl: 16px;
-  --radius-4xl: 20px;
-  --radius-button: 6px;
-  --radius-input: 8px;
-  --radius-card: 12px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-4xl: 24px;
+  --radius-button: 12px;
+  --radius-input: 12px;
+  --radius-card: 20px;
 }
 
 :root,
 .dark {
-  --canvas: #07090B;
-  --elevated: #1A1E23;
-  /* Ramachandra Burnt Orange */
-  --brand: #D27918;
-  --brand-hover: #B56614;
-  --brand-active: #9A5810;
-  --brand-soft: #E08A2A;
+  --canvas: #09090B;
+  --elevated: #1C1C1F;
+  /* Luxury burnt orange */
+  --brand: #FF7A00;
+  --brand-hover: #FF9A3D;
+  --brand-active: #E56C00;
+  --brand-soft: #FFD28A;
   --binance-yellow: var(--brand);
   --binance-yellow-hover: var(--brand-hover);
-  --background: #07090B;
-  --foreground: #EAECEF;
-  --card: #111418;
-  --card-foreground: #EAECEF;
-  --popover: #111418;
-  --popover-foreground: #EAECEF;
-  --primary: #D27918;
+  --background: #09090B;
+  --foreground: #FFFFFF;
+  --card: #18181B;
+  --card-foreground: #FFFFFF;
+  --popover: #18181B;
+  --popover-foreground: #FFFFFF;
+  --primary: #FF7A00;
   --primary-foreground: #FFFFFF;
-  --secondary: #1A1E23;
-  --secondary-foreground: #EAECEF;
-  --muted: #1A1E23;
-  --muted-foreground: #929AA5;
-  --accent: #24180D;
-  --accent-foreground: #EAECEF;
+  --secondary: #18181B;
+  --secondary-foreground: #FFFFFF;
+  --muted: #18181B;
+  --muted-foreground: #A1A1AA;
+  --accent: #2A1A0A;
+  --accent-foreground: #FFFFFF;
   --destructive: #F6465D;
-  --border: #292E35;
-  --input: #292E35;
-  --ring: #3B82F6;
+  --border: #27272A;
+  --input: #27272A;
+  --ring: #FF7A00;
   --success: #0ECB81;
   --success-foreground: #0B0E11;
-  --warning: #E08A2A;
-  --radius: 8px;
+  --warning: #FF9A3D;
+  --radius: 16px;
   --term-green: #0ECB81;
   --term-red: #F6465D;
-  --term-amber: #D27918;
+  --term-amber: #FF7A00;
 }
 
 :root {
@@ -130,15 +130,105 @@
   min-width: 0;
   color: var(--foreground);
   background:
-    radial-gradient(circle at 85% 5%, color-mix(in srgb, var(--brand) 11%, transparent), transparent 28rem),
+    radial-gradient(circle at 85% 5%, color-mix(in srgb, var(--brand) 14%, transparent), transparent 28rem),
+    radial-gradient(circle at 10% 40%, color-mix(in srgb, var(--brand-soft) 6%, transparent), transparent 22rem),
     var(--canvas);
 }
 
 .placement-glass {
-  border: 1px solid color-mix(in srgb, var(--border) 86%, transparent);
-  background: color-mix(in srgb, var(--card) 94%, transparent);
-  box-shadow: 0 18px 50px -34px rgba(0, 0, 0, 0.45);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--card) 78%, transparent);
+  box-shadow:
+    0 18px 50px -34px rgba(0, 0, 0, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
   backdrop-filter: blur(18px);
+}
+
+.home-glass {
+  border: 1px solid color-mix(in srgb, #FFFFFF 8%, transparent);
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--card) 88%, transparent),
+    color-mix(in srgb, #0c0c0e 92%, transparent)
+  );
+  box-shadow:
+    0 24px 60px -40px rgba(0, 0, 0, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+}
+
+.home-hero-surface {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 24px;
+  min-height: 450px;
+  border: 1px solid color-mix(in srgb, #FFFFFF 8%, transparent);
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 20%, color-mix(in srgb, var(--brand) 28%, transparent), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 75%, color-mix(in srgb, var(--brand-soft) 18%, transparent), transparent 50%),
+    linear-gradient(135deg, #121214 0%, #09090B 45%, #1a1208 100%);
+}
+
+.home-hero-surface::before {
+  content: '';
+  position: absolute;
+  inset: -40%;
+  z-index: 0;
+  background: conic-gradient(from 180deg at 50% 50%, transparent 0deg, color-mix(in srgb, var(--brand) 18%, transparent) 60deg, transparent 140deg, color-mix(in srgb, var(--brand-soft) 12%, transparent) 220deg, transparent 360deg);
+  animation: home-aurora 18s linear infinite;
+  opacity: 0.55;
+}
+
+.home-hero-orb {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.home-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand-soft) 80%, white);
+  opacity: 0.45;
+  z-index: 1;
+  animation: home-float 12s ease-in-out infinite;
+}
+
+@keyframes home-aurora {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes home-float {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+  50% { transform: translateY(-18px) translateX(8px); opacity: 0.7; }
+}
+
+@keyframes home-feed-scroll {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
+.home-feed-track {
+  animation: home-feed-scroll 40s linear infinite;
+}
+
+.home-feed-track:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero-surface::before,
+  .home-particle,
+  .home-feed-track {
+    animation: none !important;
+  }
 }
 
 @layer base {
@@ -169,7 +259,7 @@
     color: var(--foreground);
   }
   ::selection {
-    background: rgba(210, 121, 24, 0.35);
+    background: rgba(255, 122, 0, 0.35);
     color: #FFFFFF;
   }
 }
@@ -184,9 +274,9 @@
   .text-binance,
   .text-brand { color: var(--brand); }
   .border-soft { border-color: var(--border); }
-  .rounded-button { border-radius: 6px; }
-  .rounded-input { border-radius: 8px; }
-  .rounded-card { border-radius: 12px; }
+  .rounded-button { border-radius: 12px; }
+  .rounded-input { border-radius: 12px; }
+  .rounded-card { border-radius: 20px; }
   .max-content { max-width: 1280px; }
   .max-content-wide { max-width: 1440px; }
   .tnum { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
@@ -411,46 +501,44 @@
 
 .placement-sidebar {
   will-change: width;
+  background: color-mix(in srgb, var(--card) 92%, transparent) !important;
+  backdrop-filter: blur(16px);
+  border-right-color: color-mix(in srgb, #FFFFFF 6%, transparent) !important;
 }
 .placement-nav-link {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  border-radius: 6px;
-  padding: 0.65rem 0.85rem;
-  font-size: 14px;
+  gap: 0.75rem;
+  border-radius: 14px;
+  padding: 0.7rem 0.85rem;
+  font-size: 13px;
   font-weight: 600;
-  color: #929AA5;
-  transition: background 0.2s ease, color 0.2s ease, padding 0.2s ease;
+  color: #A1A1AA;
+  transition: background 0.3s ease, color 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease;
 }
 .placement-nav-link:hover {
-  background: #2B3139;
-  color: #EAECEF;
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
+  color: #FFFFFF;
 }
 .placement-nav-link.is-active {
-  background: rgba(210, 121, 24, 0.12);
-  color: #D27918;
+  background: color-mix(in srgb, var(--brand) 16%, transparent);
+  color: #FF7A00;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 28%, transparent);
 }
-.placement-nav-dot {
-  display: none;
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 999px;
-  background: currentColor;
-  opacity: 0.55;
+.placement-nav-icon {
+  display: inline-flex;
+  width: 1.15rem;
+  height: 1.15rem;
   flex-shrink: 0;
+  opacity: 0.9;
 }
-.placement-nav-link.is-active .placement-nav-dot {
-  opacity: 1;
-  background: #D27918;
-  box-shadow: 0 0 10px rgba(210, 121, 24, 0.55);
+.placement-nav-link.is-active .placement-nav-icon {
+  color: #FF7A00;
+  filter: drop-shadow(0 0 8px rgba(255, 122, 0, 0.45));
 }
 .placement-sidebar.is-collapsed .placement-nav-link.is-icon {
   justify-content: center;
   padding-inline: 0.55rem;
-}
-.placement-sidebar.is-collapsed .placement-nav-dot {
-  display: block;
 }
 .placement-sidebar.is-collapsed .placement-nav-label {
   position: absolute;

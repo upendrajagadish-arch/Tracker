@@ -2,7 +2,19 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { AnimatePresence, motion } from 'framer-motion'
 import { asPlacementPath } from '@/components/placement/PlacementLink'
-import { ChevronsLeft, ChevronsRight } from 'lucide-react'
+import {
+  BarChart3,
+  BriefcaseBusiness,
+  ChevronsLeft,
+  ChevronsRight,
+  GraduationCap,
+  Home,
+  LogOut,
+  Megaphone,
+  MessageSquareText,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AppFooter } from '@/components/AppFooter'
@@ -11,7 +23,13 @@ import { WorkspaceTabs } from '@/components/placement/WorkspaceTabs'
 import { useAuth } from '@/hooks/useAuth'
 import { signOut } from '@/api/savedProfiles'
 import { placementHomeForRole } from '@/lib/placementAuth'
-import { getPlacementNavLinks, getRolePrefix, isPlacementNavActive } from '@/lib/placementNavigation'
+import {
+  getPlacementNavLinks,
+  getRolePrefix,
+  isPlacementHomePath,
+  isPlacementNavActive,
+  type PlacementNavIcon,
+} from '@/lib/placementNavigation'
 import { isStaffPlacementRole } from '@/lib/placementStaff'
 import { isAllowedStaffLogin } from '@/lib/placementStaffLogins'
 import { cn } from '@/lib/utils'
@@ -25,6 +43,17 @@ interface PlacementShellProps {
 }
 
 const SIDEBAR_KEY = 'codetrace-placement-sidebar-collapsed'
+
+const NAV_ICONS: Record<PlacementNavIcon, LucideIcon> = {
+  home: Home,
+  students: Users,
+  operations: BriefcaseBusiness,
+  campaigns: Megaphone,
+  tech: GraduationCap,
+  communication: MessageSquareText,
+  reports: BarChart3,
+  logout: LogOut,
+}
 
 function PlacementMessageCard({
   title,
@@ -61,11 +90,14 @@ export function PlacementShell({
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const { user, placementRole, placementLoading, isLoading, isConfigured, placementProfile } = useAuth()
-  const [collapsed, setCollapsed] = useState(false)
+  // Icon-only by default; expand on click (300ms).
+  const [collapsed, setCollapsed] = useState(true)
 
   useEffect(() => {
     try {
-      setCollapsed(window.localStorage.getItem(SIDEBAR_KEY) === '1')
+      const stored = window.localStorage.getItem(SIDEBAR_KEY)
+      if (stored === '0') setCollapsed(false)
+      else setCollapsed(true)
     } catch {
       /* ignore */
     }
@@ -85,6 +117,7 @@ export function PlacementShell({
 
   const navLinks = getPlacementNavLinks(placementRole)
   const homePath = placementHomeForRole(placementRole)
+  const onHome = isPlacementHomePath(pathname, placementRole)
 
   const handleSignOut = async () => {
     await signOut()
@@ -162,21 +195,19 @@ export function PlacementShell({
 
   return (
       <div className="placement-theme flex min-h-screen min-w-0 flex-1 flex-col overflow-x-clip bg-canvas">
-        {/* Full-width logo / search / account bar */}
-        <div className="sticky top-0 z-50 w-full border-b border-soft bg-canvas/95 px-3 py-2 backdrop-blur-md sm:px-4 lg:px-5">
+        <div className="sticky top-0 z-50 w-full border-b border-soft bg-canvas/90 px-3 py-2 backdrop-blur-md sm:px-4 lg:px-5">
           <PlacementTopBar
             base={getRolePrefix(placementRole) ? `${getRolePrefix(placementRole)}/placement` : null}
           />
         </div>
 
-        {/* Sidebar + content under the top bar */}
         <div className="flex min-h-0 min-w-0 flex-1">
           <motion.aside
             initial={false}
             animate={{ width: collapsed ? 72 : 240 }}
-            transition={{ type: 'spring', stiffness: 320, damping: 34, mass: 0.85 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className={cn(
-              'placement-sidebar sticky top-[4.25rem] hidden h-[calc(100vh-4.25rem)] shrink-0 self-start overflow-hidden border-r border-soft bg-card p-3 lg:flex lg:flex-col',
+              'placement-sidebar sticky top-[4.25rem] hidden h-[calc(100vh-4.25rem)] shrink-0 self-start overflow-hidden border-r border-soft p-3 lg:flex lg:flex-col',
               collapsed && 'is-collapsed',
             )}
           >
@@ -188,7 +219,7 @@ export function PlacementShell({
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -8 }}
-                    transition={{ duration: 0.18 }}
+                    transition={{ duration: 0.3 }}
                     className="min-w-0"
                   >
                     <Link
@@ -203,17 +234,18 @@ export function PlacementShell({
               <button
                 type="button"
                 onClick={toggleCollapsed}
-                className="inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-soft bg-elevated text-muted-foreground transition duration-200 hover:border-primary/40 hover:bg-primary/10 hover:text-binance"
-                aria-label={collapsed ? 'Open sidebar' : 'Close sidebar'}
+                className="inline-flex size-8 shrink-0 items-center justify-center rounded-xl border border-soft bg-elevated text-muted-foreground transition duration-300 hover:border-primary/40 hover:bg-primary/10 hover:text-binance"
+                aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 aria-expanded={!collapsed}
               >
                 {collapsed ? <ChevronsRight className="size-4" /> : <ChevronsLeft className="size-4" />}
               </button>
             </div>
 
-            <nav className="min-h-0 flex-1 space-y-0.5 overflow-y-auto overflow-x-hidden">
+            <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto overflow-x-hidden">
               {navLinks.map((link) => {
                 const active = !link.external && isPlacementNavActive(pathname, link)
+                const Icon = link.icon ? NAV_ICONS[link.icon] : Home
                 const label = (
                   <span className={cn('placement-nav-label block truncate', collapsed && 'sr-only')}>
                     {link.label}
@@ -229,7 +261,7 @@ export function PlacementShell({
                       title={link.label}
                       className={cn('placement-nav-link', collapsed && 'is-icon')}
                     >
-                      <span className="placement-nav-dot" aria-hidden />
+                      <Icon className="placement-nav-icon" aria-hidden />
                       {label}
                     </a>
                   )
@@ -241,17 +273,29 @@ export function PlacementShell({
                     title={link.label}
                     className={cn('placement-nav-link', active && 'is-active', collapsed && 'is-icon')}
                   >
-                    <span className="placement-nav-dot" aria-hidden />
+                    <Icon className="placement-nav-icon" aria-hidden />
                     {label}
                   </Link>
                 )
               })}
             </nav>
+
+            <button
+              type="button"
+              title="Logout"
+              onClick={() => void handleSignOut()}
+              className={cn('placement-nav-link mt-2', collapsed && 'is-icon')}
+            >
+              <LogOut className="placement-nav-icon" aria-hidden />
+              <span className={cn('placement-nav-label block truncate', collapsed && 'sr-only')}>
+                Logout
+              </span>
+            </button>
           </motion.aside>
 
           <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden">
             <div className="app-stack flex min-h-0 flex-1 flex-col px-3 py-3 sm:px-4 sm:py-4 lg:px-5 lg:py-4">
-              <div className="flex max-w-full gap-2 overflow-x-auto rounded-card border border-soft bg-card p-2 lg:hidden">
+              <div className="flex max-w-full gap-2 overflow-x-auto rounded-card border border-soft bg-card/80 p-2 backdrop-blur lg:hidden">
                 {navLinks.map((link) =>
                   link.external ? (
                     <a
@@ -280,7 +324,7 @@ export function PlacementShell({
                 )}
               </div>
 
-              <WorkspaceTabs active="placement" syncYear />
+              {!onHome ? <WorkspaceTabs active="placement" syncYear /> : null}
 
               <motion.div
                 initial={{ opacity: 0, y: 4 }}
