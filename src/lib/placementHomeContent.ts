@@ -108,10 +108,10 @@ const ADMIN_NEWS: HomeNewsItem[] = [
     time: 'Tip',
   },
   {
-    id: 'reports',
+    id: 'exports',
     icon: '📊',
-    title: 'Reports stay export-ready',
-    description: 'PDF and Excel exports for the cohort remain available from Dashboard and Reports.',
+    title: 'Exports stay on Dashboard',
+    description: 'PDF and Excel cohort exports remain available from the Dashboard page.',
     time: 'Info',
   },
   {
@@ -152,21 +152,21 @@ const FACULTY_NEWS: HomeNewsItem[] = [
     id: 'mentor',
     icon: '🎓',
     title: 'Mentoring tools stay in the sidebar',
-    description: 'Students, Training, and Performance pages hold evaluations and cohort work — Home is welcome-only.',
+    description: 'Students, Tech Stack, and Communication Evaluation pages hold evaluations and cohort work — Home is welcome-only.',
     time: 'Tip',
   },
   {
     id: 'eval',
     icon: '✍️',
     title: 'Communication evaluations',
-    description: 'Record performance reviews from the Performance module; results feed readiness views elsewhere.',
+    description: 'Record performance reviews from Communication Evaluation; results feed readiness views elsewhere.',
     time: 'Info',
   },
   {
     id: 'training',
     icon: '🧩',
     title: 'Ignite · Pinnacle · Connect',
-    description: 'Training program cohorts and bulk uploads live under Training — open Dashboard for the full faculty table.',
+    description: 'Training program cohorts and bulk uploads live under Tech Stack — open Dashboard for the full faculty table.',
     time: 'Info',
   },
 ]

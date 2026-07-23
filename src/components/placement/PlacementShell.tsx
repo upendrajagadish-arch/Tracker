@@ -3,7 +3,6 @@ import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
 import { AnimatePresence, motion } from 'framer-motion'
 import { asPlacementPath } from '@/components/placement/PlacementLink'
 import {
-  BarChart3,
   BriefcaseBusiness,
   ChevronsLeft,
   ChevronsRight,
@@ -53,7 +52,6 @@ const NAV_ICONS: Record<PlacementNavIcon, LucideIcon> = {
   campaigns: Megaphone,
   tech: GraduationCap,
   communication: MessageSquareText,
-  reports: BarChart3,
   logout: LogOut,
 }
 

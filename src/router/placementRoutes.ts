@@ -19,7 +19,6 @@ import { RequirementDetailPage } from '@/pages/placement/RequirementDetailPage'
 import { ResumeBooksPage } from '@/pages/placement/ResumeBooksPage'
 import { ResumeBookCreatePage } from '@/pages/placement/ResumeBookCreatePage'
 import { ResumeBookViewPage } from '@/pages/placement/ResumeBookViewPage'
-import { ReportsPage } from '@/pages/placement/ReportsPage'
 import { SharedStudentsPage } from '@/pages/placement/SharedStudentsPage'
 import { CommunicationDashboardPage } from '@/pages/placement/CommunicationDashboardPage'
 import { CommunicationEvaluationsPage } from '@/pages/placement/CommunicationEvaluationsPage'
@@ -51,6 +50,7 @@ const REMOVED_PLACEMENT_PATHS = [
   'placement-passport',
   'management-summary',
   'audit-logs',
+  'reports',
 ] as const
 
 function createRemovedPlacementRoutes(parent: AnyRoute, prefix: 'admin' | 'tpo' | 'faculty' | 'interviewer') {
@@ -274,11 +274,6 @@ function createRolePlacementRoutes(parent: AnyRoute, prefix: 'admin' | 'tpo' | '
       getParentRoute: () => parent,
       path: `${prefix}/placement/resume-books/$id`,
       component: ResumeBookViewPage,
-    }),
-    createRoute({
-      getParentRoute: () => parent,
-      path: `${prefix}/placement/reports`,
-      component: ReportsPage,
     }),
   ]
 }

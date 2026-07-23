@@ -18,7 +18,6 @@ export type PlacementNavIcon =
   | 'campaigns'
   | 'tech'
   | 'communication'
-  | 'reports'
   | 'logout'
 
 export interface PlacementNavLink {
@@ -76,9 +75,9 @@ export function getPlacementNavLinks(role: PlacementRole | null | undefined): Pl
       links.push({ to: `${base}/students`, label: 'Students', icon: 'students' })
     }
     if (canViewTechStack(role)) {
-      links.push({ to: `${base}/tech-stack`, label: 'Training', icon: 'tech' })
+      links.push({ to: `${base}/tech-stack`, label: 'Tech Stack', icon: 'tech' })
     }
-    links.push({ to: `${base}/communication`, label: 'Performance', icon: 'communication' })
+    links.push({ to: `${base}/communication`, label: 'Communication Evaluation', icon: 'communication' })
     if (hasPermission(role, 'campaigns:view')) {
       links.push({ to: `${base}/student-update-campaigns`, label: 'Campaigns', icon: 'campaigns' })
     }
@@ -116,15 +115,11 @@ export function getPlacementNavLinks(role: PlacementRole | null | undefined): Pl
   }
 
   if (canViewTechStack(role)) {
-    links.push({ to: `${base}/tech-stack`, label: 'Training', icon: 'tech' })
+    links.push({ to: `${base}/tech-stack`, label: 'Tech Stack', icon: 'tech' })
   }
 
   if (hasPermission(role, 'readiness:view') || role === 'admin' || role === 'tpo') {
-    links.push({ to: `${base}/communication`, label: 'Performance', icon: 'communication' })
-  }
-
-  if (canExportReports(role) || role === 'admin' || role === 'tpo') {
-    links.push({ to: `${base}/reports`, label: 'Reports', icon: 'reports' })
+    links.push({ to: `${base}/communication`, label: 'Communication Evaluation', icon: 'communication' })
   }
 
   return links
