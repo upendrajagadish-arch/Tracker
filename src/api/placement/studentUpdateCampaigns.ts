@@ -461,6 +461,7 @@ export async function uploadPublicCampaignRegistrationResume(
   campaignId: string,
   studentProfileId: string,
   file: File,
+  rollNumber?: string,
 ): Promise<void> {
   const client = requireSupabase()
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -472,15 +473,39 @@ export async function uploadPublicCampaignRegistrationResume(
   })
   if (uploadError) throw uploadError
 
-  const { data, error } = await client.rpc('register_public_campaign_registration_resume', {
+  const payload = {
     p_campaign_id: campaignId,
     p_student_profile_id: studentProfileId,
     p_file_name: file.name,
     p_storage_path: storagePath,
     p_mime_type: file.type || 'application/pdf',
     p_file_size: file.size,
-  })
-  if (error) throw error
+  }
+
+  const { data, error } = await client.rpc('register_public_campaign_registration_resume', payload)
+  if (error) {
+    const message = error.message || ''
+    const isRlsError = /row-level security|violates row-level security/i.test(message)
+    if (isRlsError && rollNumber?.trim()) {
+      // Fallback path: resolve the per-student update token and register resume through
+      // the token-based RPC, which is intended for public-link writes.
+      const token = await resolveCampaignStudentToken(campaignId, rollNumber)
+      if (token) {
+        const { data: tokenData, error: tokenError } = await client.rpc('register_public_campaign_resume', {
+          p_token: token,
+          p_file_name: file.name,
+          p_storage_path: storagePath,
+          p_mime_type: file.type || 'application/pdf',
+          p_file_size: file.size,
+        })
+        if (tokenError) throw tokenError
+        const tokenResult = (tokenData ?? {}) as { ok?: boolean; error?: string }
+        if (tokenResult.ok) return
+        throw new Error(tokenResult.error || 'Failed to register resume')
+      }
+    }
+    throw error
+  }
   const result = (data ?? {}) as { ok?: boolean; error?: string }
   if (!result.ok) throw new Error(result.error || 'Failed to register resume')
 }

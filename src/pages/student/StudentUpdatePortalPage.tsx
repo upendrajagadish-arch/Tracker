@@ -277,7 +277,12 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
           setError('Choose the resume file again to retry the upload.')
           return
         }
-        await uploadPublicCampaignRegistrationResume(campaignId, registeredStudentId, resumeFile)
+        await uploadPublicCampaignRegistrationResume(
+          campaignId,
+          registeredStudentId,
+          resumeFile,
+          form.rollNumber,
+        )
         setSuccess('Resume uploaded successfully. Your registration is complete.')
         setRegisteredStudentId(null)
         setResumeFile(null)
@@ -333,7 +338,12 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
 
       if (resumeFile) {
         try {
-          await uploadPublicCampaignRegistrationResume(campaignId, result.studentProfileId, resumeFile)
+          await uploadPublicCampaignRegistrationResume(
+            campaignId,
+            result.studentProfileId,
+            resumeFile,
+            form.rollNumber,
+          )
         } catch (resumeError) {
           setRegisteredStudentId(result.studentProfileId)
           setError(
