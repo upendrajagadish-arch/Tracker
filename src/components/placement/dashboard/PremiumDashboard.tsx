@@ -1051,17 +1051,22 @@ export function PremiumDashboard({
     if (value == null || !Number.isFinite(Number(value))) return 0
     return Math.max(0, Math.min(100, Number(value) * 10))
   }
-  const cgpaAbove0 = snapshot.studentDetails.filter((student) => cgpaPercent(student.cgpa) > 0).length
+  const cgpaAbove60 = snapshot.studentDetails.filter((student) => cgpaPercent(student.cgpa) >= 60).length
   const cgpaAbove70 = snapshot.studentDetails.filter((student) => cgpaPercent(student.cgpa) >= 70).length
   const cgpaAbove80 = snapshot.studentDetails.filter((student) => cgpaPercent(student.cgpa) >= 80).length
   const openStudents = (
     title: string,
     description: string,
     predicate: (student: DashboardSnapshot['studentDetails'][number]) => boolean,
+    sortBy: 'readiness' | 'cgpa' = 'readiness',
   ) => {
     const rows = snapshot.studentDetails
       .filter(predicate)
       .sort((a, b) => {
+        if (sortBy === 'cgpa') {
+          const cgpaDiff = Number(b.cgpa ?? -1) - Number(a.cgpa ?? -1)
+          if (cgpaDiff !== 0) return cgpaDiff
+        }
         if (b.readinessScore !== a.readinessScore) return b.readinessScore - a.readinessScore
         return a.rollNumber.localeCompare(b.rollNumber, undefined, { numeric: true })
       })
@@ -1104,32 +1109,34 @@ export function PremiumDashboard({
           onClick={() => openStudents('All students', 'Active students in the selected batch.', () => true)}
         />
         <MetricCard
-          title="CGPA > 7.0"
-          value={cgpaAbove70}
+          title="CGPA > 60%"
+          value={cgpaAbove60}
           icon={<Target className="size-5" />}
-          hint="CGPA at or above 7.0"
+          hint="CGPA at or above 6.0"
           spark={readinessSpark.slice(1)}
           color="#D27918"
           onClick={() =>
             openStudents(
-              'Students with CGPA > 7.0',
-              'Students with CGPA at or above 7.0.',
-              (student) => cgpaPercent(student.cgpa) >= 70,
+              'Students with CGPA > 60%',
+              'Students with CGPA at or above 6.0, sorted by CGPA descending.',
+              (student) => cgpaPercent(student.cgpa) >= 60,
+              'cgpa',
             )
           }
         />
         <MetricCard
-          title="CGPA > 0%"
-          value={cgpaAbove0}
+          title="CGPA > 70%"
+          value={cgpaAbove70}
           icon={<CheckCircle2 className="size-5" />}
-          hint="Students with CGPA entered"
+          hint="CGPA at or above 7.0"
           spark={readinessSpark.slice(2)}
           color="#D27918"
           onClick={() =>
             openStudents(
-              'Students with CGPA > 0%',
-              'Students whose CGPA is available and above 0.',
-              (student) => cgpaPercent(student.cgpa) > 0,
+              'Students with CGPA > 70%',
+              'Students with CGPA at or above 7.0, sorted by CGPA descending.',
+              (student) => cgpaPercent(student.cgpa) >= 70,
+              'cgpa',
             )
           }
         />
@@ -1143,8 +1150,9 @@ export function PremiumDashboard({
           onClick={() =>
             openStudents(
               'Students with CGPA > 80%',
-              'Students with CGPA at or above 8.0 (80%).',
+              'Students with CGPA at or above 8.0 (80%), sorted by CGPA descending.',
               (student) => cgpaPercent(student.cgpa) >= 80,
+              'cgpa',
             )
           }
         />
@@ -1154,7 +1162,7 @@ export function PremiumDashboard({
           icon={<UserCheck className="size-5" />}
           trend={`${overview.placementPercentage}% placement rate`}
           hint={`${overview.unplaced} students remaining`}
-          spark={[overview.unplaced, cgpaAbove70, cgpaAbove80, overview.placed]}
+          spark={[overview.unplaced, cgpaAbove60, cgpaAbove70, cgpaAbove80]}
           color="#D27918"
           onClick={() => openStudents('Placed students', 'Students whose placement status is placed or offered.', (student) => ['PLACED', 'OFFERED'].includes(student.placementStatus.toUpperCase()))}
         />

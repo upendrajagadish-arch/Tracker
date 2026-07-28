@@ -461,7 +461,7 @@ export async function uploadPublicCampaignRegistrationResume(
   campaignId: string,
   studentProfileId: string,
   file: File,
-  rollNumber?: string,
+  _rollNumber?: string,
 ): Promise<void> {
   const client = requireSupabase()
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
@@ -473,39 +473,19 @@ export async function uploadPublicCampaignRegistrationResume(
       : lowerName.endsWith('.doc')
         ? 'application/msword'
         : 'application/pdf')
-  const metadata = { mimetype: guessedMime, size: String(file.size) }
-  const uploadErrors: string[] = []
-
-  // Preferred path: token-based upload (usually looser storage policy and safer with RLS).
-  if (rollNumber?.trim()) {
-    try {
-      const token = await resolveCampaignStudentToken(campaignId, rollNumber)
-      if (token) {
-        const tokenStoragePath = `campaign/${token}/${Date.now()}-${safeName}`
-        const { error: tokenUploadError } = await client.storage.from('resumes').upload(tokenStoragePath, file, {
-          contentType: guessedMime,
-          upsert: false,
-          metadata,
-        })
-        if (tokenUploadError) throw tokenUploadError
-        const { data: tokenData, error: tokenError } = await client.rpc('register_public_campaign_resume', {
-          p_token: token,
-          p_file_name: file.name,
-          p_storage_path: tokenStoragePath,
-          p_mime_type: guessedMime,
-          p_file_size: file.size,
-        })
-        if (tokenError) throw tokenError
-        const tokenResult = (tokenData ?? {}) as { ok?: boolean; error?: string }
-        if (!tokenResult.ok) throw new Error(tokenResult.error || 'Failed to register resume')
-        return
-      }
-    } catch (error) {
-      uploadErrors.push(error instanceof Error ? error.message : 'Token resume upload failed')
-    }
+  const allowedMimes = new Set([
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ])
+  if (!allowedMimes.has(guessedMime)) {
+    throw new Error('Only PDF, DOC, or DOCX resumes are allowed.')
   }
-
-  // Fallback path: campaign-reg upload + campaign registration resume RPC.
+  if (!Number.isFinite(file.size) || file.size <= 0 || file.size > 10 * 1024 * 1024) {
+    throw new Error('Resume file must be between 1 byte and 10 MB.')
+  }
+  const metadata = { mimetype: guessedMime, size: String(file.size) }
+  // campaign-reg upload + campaign registration resume RPC.
   const storagePath = `campaign-reg/${campaignId}/${studentProfileId}/${Date.now()}-${safeName}`
   const { error: uploadError } = await client.storage.from('resumes').upload(storagePath, file, {
     contentType: guessedMime,
@@ -513,9 +493,8 @@ export async function uploadPublicCampaignRegistrationResume(
     metadata,
   })
   if (uploadError) {
-    uploadErrors.push(uploadError.message)
     throw new Error(
-      `Resume upload failed. ${uploadErrors.join(' | ') || uploadError.message}`,
+      `Resume upload failed. ${uploadError.message}`,
     )
   }
 
@@ -528,12 +507,11 @@ export async function uploadPublicCampaignRegistrationResume(
     p_file_size: file.size,
   })
   if (error) {
-    uploadErrors.push(error.message || 'Campaign resume registration failed')
-    throw new Error(uploadErrors.join(' | '))
+    throw new Error(error.message || 'Campaign resume registration failed')
   }
   const result = (data ?? {}) as { ok?: boolean; error?: string }
   if (!result.ok) {
-    throw new Error(result.error || uploadErrors.join(' | ') || 'Failed to register resume')
+    throw new Error(result.error || 'Failed to register resume')
   }
 }
 

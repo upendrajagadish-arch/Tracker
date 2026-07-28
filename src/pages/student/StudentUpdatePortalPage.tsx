@@ -265,6 +265,14 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
     }))
   }
 
+  const formatResumeUploadError = (resumeError: unknown) => {
+    const message = resumeError instanceof Error ? resumeError.message : 'unknown error'
+    if (/row-level security|violates row-level security|403|400/i.test(message)) {
+      return `${message}. Placement admins should apply scripts/apply-fix-campaign-resume-upload-rls.sql on Supabase and retry.`
+    }
+    return message
+  }
+
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (!meta) return
@@ -348,7 +356,7 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
           setRegisteredStudentId(result.studentProfileId)
           setError(
             `Your profile was registered, but resume upload failed: ${
-              resumeError instanceof Error ? resumeError.message : 'unknown error'
+              formatResumeUploadError(resumeError)
             }. Keep this page open and submit again to retry only the resume upload.`,
           )
           return
