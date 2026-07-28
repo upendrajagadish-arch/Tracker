@@ -74,6 +74,7 @@ export interface DashboardSnapshot {
     fullName: string
     rollNumber: string
     branch: string
+    cgpa?: number | null
     readinessScore: number
     placementStatus: string
   }>
@@ -696,6 +697,7 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
       fullName: student.full_name,
       rollNumber: student.roll_number,
       branch: student.branch,
+      cgpa: student.cgpa == null ? null : Number(student.cgpa),
       readinessScore: Number(student.readiness_score) || 0,
       placementStatus: student.placement_status,
     })),
