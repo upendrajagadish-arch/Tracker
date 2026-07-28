@@ -1,23 +1,11 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Trash2, Trophy } from 'lucide-react'
+import { Trophy } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
 import { PlacementLink } from '@/components/placement/PlacementLink'
 import { PlacementShell, usePlacementPaths } from '@/components/placement/PlacementShell'
 import { PlacementPageHeader } from '@/components/placement/PlacementPageHeader'
-import {
-  CompletenessBar,
-  PlacementStatusBadge,
-  ReadinessStatusBadge,
-} from '@/components/placement/PlacementBadges'
+import { StudentMarketTable } from '@/components/placement/StudentMarketTable'
 import {
   PlacementEmptyState,
   PlacementStatCard,
@@ -428,7 +416,7 @@ export function StudentsPage() {
                   ? 'Search results'
                   : filters.section
                     ? `${filters.section} · ${activeYearLabel}`
-                    : `Students · ${activeYearLabel}`
+                    : `Student market · ${activeYearLabel}`
               }
               count={rows.length}
               exportSection={tableSectionExport(
@@ -458,87 +446,15 @@ export function StudentsPage() {
                 { fileBase: isSearching ? 'student_roll_search' : `students_${activeYearLabel.replace(/\s+/g, '_')}` },
               )}
             >
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/30 hover:bg-muted/40">
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>Roll number</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Branch</TableHead>
-                    <TableHead>Academic Batch</TableHead>
-                    <TableHead>CGPA</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Readiness</TableHead>
-                    <TableHead>Profile</TableHead>
-                    <TableHead />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {rows.map((student, index) => (
-                    <TableRow key={student.id} className="hover:bg-muted/40">
-                      <TableCell className="tnum text-xs font-bold text-muted-foreground">
-                        {index + 1}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">{student.roll_number}</TableCell>
-                      <TableCell>
-                        {base ? (
-                          <PlacementLink href={`${base}/students/$id`} params={{ id: student.id }} className="font-medium text-primary hover:underline">
-                            {student.full_name}
-                          </PlacementLink>
-                        ) : student.full_name}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{student.email || '—'}</TableCell>
-                      <TableCell>{student.branch || '—'}</TableCell>
-                      <TableCell>{student.academic_batch || student.batch || '—'}</TableCell>
-                      <TableCell>{student.cgpa ?? '—'}</TableCell>
-                      <TableCell><PlacementStatusBadge status={student.placement_status} /></TableCell>
-                      <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <span className="text-sm font-medium">{student.readiness_score}</span>
-                          <ReadinessStatusBadge status={student.readiness_status} />
-                        </div>
-                      </TableCell>
-                      <TableCell><CompletenessBar value={student.profile_completeness} /></TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          {base ? (
-                            <Button asChild variant="outline" size="sm">
-                              <PlacementLink href={`${base}/students/$id`} params={{ id: student.id }}>
-                                Student profile
-                              </PlacementLink>
-                            </Button>
-                          ) : null}
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={exportingPdf}
-                            onClick={() => void handleRowPdf(student.id, student.roll_number)}
-                          >
-                            PDF
-                          </Button>
-                          {canManage ? (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="text-destructive hover:bg-destructive/10"
-                              disabled={deletingId === student.id}
-                              onClick={() =>
-                                void handleDelete(student.id, `${student.full_name} (${student.roll_number})`)
-                              }
-                            >
-                              <Trash2 className="size-3.5" />
-                              {deletingId === student.id ? 'Deleting…' : 'Delete'}
-                            </Button>
-                          ) : null}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <StudentMarketTable
+                students={rows}
+                base={base}
+                canManage={canManage}
+                deletingId={deletingId}
+                exportingPdf={exportingPdf}
+                onDelete={(id, label) => void handleDelete(id, label)}
+                onPdf={(id, roll) => void handleRowPdf(id, roll)}
+              />
             </PlacementTableCard>
           ) : null}
         </PlacementPageBody>

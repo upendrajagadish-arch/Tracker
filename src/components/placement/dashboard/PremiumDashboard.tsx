@@ -498,7 +498,7 @@ const TECH_RADIAL_COLORS = [
   '#3B82F6',
   '#0ECB81',
   '#A78BFA',
-  '#F6465D',
+  '#C45C1A',
   '#22D3EE',
   '#D27918',
 ] as const

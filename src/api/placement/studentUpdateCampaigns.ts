@@ -47,6 +47,18 @@ export interface CampaignRegistrantRow {
   academic_batch: string | null
   section: string
   email: string
+  phone: string
+  date_of_birth: string | null
+  cgpa: number | null
+  active_backlogs: number
+  linkedin_url: string
+  github_url: string
+  portfolio_url: string
+  skills_summary: string
+  career_interest: string
+  projects_summary: string
+  certifications_summary: string
+  platform_handles: Record<string, string> | Json
   created_at: string
 }
 
@@ -189,7 +201,9 @@ export async function listCampaignRegistrants(campaignId: string): Promise<Campa
   const client = requireSupabase()
   const { data, error } = await client
     .from('student_profiles')
-    .select('id, full_name, roll_number, branch, batch, academic_batch, section, email, created_at')
+    .select(
+      'id, full_name, roll_number, branch, batch, academic_batch, section, email, phone, date_of_birth, cgpa, active_backlogs, linkedin_url, github_url, portfolio_url, skills_summary, career_interest, projects_summary, certifications_summary, platform_handles, created_at',
+    )
     .eq('registered_via_campaign_id', campaignId)
     .eq('is_active', true)
     .order('created_at', { ascending: false })

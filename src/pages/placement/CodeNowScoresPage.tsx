@@ -138,7 +138,7 @@ export function CodeNowScoresPage() {
                 subtitle="Students with vs without CodeNow profiles"
                 data={[
                   { name: 'With CodeNow', value: summary.totalProfiles, color: '#0ECB81' },
-                  { name: 'Without CodeNow', value: summary.studentsWithoutCodeNow, color: '#F6465D' },
+                  { name: 'Without CodeNow', value: summary.studentsWithoutCodeNow, color: '#C45C1A' },
                 ]}
                 centerLabel="Profiles"
                 centerValue={summary.totalProfiles}

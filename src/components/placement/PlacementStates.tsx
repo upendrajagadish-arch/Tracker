@@ -50,7 +50,7 @@ export function PlacementEmptyState({
 
 export function PlacementErrorAlert({ message }: { message: string }) {
   return (
-    <div className="rounded-button border border-[#F6465D]/35 bg-[#F6465D]/10 px-4 py-3 text-[14px] font-semibold text-[#F6465D]">
+    <div className="rounded-button border border-[#C45C1A]/35 bg-[#C45C1A]/10 px-4 py-3 text-[14px] font-semibold text-[#C45C1A]">
       {message}
     </div>
   )

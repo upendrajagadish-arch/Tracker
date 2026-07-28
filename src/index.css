@@ -77,7 +77,7 @@
   --muted-foreground: #A1A1AA;
   --accent: #2A1A0A;
   --accent-foreground: #FFFFFF;
-  --destructive: #F6465D;
+  --destructive: #C45C1A;
   --border: #27272A;
   --input: #27272A;
   --ring: #FF7A00;
@@ -86,7 +86,7 @@
   --warning: #FF9A3D;
   --radius: 16px;
   --term-green: #0ECB81;
-  --term-red: #F6465D;
+  --term-red: #C45C1A;
   --term-amber: #FF7A00;
 }
 
@@ -117,7 +117,7 @@
   --muted-foreground: #667085;
   --accent: #fff4e8;
   --accent-foreground: #8a4b0f;
-  --destructive: #d92d45;
+  --destructive: #A34A12;
   --border: #dfe3e8;
   --input: #d4d9e0;
   --ring: #3b82f6;
@@ -281,7 +281,7 @@
   .max-content-wide { max-width: 1440px; }
   .tnum { font-variant-numeric: tabular-nums; font-family: var(--font-mono); }
   .value-up { color: #0ECB81; }
-  .value-down { color: #F6465D; }
+  .value-down { color: #C45C1A; }
   .app-frame {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
   }

@@ -15,7 +15,7 @@ export const colors = {
     muted: '#707A8A',
     border: '#2B3139',
     success: '#0ECB81',
-    danger: '#F6465D',
+    danger: '#C45C1A',
     focus: '#3B82F6',
   },
   light: {

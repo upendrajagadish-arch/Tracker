@@ -113,7 +113,7 @@ export function StudentUpdateCampaignsPage() {
                   { name: 'Opened', value: summary.opened, color: '#3B82F6' },
                   { name: 'Completed', value: summary.completed, color: '#0ECB81' },
                   { name: 'Pending', value: summary.pending, color: '#F0B90B' },
-                  { name: 'Expired', value: summary.expired, color: '#F6465D' },
+                  { name: 'Expired', value: summary.expired, color: '#C45C1A' },
                 ]}
                 centerLabel="Regs"
                 centerValue={summary.students}

@@ -36,11 +36,9 @@ import {
 } from '@/lib/communicationBadge'
 import {
   buildOverallPerformanceSummary,
-  blendCodingPercent,
   codingPercentFromSolved,
   githubPercentFromActivity,
 } from '@/lib/overallPerformance'
-import { CODENOW_CATEGORY_LABELS, type CodeNowCategory } from '@/lib/codeNowCategories'
 
 const CARD_RENDERERS: Record<Platform, (username: string) => ReactNode> = {
   github: (u) => <GitHubCard username={u} />,
@@ -81,13 +79,13 @@ function performanceGaugeColor(score: number) {
   if (score >= 80) return '#0ECB81'
   if (score >= 70) return '#D27918'
   if (score >= 60) return '#F0B90B'
-  if (score >= 50) return '#F6465D'
+  if (score >= 50) return '#C45C1A'
   return '#9B1C31'
 }
 
 const GAUGE_SEGMENTS: Array<{ from: number; to: number; color: string }> = [
   { from: 0, to: 50, color: '#9B1C31' },
-  { from: 50, to: 60, color: '#F6465D' },
+  { from: 50, to: 60, color: '#C45C1A' },
   { from: 60, to: 70, color: '#F0B90B' },
   { from: 70, to: 80, color: '#D27918' },
   { from: 80, to: 100, color: '#0ECB81' },
@@ -248,17 +246,14 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
 
   const githubCard = loaded.find((c) => c.platform === 'github')
   const overall = buildOverallPerformanceSummary({
-    codingPercent: blendCodingPercent(
-      codingPercentFromSolved(liveSolved),
-      profile.codeNow?.percentage ?? null,
-    ),
+    codingPercent: codingPercentFromSolved(liveSolved),
     githubPercent: githubPercentFromActivity({
       commits: githubCard?.stats.totalSolved ?? null,
       stars: githubCard?.rating?.current ?? githubCard?.contests?.rating ?? null,
     }),
     communicationPercent: profile.communication?.percentage ?? null,
-    aptitudePercent: profile.aptitude?.percentage ?? null,
-    verbalPercent: profile.verbal?.percentage ?? null,
+    aptitudePercent: null,
+    verbalPercent: null,
   })
 
   const codingAccounts = (Object.entries(usernames) as [Platform, string][])
@@ -324,6 +319,72 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
               value={<ReadinessStatusBadge status={profile.readinessStatus} />}
             />
             <ShareMetric label="Skills summary" value={display(profile.skillsSummary)} />
+            <ShareMetric label="Phone" value={display(profile.phone)} />
+            <ShareMetric
+              label="Date of birth"
+              value={profile.dateOfBirth ? formatDate(profile.dateOfBirth) : 'Not Available'}
+            />
+            <ShareMetric
+              label="LinkedIn"
+              value={
+                profile.linkedinUrl ? (
+                  <a
+                    href={profile.linkedinUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="break-all text-primary hover:underline"
+                  >
+                    {profile.linkedinUrl}
+                  </a>
+                ) : (
+                  'Not Available'
+                )
+              }
+            />
+            <ShareMetric
+              label="Portfolio"
+              value={
+                profile.portfolioUrl ? (
+                  <a
+                    href={profile.portfolioUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="break-all text-primary hover:underline"
+                  >
+                    {profile.portfolioUrl}
+                  </a>
+                ) : (
+                  'Not Available'
+                )
+              }
+            />
+            <ShareMetric
+              label="Projects"
+              value={display(profile.projectsSummary)}
+            />
+            <ShareMetric
+              label="Certifications"
+              value={
+                profile.certificationLinks?.length ? (
+                  <ul className="space-y-1">
+                    {profile.certificationLinks.map((url) => (
+                      <li key={url}>
+                        <a
+                          href={url.startsWith('http') ? url : `https://${url}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="break-all text-primary hover:underline"
+                        >
+                          {url}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  'Not Available'
+                )
+              }
+            />
           </div>
         </ShareProfileSection>
 
@@ -362,54 +423,6 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
           ) : (
             <ShareNotAvailable label="Not Available — no coding platform accounts linked." />
           )}
-
-          <div className="mt-4 rounded-lg border border-border bg-background/70 p-4">
-            <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-              CodeNow
-            </p>
-            {profile.codeNow ? (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <ShareMetric
-                  label="Score"
-                  value={
-                    profile.codeNow.totalScore != null && profile.codeNow.maxScore != null
-                      ? `${profile.codeNow.totalScore}/${profile.codeNow.maxScore}`
-                      : 'Not Available'
-                  }
-                />
-                <ShareMetric label="Percentage" value={display(profile.codeNow.percentage, '%')} />
-                <ShareMetric label="Grade" value={display(profile.codeNow.grade)} />
-                <ShareMetric
-                  label="Challenges"
-                  value={
-                    profile.codeNow.solvedChallenges != null && profile.codeNow.totalChallenges != null
-                      ? `${profile.codeNow.solvedChallenges}/${profile.codeNow.totalChallenges}`
-                      : display(profile.codeNow.totalChallenges)
-                  }
-                />
-                <ShareMetric label="Username" value={display(profile.codeNow.username)} />
-                <ShareMetric label="Last synced" value={formatDate(profile.codeNow.lastSyncedAt)} />
-                {Object.keys(profile.codeNow.categorySummary || {}).length ? (
-                  <div className="sm:col-span-2 lg:col-span-3">
-                    <p className="mb-2 text-xs font-medium text-muted-foreground">Category summary</p>
-                    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                      {Object.entries(profile.codeNow.categorySummary).map(([key, value]) => (
-                        <ShareMetric
-                          key={key}
-                          label={CODENOW_CATEGORY_LABELS[key as CodeNowCategory] || key}
-                          value={`${value}%`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            ) : (
-              <div className="mt-2">
-                <ShareNotAvailable />
-              </div>
-            )}
-          </div>
         </ShareProfileSection>
 
         <ShareProfileSection number="03" title="GitHub Activity" description="Public repositories and activity">
@@ -572,68 +585,8 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
           )}
         </ShareProfileSection>
 
-        <ShareProfileSection number="06" title="Aptitude Performance">
-          {profile.aptitude ? (
-            <div className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <ShareMetric
-                  label="Score"
-                  value={
-                    profile.aptitude.score != null && profile.aptitude.maxScore != null
-                      ? `${profile.aptitude.score}/${profile.aptitude.maxScore}`
-                      : 'Not Available'
-                  }
-                />
-                <ShareMetric label="Percentage" value={display(profile.aptitude.percentage, '%')} />
-                <ShareMetric label="Grade / status" value={display(profile.aptitude.grade)} />
-                <ShareMetric label="Test name" value={display(profile.aptitude.testName)} />
-                <ShareMetric label="Last updated" value={formatDate(profile.aptitude.evaluatedAt)} />
-              </div>
-              {Object.keys(profile.aptitude.categoryBreakdown || {}).length ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {Object.entries(profile.aptitude.categoryBreakdown).map(([key, value]) => (
-                    <ShareMetric key={key} label={key} value={value} />
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <ShareNotAvailable />
-          )}
-        </ShareProfileSection>
-
-        <ShareProfileSection number="07" title="Verbal Performance">
-          {profile.verbal ? (
-            <div className="space-y-3">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                <ShareMetric
-                  label="Score"
-                  value={
-                    profile.verbal.score != null && profile.verbal.maxScore != null
-                      ? `${profile.verbal.score}/${profile.verbal.maxScore}`
-                      : 'Not Available'
-                  }
-                />
-                <ShareMetric label="Percentage" value={display(profile.verbal.percentage, '%')} />
-                <ShareMetric label="Grade / status" value={display(profile.verbal.grade)} />
-                <ShareMetric label="Test name" value={display(profile.verbal.testName)} />
-                <ShareMetric label="Last updated" value={formatDate(profile.verbal.evaluatedAt)} />
-              </div>
-              {Object.keys(profile.verbal.categoryBreakdown || {}).length ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {Object.entries(profile.verbal.categoryBreakdown).map(([key, value]) => (
-                    <ShareMetric key={key} label={key} value={value} />
-                  ))}
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <ShareNotAvailable />
-          )}
-        </ShareProfileSection>
-
         <ShareProfileSection
-          number="07"
+          number="06"
           title="Overall Performance Summary"
           description="Display-only composite (does not change placement readiness)"
         >
@@ -644,8 +597,6 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
               label="Communication %"
               value={display(overall.communicationPercent, '%')}
             />
-            <ShareMetric label="Aptitude %" value={display(overall.aptitudePercent, '%')} />
-            <ShareMetric label="Verbal %" value={display(overall.verbalPercent, '%')} />
             <ShareMetric
               label="Overall %"
               value={

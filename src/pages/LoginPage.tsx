@@ -176,11 +176,11 @@ export function LoginPage() {
                   {isSigningIn ? 'Signing in…' : 'Sign in'}
                 </Button>
                 {!isConfigured && (
-                  <p className="rounded-button border border-[#F6465D]/35 bg-[#F6465D]/10 px-3 py-2 text-[12px] font-semibold text-[#F6465D]">
+                  <p className="rounded-button border border-[#C45C1A]/35 bg-[#C45C1A]/10 px-3 py-2 text-[12px] font-semibold text-[#C45C1A]">
                     Supabase env vars are missing. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.
                   </p>
                 )}
-                {error && <p className="text-[14px] font-semibold text-[#F6465D]">{error}</p>}
+                {error && <p className="text-[14px] font-semibold text-[#C45C1A]">{error}</p>}
               </form>
 
               <div className="mt-10 border-t border-soft pt-6">

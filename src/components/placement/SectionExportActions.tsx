@@ -60,7 +60,7 @@ export function SectionExportActions({
         {busy === 'pdf' ? 'PDF…' : 'PDF'}
       </Button>
       {error ? (
-        <span className="text-[10px] font-medium text-[#F6465D]" title={error}>
+        <span className="text-[10px] font-medium text-[#C45C1A]" title={error}>
           <Download className="mr-1 inline size-3" />
           Failed
         </span>

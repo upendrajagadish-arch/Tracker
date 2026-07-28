@@ -6,9 +6,7 @@ import {
   formatCommunicationBadge,
 } from '@/lib/communicationBadge'
 import { COMMUNICATION_SECTIONS } from '@/lib/communicationEvaluation'
-import { CODENOW_CATEGORY_LABELS, type CodeNowCategory } from '@/lib/codeNowCategories'
 import {
-  blendCodingPercent,
   buildOverallPerformanceSummary,
   codingPercentFromSolved,
   githubPercentFromActivity,
@@ -249,17 +247,14 @@ class StudentPerformanceReport {
       )
     const githubCard = profile.cards.find((c) => c.platform === 'github')
     const overall = buildOverallPerformanceSummary({
-      codingPercent: blendCodingPercent(
-        codingPercentFromSolved(profile.totalSolved),
-        profile.codeNow?.percentage ?? null,
-      ),
+      codingPercent: codingPercentFromSolved(profile.totalSolved),
       githubPercent: githubPercentFromActivity({
         commits: githubCard?.stats.totalSolved ?? null,
         stars: githubCard?.rating?.current ?? githubCard?.contests?.rating ?? null,
       }),
       communicationPercent: profile.communication?.percentage ?? null,
-      aptitudePercent: profile.aptitude?.percentage ?? null,
-      verbalPercent: profile.verbal?.percentage ?? null,
+      aptitudePercent: null,
+      verbalPercent: null,
     })
 
     this.drawHeader()
@@ -293,6 +288,17 @@ class StudentPerformanceReport {
         ['Headline / interest', display(profile.headline || profile.careerInterest)],
         ['Skills summary', display(profile.skillsSummary)],
         ['Career interest', display(profile.careerInterest)],
+        ['Phone', display(profile.phone)],
+        ['Date of birth', profile.dateOfBirth ? formatDate(profile.dateOfBirth) : 'Not Available'],
+        ['LinkedIn', display(profile.linkedinUrl)],
+        ['Portfolio', display(profile.portfolioUrl)],
+        ['Projects', display(profile.projectsSummary)],
+        [
+          'Certifications',
+          profile.certificationLinks?.length
+            ? profile.certificationLinks.join('\n')
+            : 'Not Available',
+        ],
       ],
       2,
     )
@@ -313,41 +319,6 @@ class StudentPerformanceReport {
       )
     } else {
       this.mutedLine('Not Available — no coding platform accounts linked.')
-    }
-
-    this.y += 1
-    this.mutedLine('CodeNow')
-    if (profile.codeNow) {
-      this.kvGrid(
-        [
-          [
-            'Score',
-            profile.codeNow.totalScore != null && profile.codeNow.maxScore != null
-              ? `${profile.codeNow.totalScore}/${profile.codeNow.maxScore}`
-              : 'Not Available',
-          ],
-          ['Percentage', display(profile.codeNow.percentage, '%')],
-          ['Grade', display(profile.codeNow.grade)],
-          [
-            'Challenges',
-            profile.codeNow.solvedChallenges != null && profile.codeNow.totalChallenges != null
-              ? `${profile.codeNow.solvedChallenges}/${profile.codeNow.totalChallenges}`
-              : display(profile.codeNow.totalChallenges),
-          ],
-          ['Username', display(profile.codeNow.username)],
-          ['Last synced', formatDate(profile.codeNow.lastSyncedAt)],
-          ...Object.entries(profile.codeNow.categorySummary || {}).map(
-            ([key, value]) =>
-              [
-                CODENOW_CATEGORY_LABELS[key as CodeNowCategory] || key,
-                `${value}%`,
-              ] as [string, string],
-          ),
-        ],
-        3,
-      )
-    } else {
-      this.mutedLine('CodeNow: Not Available')
     }
 
     this.sectionTitle('03', 'GitHub Activity', 'Public repositories and activity')
@@ -419,50 +390,8 @@ class StudentPerformanceReport {
       this.mutedLine('Not Available')
     }
 
-    this.sectionTitle('05', 'Aptitude Performance')
-    if (profile.aptitude) {
-      this.kvGrid(
-        [
-          [
-            'Score',
-            profile.aptitude.score != null && profile.aptitude.maxScore != null
-              ? `${profile.aptitude.score}/${profile.aptitude.maxScore}`
-              : 'Not Available',
-          ],
-          ['Percentage', display(profile.aptitude.percentage, '%')],
-          ['Grade / status', display(profile.aptitude.grade)],
-          ['Test name', display(profile.aptitude.testName)],
-          ['Last updated', formatDate(profile.aptitude.evaluatedAt)],
-        ],
-        2,
-      )
-    } else {
-      this.mutedLine('Not Available')
-    }
-
-    this.sectionTitle('06', 'Verbal Performance')
-    if (profile.verbal) {
-      this.kvGrid(
-        [
-          [
-            'Score',
-            profile.verbal.score != null && profile.verbal.maxScore != null
-              ? `${profile.verbal.score}/${profile.verbal.maxScore}`
-              : 'Not Available',
-          ],
-          ['Percentage', display(profile.verbal.percentage, '%')],
-          ['Grade / status', display(profile.verbal.grade)],
-          ['Test name', display(profile.verbal.testName)],
-          ['Last updated', formatDate(profile.verbal.evaluatedAt)],
-        ],
-        2,
-      )
-    } else {
-      this.mutedLine('Not Available')
-    }
-
     this.sectionTitle(
-      '07',
+      '05',
       'Overall Performance Summary',
       'Display-only composite (does not change placement readiness)',
     )
@@ -471,8 +400,6 @@ class StudentPerformanceReport {
         ['Coding score', display(overall.codingPercent, '%')],
         ['GitHub score', display(overall.githubPercent, '%')],
         ['Communication %', display(overall.communicationPercent, '%')],
-        ['Aptitude %', display(overall.aptitudePercent, '%')],
-        ['Verbal %', display(overall.verbalPercent, '%')],
         [
           'Overall %',
           overall.overallPercent != null

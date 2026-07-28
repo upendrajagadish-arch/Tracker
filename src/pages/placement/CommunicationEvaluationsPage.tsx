@@ -153,7 +153,7 @@ export function CommunicationEvaluationsPage() {
             subtitle="A+ vs needs improvement among evaluated students"
             data={[
               { name: 'A+', value: summary.gradeAPlus, color: '#0ECB81' },
-              { name: 'Needs improvement', value: summary.needsImprovement, color: '#F6465D' },
+              { name: 'Needs improvement', value: summary.needsImprovement, color: '#C45C1A' },
               {
                 name: 'Other grades',
                 value: Math.max(

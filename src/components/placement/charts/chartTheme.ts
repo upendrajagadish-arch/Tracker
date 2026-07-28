@@ -6,7 +6,7 @@ export const CHART_PALETTE = [
   '#F0B90B',
   '#E08A2A',
   '#14B8A6',
-  '#F6465D',
+  '#C45C1A',
   '#94A3B8',
   '#B56614',
   '#38BDF8',
@@ -16,7 +16,7 @@ export const BADGE_CHART_COLORS = {
   gold: '#F0B90B',
   silver: '#C0C7D1',
   bronze: '#CD7F32',
-  poor: '#F6465D',
+  poor: '#C45C1A',
 } as const
 
 export const CHART_AXIS = {

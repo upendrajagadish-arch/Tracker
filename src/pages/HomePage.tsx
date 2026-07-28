@@ -226,7 +226,7 @@ export function HomePage() {
                     {rollBusy ? 'Searching…' : 'Search student'}
                   </Button>
                 </form>
-                {rollError ? <p className="mt-2 text-sm font-semibold text-[#F6465D]">{rollError}</p> : null}
+                {rollError ? <p className="mt-2 text-sm font-semibold text-[#C45C1A]">{rollError}</p> : null}
               </div>
             </div>
           </header>
@@ -284,7 +284,7 @@ export function HomePage() {
               </div>
             </div>
             {(saveState.message || saveState.error) && (
-              <p className={`text-[14px] font-semibold ${saveState.error ? 'text-[#F6465D]' : 'text-binance'}`}>
+              <p className={`text-[14px] font-semibold ${saveState.error ? 'text-[#C45C1A]' : 'text-binance'}`}>
                 {saveState.error ?? saveState.message}
               </p>
             )}

@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { canManageResumes, canManageStudents } from '@/lib/placementNavigation'
 import { ALL_PLATFORMS } from '@/api/unifiedClient'
 import type { PlatformHandles } from '@/lib/studentPlatformHandles'
+import { CertificationsListField } from '@/components/placement/CertificationsListField'
 import type { Platform } from '@/types/api'
 
 const emptyForm: CreateStudentInput = {
@@ -36,6 +37,7 @@ const emptyForm: CreateStudentInput = {
   careerInterest: '',
   platformHandles: {},
   projectsSummary: '',
+  certificationsSummary: '',
   isPlacementEligible: true,
 }
 
@@ -89,6 +91,7 @@ export function StudentFormPage() {
           careerInterest: student.career_interest,
           platformHandles: (student.platform_handles ?? {}) as PlatformHandles,
           projectsSummary: student.projects_summary ?? '',
+          certificationsSummary: student.certifications_summary ?? '',
           isPlacementEligible: student.is_placement_eligible,
         })
         await loadResume(student.id)
@@ -328,6 +331,11 @@ export function StudentFormPage() {
                   onChange={(e) => set('projectsSummary', e.target.value)}
                 />
               </label>
+              <CertificationsListField
+                className="sm:col-span-2"
+                value={form.certificationsSummary ?? ''}
+                onChange={(value) => set('certificationsSummary', value)}
+              />
               <div className="sm:col-span-2">
                 <Button type="submit" disabled={saving}>{saving ? 'Saving…' : isEdit ? 'Update student' : 'Create student'}</Button>
               </div>

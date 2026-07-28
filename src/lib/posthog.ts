@@ -6,10 +6,14 @@ const posthogApiHost = import.meta.env.DEV
   ? '/ph'
   : 'https://eu.i.posthog.com'
 
-posthog.init('phc_xxpoU7jHjt4nKAb4ygdiNwheukaBi7QvoAT4AsrdBcZC', {
-  api_host: posthogApiHost,
-  ui_host: 'https://eu.posthog.com',
-  defaults: '2026-05-30',
-})
+try {
+  posthog.init('phc_xxpoU7jHjt4nKAb4ygdiNwheukaBi7QvoAT4AsrdBcZC', {
+    api_host: posthogApiHost,
+    ui_host: 'https://eu.posthog.com',
+    defaults: '2026-05-30',
+  })
+} catch (error) {
+  console.warn('PostHog init skipped:', error)
+}
 
 export { posthog }

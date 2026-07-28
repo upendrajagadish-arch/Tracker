@@ -67,7 +67,7 @@ export function DriveRegistrationsDialog({
         </div>
         <div className="min-h-0 flex-1 overflow-auto p-4 sm:p-5">
           {loading ? <p className="text-sm text-muted-foreground">Loading registrations…</p> : null}
-          {error ? <p className="text-sm font-semibold text-[#F6465D]">{error}</p> : null}
+          {error ? <p className="text-sm font-semibold text-[#C45C1A]">{error}</p> : null}
           {!loading && !error ? (
             <div className="overflow-x-auto rounded-lg border border-border">
               <table className="w-full min-w-[960px] text-left text-xs">

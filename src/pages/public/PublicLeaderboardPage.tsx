@@ -393,7 +393,7 @@ export function PublicLeaderboardPage() {
 
             <div className="relative mx-auto mt-4 flex max-w-2xl flex-wrap items-center justify-center gap-2">
               {[
-                { label: 'Coding 20%', color: '#F6465D' },
+                { label: 'Coding 20%', color: '#C45C1A' },
                 { label: 'CodeNow 18%', color: '#F0B90B' },
                 { label: 'Tech 18%', color: '#D27918' },
                 { label: 'Ready 12%', color: '#0ECB81' },
@@ -456,8 +456,8 @@ export function PublicLeaderboardPage() {
           </div>
 
           {error ? (
-            <Card className="mt-6 border-[#F6465D]/35 bg-[#F6465D]/10">
-              <CardContent className="py-5 text-center text-sm font-semibold text-[#F6465D]">
+            <Card className="mt-6 border-[#C45C1A]/35 bg-[#C45C1A]/10">
+              <CardContent className="py-5 text-center text-sm font-semibold text-[#C45C1A]">
                 {error}
               </CardContent>
             </Card>

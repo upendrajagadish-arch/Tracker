@@ -1,93 +1,14 @@
 import type { PublicStudentPerformance, PublicShareCodeNow } from '@/api/placement/studentShare'
 import { getLatestEvaluationForStudent } from '@/api/placement/communicationEvaluations'
-import { getLatestAptitudeScore, getLatestVerbalScore } from '@/api/placement/assessmentScores'
 import { getStudentCodingSnapshot } from '@/api/placement/studentCodingProfile'
 import { getStudent, listStudents, type StudentListFilters } from '@/api/placement/students'
-import { getCodeNowProfile, listCodeNowChallenges } from '@/api/placement/codeNow'
 import { listStudentSkills } from '@/api/placement/techSkills'
 import { resolvePlatformHandles } from '@/lib/studentPlatformHandles'
 import { ALL_CRITERIA_KEYS, type CriteriaKey } from '@/lib/communicationEvaluation'
-import { normalizeCodeNowCategory } from '@/lib/codeNowCategories'
+import { certificationLinksFromSummary } from '@/lib/certificationsSummary'
 import type { UnifiedCard } from '@/types/unified'
 
-const BULK_PDF_CAP = 80
-
-function assessmentFromRow(
-  row:
-    | {
-        score: number | string
-        max_score: number | string
-        percentage: number
-        grade: string
-        test_name?: string
-        evaluated_at?: string
-        category_breakdown?: unknown
-      }
-    | null,
-  fallback?: { percentage: number | null; grade: string | null; at: string | null },
-) {
-  if (row) {
-    const breakdown =
-      row.category_breakdown && typeof row.category_breakdown === 'object'
-        ? (row.category_breakdown as Record<string, number>)
-        : {}
-    return {
-      score: Number(row.score),
-      maxScore: Number(row.max_score),
-      percentage: row.percentage,
-      grade: row.grade,
-      testName: row.test_name || null,
-      evaluatedAt: row.evaluated_at || null,
-      categoryBreakdown: breakdown,
-    }
-  }
-  if (fallback?.percentage != null) {
-    return {
-      score: null,
-      maxScore: null,
-      percentage: fallback.percentage,
-      grade: fallback.grade,
-      testName: null,
-      evaluatedAt: fallback.at,
-      categoryBreakdown: {},
-    }
-  }
-  return null
-}
-
-async function buildCodeNowBlock(studentProfileId: string): Promise<PublicShareCodeNow | null> {
-  const [profile, challenges] = await Promise.all([
-    getCodeNowProfile(studentProfileId).catch(() => null),
-    listCodeNowChallenges(studentProfileId).catch(() => []),
-  ])
-  if (!profile && !challenges.length) return null
-
-  const categorySummary: Record<string, number> = {}
-  for (const row of challenges) {
-    const key = normalizeCodeNowCategory(row.category)
-    if (!key) continue
-    const pct =
-      row.max_score && Number(row.max_score) > 0
-        ? Math.round((Number(row.score) / Number(row.max_score)) * 100)
-        : Number(row.percentage ?? 0)
-    categorySummary[key] = Math.max(categorySummary[key] ?? 0, pct)
-  }
-
-  return {
-    username: profile?.codenow_username ?? null,
-    totalScore: profile?.total_score ?? null,
-    maxScore: profile?.max_score ?? null,
-    percentage: profile?.percentage ?? null,
-    grade: profile?.grade ?? null,
-    rank: profile?.rank ?? null,
-    totalChallenges: profile?.total_challenges ?? challenges.length,
-    solvedChallenges:
-      profile?.solved_challenges ??
-      challenges.filter((c) => Number(c.score) > 0 || Number(c.percentage) > 0).length,
-    lastSyncedAt: profile?.last_synced_at ?? null,
-    categorySummary,
-  }
-}
+export const BULK_PDF_CAP = 80
 
 /** Build the same data shape as the public share card (staff-side, no share token required). */
 export async function buildStudentPerformanceProfile(
@@ -96,12 +17,9 @@ export async function buildStudentPerformanceProfile(
   const student = await getStudent(studentProfileId)
   if (!student) throw new Error('Student not found')
 
-  const [comm, aptitude, verbal, snapshot, codeNow, techSkills] = await Promise.all([
+  const [comm, snapshot, techSkills] = await Promise.all([
     getLatestEvaluationForStudent(student.id).catch(() => null),
-    getLatestAptitudeScore(student.id).catch(() => null),
-    getLatestVerbalScore(student.id).catch(() => null),
     getStudentCodingSnapshot(student.id).catch(() => null),
-    buildCodeNowBlock(student.id),
     listStudentSkills(student.id).catch(() => []),
   ])
 
@@ -151,6 +69,12 @@ export async function buildStudentPerformanceProfile(
     placementStatus: student.placement_status,
     skillsSummary: student.skills_summary || '',
     careerInterest: student.career_interest || '',
+    phone: student.phone?.trim() || null,
+    dateOfBirth: student.date_of_birth,
+    linkedinUrl: student.linkedin_url?.trim() || null,
+    portfolioUrl: student.portfolio_url?.trim() || null,
+    projectsSummary: student.projects_summary?.trim() || null,
+    certificationLinks: certificationLinksFromSummary(student.certifications_summary),
     githubUrl: student.github_url?.trim() || null,
     platformHandles: handles,
     cards,
@@ -164,17 +88,9 @@ export async function buildStudentPerformanceProfile(
       proficiencyLevel: skill.proficiency_level,
       assessedByName: skill.assessed_by_name?.trim() || null,
     })),
-    aptitude: assessmentFromRow(aptitude, {
-      percentage: student.aptitude_score ?? null,
-      grade: student.aptitude_grade ?? null,
-      at: student.last_aptitude_at ?? null,
-    }),
-    verbal: assessmentFromRow(verbal, {
-      percentage: student.verbal_score ?? null,
-      grade: student.verbal_grade ?? null,
-      at: student.last_verbal_at ?? null,
-    }),
-    codeNow,
+    aptitude: null,
+    verbal: null,
+    codeNow: null as PublicShareCodeNow | null,
     generatedAt: new Date().toISOString(),
   }
 }
@@ -198,15 +114,9 @@ export async function listStudentIdsForPerformancePdf(
       ids.push(row.id)
       if (ids.length >= BULK_PDF_CAP) break
     }
-    if (page >= result.pagination.pages || result.data.length === 0) break
+    if (page * pageSize >= total) break
     page += 1
   }
 
-  return {
-    ids,
-    total,
-    capped: total > ids.length,
-  }
+  return { ids, total, capped: total > BULK_PDF_CAP }
 }
-
-export { BULK_PDF_CAP }

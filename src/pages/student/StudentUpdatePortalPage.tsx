@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PlacementLoadingBlock } from '@/components/placement/PlacementStates'
+import { RegistrationSuccessPopup } from '@/components/placement/RegistrationSuccessPopup'
+import { RegistrationWelcomeScreen } from '@/components/placement/RegistrationWelcomeScreen'
 import { ALL_PLATFORMS } from '@/api/unifiedClient'
 import type { Platform } from '@/types/api'
 import {
@@ -18,6 +20,8 @@ import {
   type PublicUpdateForm,
 } from '@/api/placement/studentUpdateCampaigns'
 import { BRAND_NAME } from '@/lib/brand'
+import { CertificationsListField } from '@/components/placement/CertificationsListField'
+import { CampaignRegistrationBasicInfoForm } from '@/components/placement/CampaignRegistrationBasicInfoForm'
 
 type RegistrationForm = {
   rollNumber: string
@@ -76,7 +80,11 @@ function RegistrationFields({
   fileInputKey?: number
   allowedFields?: string[]
 }) {
-  const isAllowed = (field: string) => !allowedFields || allowedFields.includes(field)
+  const isAllowed = (field: string) => {
+    if (!allowedFields?.length) return true
+    if (field === 'roll_number' || field === 'full_name') return true
+    return allowedFields.includes(field)
+  }
   const fieldClass = (field: string, base = 'text-sm') =>
     `${base} ${isAllowed(field) ? '' : 'hidden'}`
   const visiblePlatforms = ALL_PLATFORMS.filter(
@@ -201,18 +209,11 @@ function RegistrationFields({
           onChange={(e) => set('projectsSummary', e.target.value)}
         />
       </label>
-      <label className={fieldClass('certifications_summary', 'text-sm sm:col-span-2')}>
-        <span className="text-muted-foreground">Certification links</span>
-        <textarea
-          className="mt-1 min-h-28 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
-          value={form.certificationsSummary}
-          onChange={(e) => set('certificationsSummary', e.target.value)}
-          placeholder={'Add one certification link per line\nhttps://example.com/certificate/123'}
-        />
-        <span className="mt-1 block text-xs text-muted-foreground">
-          Add multiple certificate or credential URLs, one per line.
-        </span>
-      </label>
+      <CertificationsListField
+        className={fieldClass('certifications_summary', 'text-sm sm:col-span-2')}
+        value={form.certificationsSummary}
+        onChange={(value) => set('certificationsSummary', value)}
+      />
     </>
   )
 }
@@ -227,6 +228,7 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [fileInputKey, setFileInputKey] = useState(0)
   const [registeredStudentId, setRegisteredStudentId] = useState<string | null>(null)
+  const [showForm, setShowForm] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -382,49 +384,51 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
     )
   }
 
-  if (!meta) return null
+  if (!meta) {
+    return (
+      <>
+        <SeoHead title="Registration unavailable" />
+        <div className="flex flex-1 items-center justify-center p-6">
+          <Card className="max-w-md">
+            <CardContent className="py-8 text-center">
+              <h1 className="font-heading text-xl font-bold">Registration unavailable</h1>
+              <p className="mt-2 text-sm text-secondary">
+                {error || 'This registration link could not be loaded. Check the URL or ask placement staff for a new link.'}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </>
+    )
+  }
 
   return (
     <>
       <SeoHead title={`${meta.campaignTitle} · ${BRAND_NAME}`} description="Student placement registration" />
-      <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
-        <div className="mb-6">
-          <p className="text-[12px] font-semibold uppercase tracking-wide text-muted">{BRAND_NAME}</p>
-          <h1 className="mt-2 font-heading text-[28px] font-bold tracking-tight">{meta.campaignTitle}</h1>
-          <p className="mt-2 text-[14px] text-secondary">
-            {meta.campaignDescription ||
-              'Fill in your details below to register. Roll number is unique — submit again with the same roll to correct any wrong details.'}
-          </p>
-          {meta.expiresAt ? (
-            <p className="mt-2 text-[12px] text-muted">Link expires {new Date(meta.expiresAt).toLocaleString()}.</p>
-          ) : null}
-        </div>
-
-        <Card className="term-window border-border bg-card/80">
-          <CardHeader className="border-b border-border">
-            <CardTitle className="text-base">Student registration</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
-              <RegistrationFields
-                form={form}
-                set={set}
-                setPlatformHandle={setPlatformHandle}
-                setResumeFile={setResumeFile}
-                fileInputKey={fileInputKey}
-                allowedFields={meta.allowlistedFields}
-              />
-              {error ? <p className="text-[14px] font-semibold text-[#F6465D] sm:col-span-2">{error}</p> : null}
-              {success ? <p className="text-[14px] font-semibold text-[#0ECB81] sm:col-span-2">{success}</p> : null}
-              <div className="sm:col-span-2">
-                <Button type="submit" disabled={saving}>
-                  {saving ? 'Submitting…' : 'Register'}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+      {!showForm ? (
+        <RegistrationWelcomeScreen
+          campaignTitle={meta.campaignTitle}
+          onRegister={() => setShowForm(true)}
+        />
+      ) : (
+        <CampaignRegistrationBasicInfoForm
+          title={meta.campaignTitle}
+          description={meta.campaignDescription}
+          expiresAt={meta.expiresAt}
+          form={form}
+          set={set}
+          setPlatformHandle={setPlatformHandle}
+          setResumeFile={setResumeFile}
+          fileInputKey={fileInputKey}
+          allowedFields={meta.allowlistedFields}
+          saving={saving}
+          error={error}
+          success={success}
+          onDismissSuccess={() => setSuccess(null)}
+          submitLabel={registeredStudentId ? 'Retry resume upload' : 'Register'}
+          onSubmit={(event) => void handleSubmit(event)}
+        />
+      )}
     </>
   )
 }
@@ -438,6 +442,7 @@ function LegacyTokenUpdatePortal({ token }: { token: string }) {
   const [saving, setSaving] = useState(false)
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [fileInputKey, setFileInputKey] = useState(0)
+  const [showForm, setShowForm] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -542,31 +547,62 @@ function LegacyTokenUpdatePortal({ token }: { token: string }) {
     )
   }
 
-  if (!meta) return null
+  if (!meta) {
+    return (
+      <>
+        <SeoHead title="Registration unavailable" />
+        <div className="flex flex-1 items-center justify-center p-6">
+          <Card className="max-w-md">
+            <CardContent className="py-8 text-center">
+              <h1 className="font-heading text-xl font-bold">Registration unavailable</h1>
+              <p className="mt-2 text-sm text-secondary">
+                {error || 'This registration link could not be loaded. Check the URL or ask placement staff for a new link.'}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </>
+    )
+  }
 
   return (
-    <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
-      <Card>
-        <CardHeader><CardTitle>{meta.campaignTitle}</CardTitle></CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
-            <RegistrationFields
-              form={form}
-              set={set}
-              setPlatformHandle={setPlatformHandle}
-              setResumeFile={setResumeFile}
-              fileInputKey={fileInputKey}
-              allowedFields={meta.allowlistedFields}
-            />
-            {error ? <p className="text-[14px] font-semibold text-[#F6465D] sm:col-span-2">{error}</p> : null}
-            {success ? <p className="text-[14px] font-semibold text-[#0ECB81] sm:col-span-2">{success}</p> : null}
-            <div className="sm:col-span-2">
-              <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save profile'}</Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-    </div>
+    <>
+      <SeoHead title={`${meta.campaignTitle} · ${BRAND_NAME}`} description="Student placement registration" />
+      {!showForm ? (
+        <RegistrationWelcomeScreen
+          campaignTitle={meta.campaignTitle}
+          onRegister={() => setShowForm(true)}
+        />
+      ) : (
+        <div className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:px-6">
+          <Card>
+            <CardHeader><CardTitle>{meta.campaignTitle}</CardTitle></CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
+                <RegistrationFields
+                  form={form}
+                  set={set}
+                  setPlatformHandle={setPlatformHandle}
+                  setResumeFile={setResumeFile}
+                  fileInputKey={fileInputKey}
+                  allowedFields={meta.allowlistedFields}
+                />
+                {error ? <p className="text-[14px] font-semibold text-[#C45C1A] sm:col-span-2">{error}</p> : null}
+                <div className="sm:col-span-2">
+                  <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save profile'}</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+          <RegistrationSuccessPopup
+            open={Boolean(success)}
+            title="Upload successful"
+            message={success}
+            onClose={() => setSuccess(null)}
+          />
+        </div>
+      )}
+    </>
   )
 }
 

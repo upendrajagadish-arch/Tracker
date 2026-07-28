@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,6 +27,7 @@ import {
   type CampaignRegistrantRow,
   type StudentUpdateCampaignRow,
 } from '@/api/placement/studentUpdateCampaigns'
+import { CampaignRegistrantDialog } from '@/components/placement/CampaignRegistrantDialog'
 import { displayAcademicBatch } from '@/lib/academicBatch'
 import { canManageCampaigns } from '@/lib/placementPermissions'
 import { useAuth } from '@/hooks/useAuth'
@@ -44,6 +45,13 @@ export function StudentUpdateCampaignDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [selectedRegistrant, setSelectedRegistrant] = useState<CampaignRegistrantRow | null>(null)
+
+  const allowlistedFields = useMemo(() => {
+    const raw = campaign?.allowlisted_fields
+    if (!Array.isArray(raw)) return []
+    return raw.filter((field): field is string => typeof field === 'string')
+  }, [campaign?.allowlisted_fields])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -159,7 +167,11 @@ export function StudentUpdateCampaignDetailPage() {
                 </TableHeader>
                 <TableBody>
                   {registrants.map((row) => (
-                    <TableRow key={row.id}>
+                    <TableRow
+                      key={row.id}
+                      className="cursor-pointer hover:bg-elevated/40"
+                      onClick={() => setSelectedRegistrant(row)}
+                    >
                       <TableCell className="font-semibold">{row.full_name}</TableCell>
                       <TableCell className="font-mono text-xs">{row.roll_number}</TableCell>
                       <TableCell className="text-secondary">{row.email || '—'}</TableCell>
@@ -179,6 +191,14 @@ export function StudentUpdateCampaignDetailPage() {
             </PlacementTableCard>
           ) : null}
         </PlacementPageBody>
+
+        <CampaignRegistrantDialog
+          open={Boolean(selectedRegistrant)}
+          onClose={() => setSelectedRegistrant(null)}
+          registrant={selectedRegistrant}
+          allowlistedFields={allowlistedFields}
+          campaignTitle={campaign?.title ?? 'Campaign registration'}
+        />
       </PlacementPageStack>
     </PlacementShell>
   )

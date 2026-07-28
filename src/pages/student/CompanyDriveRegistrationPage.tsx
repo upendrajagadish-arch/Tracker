@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PlacementLoadingBlock } from '@/components/placement/PlacementStates'
+import { RegistrationSuccessPopup } from '@/components/placement/RegistrationSuccessPopup'
+import { RegistrationWelcomeScreen } from '@/components/placement/RegistrationWelcomeScreen'
 import {
   getPublicDriveRegistrationForm,
   submitPublicDriveRegistration,
@@ -33,6 +35,7 @@ export function CompanyDriveRegistrationPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [showForm, setShowForm] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -108,14 +111,23 @@ export function CompanyDriveRegistrationPage() {
         title={meta ? `${meta.companyName} Drive Registration` : 'Company drive registration'}
         description={`Register for ${meta?.companyName ?? 'company'} placement drive via ${BRAND_NAME}.`}
       />
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-10 sm:px-6">
-        {error && !meta ? (
-          <Card className="border-[#F6465D]/30">
-            <CardContent className="py-8 text-center text-sm font-semibold text-[#F6465D]">{error}</CardContent>
+      {error && !meta ? (
+        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-10 sm:px-6">
+          <Card className="border-[#C45C1A]/30">
+            <CardContent className="py-8 text-center text-sm font-semibold text-[#C45C1A]">{error}</CardContent>
           </Card>
-        ) : null}
+        </div>
+      ) : null}
 
-        {meta ? (
+      {meta && !showForm ? (
+        <RegistrationWelcomeScreen
+          campaignTitle={meta.companyName}
+          onRegister={() => setShowForm(true)}
+        />
+      ) : null}
+
+      {meta && showForm ? (
+        <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col px-4 py-10 sm:px-6">
           <Card className="overflow-hidden border-soft">
             <CardHeader className="border-b border-soft bg-gradient-to-br from-[#D27918]/10 to-transparent">
               <div className="flex items-start gap-3">
@@ -145,8 +157,7 @@ export function CompanyDriveRegistrationPage() {
               </div>
             </CardHeader>
             <CardContent className="pt-6">
-              {error ? <p className="mb-4 text-sm font-semibold text-[#F6465D]">{error}</p> : null}
-              {success ? <p className="mb-4 text-sm font-semibold text-[#0ECB81]">{success}</p> : null}
+              {error ? <p className="mb-4 text-sm font-semibold text-[#C45C1A]">{error}</p> : null}
 
               <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
                 <label className="text-sm sm:col-span-2">
@@ -193,8 +204,15 @@ export function CompanyDriveRegistrationPage() {
               </form>
             </CardContent>
           </Card>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
+
+      <RegistrationSuccessPopup
+        open={Boolean(success)}
+        title="Upload successful"
+        message={success}
+        onClose={() => setSuccess(null)}
+      />
     </>
   )
 }

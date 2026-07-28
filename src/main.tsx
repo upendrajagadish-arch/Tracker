@@ -6,6 +6,7 @@ import { HelmetProvider } from 'react-helmet-async'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/hooks/AuthProvider'
 import { PlacementThemeProvider } from '@/hooks/usePlacementTheme'
+import { AppErrorBoundary } from '@/components/AppErrorBoundary'
 import { router } from './router'
 import './index.css'
 import './lib/posthog'
@@ -18,16 +19,18 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <HelmetProvider>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <PlacementThemeProvider>
-            <TooltipProvider>
-              <RouterProvider router={router} />
-            </TooltipProvider>
-          </PlacementThemeProvider>
-        </AuthProvider>
-      </QueryClientProvider>
-    </HelmetProvider>
+    <AppErrorBoundary>
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <PlacementThemeProvider>
+              <TooltipProvider>
+                <RouterProvider router={router} />
+              </TooltipProvider>
+            </PlacementThemeProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </HelmetProvider>
+    </AppErrorBoundary>
   </StrictMode>,
 )

@@ -18,7 +18,7 @@ const buttonVariants = cva(
         ghost:
           "h-10 text-binance hover:bg-elevated hover:text-primary",
         destructive:
-          "h-10 bg-[#F6465D]/15 text-[#F6465D] hover:bg-[#F6465D]/25",
+          "h-10 bg-[#C45C1A]/15 text-[#C45C1A] hover:bg-[#C45C1A]/25",
         link: "h-auto px-0 text-binance underline-offset-4 hover:underline",
         success:
           "h-10 bg-success text-[#0B0E11] hover:bg-[#0bb873]",

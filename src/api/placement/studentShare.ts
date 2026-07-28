@@ -5,6 +5,7 @@ import type { StudentProfileRow } from '@/api/placement/students'
 import type { UnifiedCard } from '@/types/unified'
 import type { PlatformHandles } from '@/lib/studentPlatformHandles'
 import type { CriteriaKey } from '@/lib/communicationEvaluation'
+import { certificationLinksFromSummary } from '@/lib/certificationsSummary'
 
 export interface PublicShareCommunication {
   totalScore: number
@@ -62,6 +63,12 @@ export interface PublicStudentPerformance {
   placementStatus: string
   skillsSummary: string
   careerInterest: string
+  phone: string | null
+  dateOfBirth: string | null
+  linkedinUrl: string | null
+  portfolioUrl: string | null
+  projectsSummary: string | null
+  certificationLinks: string[]
   githubUrl: string | null
   platformHandles: PlatformHandles
   cards: UnifiedCard[]
@@ -251,6 +258,16 @@ export async function getPublicStudentPerformance(
     placementStatus: String(payload.placementStatus ?? ''),
     skillsSummary: String(payload.skillsSummary ?? ''),
     careerInterest: String(payload.careerInterest ?? ''),
+    phone: payload.phone == null ? null : String(payload.phone),
+    dateOfBirth: payload.dateOfBirth == null ? null : String(payload.dateOfBirth),
+    linkedinUrl: payload.linkedinUrl == null ? null : String(payload.linkedinUrl),
+    portfolioUrl: payload.portfolioUrl == null ? null : String(payload.portfolioUrl),
+    projectsSummary: payload.projectsSummary == null ? null : String(payload.projectsSummary),
+    certificationLinks: Array.isArray(payload.certificationLinks)
+      ? payload.certificationLinks.filter((item): item is string => typeof item === 'string')
+      : certificationLinksFromSummary(
+          typeof payload.certificationsSummary === 'string' ? payload.certificationsSummary : null,
+        ),
     githubUrl: payload.githubUrl == null ? null : String(payload.githubUrl),
     platformHandles: (payload.platformHandles as PlatformHandles) ?? {},
     cards,
