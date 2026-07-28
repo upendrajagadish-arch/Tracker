@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { CollegeLogo } from '@/components/CollegeBrand'
+import { ThemeToggleBulb } from '@/components/placement/ThemeToggleBulb'
 import { listStudents } from '@/api/placement/students'
 import { listCompanies } from '@/api/placement/companies'
 import { listPlacementEvents } from '@/api/placement/premiumDashboard'
@@ -179,6 +180,8 @@ export function PlacementTopBar({ base }: { base: string | null }) {
           </div>
         ) : null}
       </div>
+
+      <ThemeToggleBulb />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

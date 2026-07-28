@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 
 export type PlacementTheme = 'light' | 'dark' | 'system'
 
@@ -12,21 +12,31 @@ const PlacementThemeContext = createContext<PlacementThemeContextValue | null>(n
 const STORAGE_KEY = 'codetrace-placement-theme'
 
 export function PlacementThemeProvider({ children }: { children: ReactNode }) {
-  const theme: PlacementTheme = 'dark'
-  const resolvedTheme = 'dark' as const
-  const setTheme = useCallback(() => {
-    localStorage.setItem(STORAGE_KEY, 'dark')
-    document.documentElement.classList.add('dark')
-    document.documentElement.classList.remove('light')
+  const [theme, setThemeState] = useState<PlacementTheme>(() => {
+    if (typeof window === 'undefined') return 'dark'
+    const stored = localStorage.getItem(STORAGE_KEY)
+    return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'dark'
+  })
+
+  const resolvedTheme: 'light' | 'dark' = useMemo(() => {
+    if (theme === 'light' || theme === 'dark') return theme
+    if (typeof window === 'undefined') return 'dark'
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  }, [theme])
+
+  const setTheme = useCallback((nextTheme: PlacementTheme) => {
+    setThemeState(nextTheme)
+    localStorage.setItem(STORAGE_KEY, nextTheme)
   }, [])
 
   useEffect(() => {
-    setTheme()
-  }, [setTheme])
+    document.documentElement.classList.remove('dark', 'light')
+    document.documentElement.classList.add(resolvedTheme)
+  }, [resolvedTheme])
 
   const value = useMemo(
     () => ({ theme, resolvedTheme, setTheme }),
-    [setTheme],
+    [theme, resolvedTheme, setTheme],
   )
 
   return (
