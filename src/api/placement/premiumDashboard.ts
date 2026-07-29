@@ -158,6 +158,39 @@ export function placementEligibilityCounts(readiness: number[]) {
   }
 }
 
+function effectiveReadinessScore(
+  student: Pick<
+    DashboardStudentRow,
+    | 'readiness_score'
+    | 'profile_completeness'
+    | 'cgpa'
+    | 'communication_score'
+    | 'codenow_score'
+    | 'aptitude_score'
+    | 'verbal_score'
+  >,
+): number {
+  const stored = Number(student.readiness_score ?? 0)
+  if (stored > 0) return Math.max(0, Math.min(100, Math.round(stored)))
+
+  const profile = Number(student.profile_completeness ?? 0)
+  const cgpa = student.cgpa == null ? 0 : Math.max(0, Math.min(100, Number(student.cgpa) * 10))
+  const comm = Number(student.communication_score ?? 0)
+  const codeNow = Number(student.codenow_score ?? 0)
+  const aptitude = Number(student.aptitude_score ?? 0)
+  const verbal = Number(student.verbal_score ?? 0)
+
+  const fallback = Math.round(
+    profile * 0.42
+      + cgpa * 0.24
+      + comm * 0.14
+      + codeNow * 0.1
+      + aptitude * 0.06
+      + verbal * 0.04,
+  )
+  return Math.max(0, Math.min(100, fallback))
+}
+
 export function placementPercentage(placed: number, total: number) {
   return total > 0 ? Math.round((placed / total) * 100) : 0
 }
@@ -415,7 +448,7 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
   const placed = students.filter((student) =>
     ['PLACED', 'OFFERED'].includes(String(student.placement_status || '').toUpperCase()),
   ).length
-  const readiness = students.map((student) => Number(student.readiness_score) || 0)
+  const readiness = students.map((student) => effectiveReadinessScore(student))
   const localEligibility = placementEligibilityCounts(readiness)
   // Year-scoped views must use filtered rows only. RPC aggregates are all-years and would hide the filter.
   const yearScoped = batch !== 'all'
@@ -700,7 +733,7 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
       rollNumber: student.roll_number,
       branch: student.branch,
       cgpa: student.cgpa == null ? null : Number(student.cgpa),
-      readinessScore: Number(student.readiness_score) || 0,
+      readinessScore: effectiveReadinessScore(student),
       profileCompleteness: Number(student.profile_completeness) || 0,
       placementStatus: student.placement_status,
     })),

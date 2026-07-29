@@ -102,10 +102,34 @@ export function FacultyClassicDashboard() {
     return counts
   }, [students])
 
+  const effectiveReadiness = useCallback(
+    (student: (typeof students)[number]) => {
+      const stored = Number(student.readiness_score ?? 0)
+      if (stored > 0) return Math.max(0, Math.min(100, Math.round(stored)))
+
+      const profile = Number(student.profile_completeness ?? 0)
+      const cgpa = student.cgpa == null ? 0 : Math.max(0, Math.min(100, Number(student.cgpa) * 10))
+      const comm = Number(student.communication_score ?? 0)
+      const codeNow = Number(student.codenow_score ?? 0)
+      const aptitude = Number(student.aptitude_score ?? 0)
+      const verbal = Number(student.verbal_score ?? 0)
+      const fallback = Math.round(
+        profile * 0.42
+          + cgpa * 0.24
+          + comm * 0.14
+          + codeNow * 0.1
+          + aptitude * 0.06
+          + verbal * 0.04,
+      )
+      return Math.max(0, Math.min(100, fallback))
+    },
+    [students],
+  )
+
   const registeredCount = students.filter((student) => student.registered_via_campaign_id).length
-  const readinessOver60 = students.filter((student) => Number(student.readiness_score ?? 0) >= 60).length
-  const readinessOver70 = students.filter((student) => Number(student.readiness_score ?? 0) >= 70).length
-  const readinessOver80 = students.filter((student) => Number(student.readiness_score ?? 0) >= 80).length
+  const readinessOver60 = students.filter((student) => effectiveReadiness(student) >= 60).length
+  const readinessOver70 = students.filter((student) => effectiveReadiness(student) >= 70).length
+  const readinessOver80 = students.filter((student) => effectiveReadiness(student) >= 80).length
   const avgProfileScore = students.length
     ? Math.round(
         students.reduce((sum, student) => sum + Number(student.profile_completeness ?? 0), 0) /
@@ -281,7 +305,7 @@ export function FacultyClassicDashboard() {
                     String(resolveStudentGraduationYear(student) ?? ''),
                     student.cgpa == null ? '' : String(student.cgpa),
                     student.placement_status,
-                    String(student.readiness_score ?? ''),
+                    String(effectiveReadiness(student)),
                     String(student.profile_completeness ?? ''),
                   ]
                 }),
@@ -342,7 +366,7 @@ export function FacultyClassicDashboard() {
                           <div className="flex flex-col gap-1">
                             <ReadinessScorePopover
                               studentId={student.id}
-                              score={student.readiness_score}
+                              score={effectiveReadiness(student)}
                               status={student.readiness_status}
                               profileCompleteness={student.profile_completeness}
                             />
