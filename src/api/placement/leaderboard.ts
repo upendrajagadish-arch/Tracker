@@ -20,6 +20,7 @@ export interface LeaderboardRow {
   fameLevel: string
   readinessScore: number
   readinessStatus: string
+  profileCompleteness: number | null
   placementStatus: string
   communicationScore: number | null
   communicationGrade: string | null
@@ -105,6 +106,10 @@ function toRow(raw: Record<string, unknown>): LeaderboardRow {
     fameLevel,
     readinessScore: Number.isFinite(readinessScore) ? readinessScore : 0,
     readinessStatus: String(raw.readinessStatus ?? ''),
+    profileCompleteness:
+      raw.profileCompleteness == null || !Number.isFinite(Number(raw.profileCompleteness))
+        ? null
+        : Number(raw.profileCompleteness),
     placementStatus: String(raw.placementStatus ?? ''),
     communicationScore,
     communicationGrade: raw.communicationGrade == null ? null : String(raw.communicationGrade),

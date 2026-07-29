@@ -66,6 +66,7 @@ export async function buildStudentPerformanceProfile(
     cgpa: student.cgpa == null ? null : Number(student.cgpa),
     readinessScore: student.readiness_score,
     readinessStatus: student.readiness_status,
+    profileCompleteness: Number(student.profile_completeness ?? 0),
     placementStatus: student.placement_status,
     skillsSummary: student.skills_summary || '',
     careerInterest: student.career_interest || '',

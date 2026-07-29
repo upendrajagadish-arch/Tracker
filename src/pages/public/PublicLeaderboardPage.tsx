@@ -136,13 +136,18 @@ function StatChip({ label, value }: { label: string; value: string }) {
 function scoreChips(row: LeaderboardRow) {
   return (
     <>
+      <StatChip label="Ready" value={`${Math.round(row.readinessScore)}%`} />
+      <StatChip
+        label="Profile"
+        value={
+          row.profileCompleteness != null ? `${Math.round(row.profileCompleteness)}%` : '—'
+        }
+      />
       <StatChip
         label="Comm"
         value={row.communicationScore != null ? `${Math.round(row.communicationScore)}` : '—'}
       />
-      <StatChip label="Tech" value={`${Math.round(row.techStackScore)}`} />
       <StatChip label="Coding" value={`${Math.round(row.codingScore)}`} />
-      <StatChip label="Avg" value={`${row.avgScore}`} />
     </>
   )
 }
@@ -541,7 +546,7 @@ export function PublicLeaderboardPage() {
                         {search ? `Results for “${search}”` : `${year} Live Rankings`}
                       </h2>
                       <p className="text-[11px] text-secondary">
-                        Pass-out year {year} · Comm · Tech · Coding · Avg · Fame XP
+                        Pass-out year {year} · Ready · Profile · Comm · Coding · Fame XP
                       </p>
                     </div>
                     <p className="tnum rounded-full border border-[#D27918]/35 bg-[#D27918]/10 px-3 py-1 text-[12px] font-semibold text-[#D27918]">

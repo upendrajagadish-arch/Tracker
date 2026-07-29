@@ -60,6 +60,7 @@ export interface PublicStudentPerformance {
   cgpa: number | null
   readinessScore: number
   readinessStatus: string
+  profileCompleteness: number
   placementStatus: string
   skillsSummary: string
   careerInterest: string
@@ -233,6 +234,34 @@ function parseTechSkills(raw: unknown): PublicShareTechSkill[] {
   })
 }
 
+function estimateProfileCompletenessFromShare(payload: Record<string, unknown>): number {
+  const handles =
+    payload.platformHandles && typeof payload.platformHandles === 'object'
+      ? (payload.platformHandles as Record<string, unknown>)
+      : {}
+  const handleCount = Object.values(handles).filter(
+    (value) => typeof value === 'string' && value.trim(),
+  ).length
+  const certs = Array.isArray(payload.certificationLinks) ? payload.certificationLinks.length : 0
+  const checks = [
+    Boolean(String(payload.fullName ?? '').trim()),
+    Boolean(String(payload.rollNumber ?? '').trim()),
+    Boolean(String(payload.phone ?? '').trim()),
+    Boolean(String(payload.branch ?? '').trim()),
+    Boolean(String(payload.batch ?? '').trim()) || payload.graduationYear != null,
+    payload.cgpa != null,
+    Boolean(String(payload.linkedinUrl ?? '').trim()),
+    Boolean(String(payload.githubUrl ?? '').trim()) || handleCount > 0,
+    handleCount > 0,
+    Boolean(String(payload.skillsSummary ?? '').trim()),
+    Boolean(String(payload.careerInterest ?? payload.headline ?? '').trim()),
+    Boolean(String(payload.portfolioUrl ?? '').trim()) ||
+      Boolean(String(payload.projectsSummary ?? '').trim()),
+    certs > 0 || Boolean(String(payload.certificationsSummary ?? '').trim()),
+  ]
+  return Math.round((checks.filter(Boolean).length / checks.length) * 100)
+}
+
 export async function getPublicStudentPerformance(
   token: string,
 ): Promise<PublicStudentPerformance | null> {
@@ -244,6 +273,9 @@ export async function getPublicStudentPerformance(
   const payload = data as Record<string, unknown>
   const rawCards = payload.cards
   const cards = Array.isArray(rawCards) ? (rawCards as UnifiedCard[]) : []
+  const storedCompleteness = Number(
+    payload.profileCompleteness ?? payload.profile_completeness ?? 0,
+  )
 
   return {
     fullName: String(payload.fullName ?? ''),
@@ -255,6 +287,8 @@ export async function getPublicStudentPerformance(
     cgpa: payload.cgpa == null ? null : Number(payload.cgpa),
     readinessScore: Number(payload.readinessScore ?? 0),
     readinessStatus: String(payload.readinessStatus ?? ''),
+    profileCompleteness:
+      storedCompleteness > 0 ? storedCompleteness : estimateProfileCompletenessFromShare(payload),
     placementStatus: String(payload.placementStatus ?? ''),
     skillsSummary: String(payload.skillsSummary ?? ''),
     careerInterest: String(payload.careerInterest ?? ''),

@@ -76,6 +76,7 @@ export interface DashboardSnapshot {
     branch: string
     cgpa?: number | null
     readinessScore: number
+    profileCompleteness: number
     placementStatus: string
   }>
   communicationParameters: Array<{
@@ -215,6 +216,7 @@ type DashboardStudentRow = Pick<
   | 'graduation_year'
   | 'placement_status'
   | 'readiness_score'
+  | 'profile_completeness'
   | 'communication_score'
   | 'aptitude_score'
   | 'verbal_score'
@@ -230,7 +232,7 @@ async function listAllDashboardStudents(): Promise<DashboardStudentRow[]> {
     const { data, error } = await client
       .from('student_profiles')
       .select(
-        'id,full_name,roll_number,branch,batch,academic_batch,graduation_year,placement_status,readiness_score,communication_score,aptitude_score,verbal_score,codenow_score,cgpa,is_active',
+        'id,full_name,roll_number,branch,batch,academic_batch,graduation_year,placement_status,readiness_score,profile_completeness,communication_score,aptitude_score,verbal_score,codenow_score,cgpa,is_active',
       )
       .eq('is_active', true)
       .order('id')
@@ -699,6 +701,7 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
       branch: student.branch,
       cgpa: student.cgpa == null ? null : Number(student.cgpa),
       readinessScore: Number(student.readiness_score) || 0,
+      profileCompleteness: Number(student.profile_completeness) || 0,
       placementStatus: student.placement_status,
     })),
     communicationParameters: COMMUNICATION_PARAMETERS.map((param) => ({

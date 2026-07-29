@@ -188,6 +188,7 @@ BEGIN
     'githubUrl', NULLIF(trim(COALESCE(s.github_url, '')), ''),
     'readinessScore', s.readiness_score,
     'readinessStatus', s.readiness_status,
+    'profileCompleteness', s.profile_completeness,
     'placementStatus', s.placement_status,
     'platformHandles', COALESCE(s.platform_handles, '{}'::jsonb),
     'cards', cards,

@@ -261,7 +261,8 @@ class StudentPerformanceReport {
 
     this.kvGrid(
       [
-        ['Readiness score', String(profile.readinessScore)],
+        ['Readiness score', `${profile.readinessScore}%`],
+        ['Profile completeness', `${profile.profileCompleteness}%`],
         ['Readiness status', profile.readinessStatus.replace(/_/g, ' ')],
         ['CGPA', display(profile.cgpa)],
         ['Placement status', profile.placementStatus.replace(/_/g, ' ')],

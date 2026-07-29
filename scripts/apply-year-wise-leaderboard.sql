@@ -135,6 +135,7 @@ BEGIN
         'fameLevel', fame_level,
         'readinessScore', readiness_score,
         'readinessStatus', readiness_status,
+        'profileCompleteness', profile_completeness,
         'placementStatus', placement_status,
         'communicationScore', communication_score,
         'communicationGrade', communication_grade,

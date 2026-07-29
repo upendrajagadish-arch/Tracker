@@ -292,12 +292,17 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
       </header>
 
       <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <ShareMetric label="Readiness" value={profile.readinessScore} hint={profile.readinessStatus} />
-        <ShareMetric label="CGPA" value={display(profile.cgpa)} />
         <ShareMetric
-          label="Placement"
-          value={<PlacementStatusBadge status={profile.placementStatus} />}
+          label="Readiness"
+          value={`${Math.round(Number(profile.readinessScore) || 0)}%`}
+          hint={profile.readinessStatus}
         />
+        <ShareMetric
+          label="Profile"
+          value={`${Math.round(Number(profile.profileCompleteness) || 0)}%`}
+          hint="Eligibility checklist"
+        />
+        <ShareMetric label="CGPA" value={display(profile.cgpa)} />
         <ShareMetric
           label="Problems solved"
           value={liveSolved}
@@ -317,6 +322,10 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
             <ShareMetric
               label="Readiness status"
               value={<ReadinessStatusBadge status={profile.readinessStatus} />}
+            />
+            <ShareMetric
+              label="Placement"
+              value={<PlacementStatusBadge status={profile.placementStatus} />}
             />
             <ShareMetric label="Skills summary" value={display(profile.skillsSummary)} />
             <ShareMetric label="Phone" value={display(profile.phone)} />

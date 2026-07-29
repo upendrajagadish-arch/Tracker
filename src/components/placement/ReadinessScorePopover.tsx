@@ -25,12 +25,12 @@ const PILLARS: Array<{
   >
   color: string
 }> = [
-  { key: 'technical', label: 'Technical', scoreKey: 'technical_score', color: '#3B82F6' },
-  { key: 'communication', label: 'Communication', scoreKey: 'communication_score', color: '#8B5CF6' },
-  { key: 'resume', label: 'Resume', scoreKey: 'resume_score', color: '#F59E0B' },
-  { key: 'techStack', label: 'Tech stack', scoreKey: 'tech_stack_score', color: '#10B981' },
   { key: 'profile', label: 'Profile', scoreKey: 'profile_score', color: '#EC4899' },
+  { key: 'resume', label: 'Resume', scoreKey: 'resume_score', color: '#F59E0B' },
+  { key: 'technical', label: 'Coding / tech', scoreKey: 'technical_score', color: '#3B82F6' },
   { key: 'academic', label: 'Academic', scoreKey: 'academic_score', color: '#06B6D4' },
+  { key: 'techStack', label: 'Skills', scoreKey: 'tech_stack_score', color: '#10B981' },
+  { key: 'communication', label: 'Communication', scoreKey: 'communication_score', color: '#8B5CF6' },
 ]
 
 function readinessTone(score: number) {
@@ -226,8 +226,8 @@ export function ReadinessScorePopover({
         </div>
 
         <p className="mt-3 text-[10px] leading-relaxed text-muted-foreground">
-          Weighted mix of technical, communication, resume, skills, profile completeness, and academics.
-          Updates automatically when the student profile or resume changes.
+          Scans the student profile for LinkedIn, coding platforms, resume, CGPA, skills, and projects.
+          Formal tech-stack and communication evaluations boost the score when present but are not required.
         </p>
       </PopoverContent>
     </Popover>

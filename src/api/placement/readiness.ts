@@ -75,6 +75,7 @@ export async function recalculateReadiness(studentProfileId: string): Promise<Re
     studentRes,
     resumeRes,
     techSkillsRes,
+    codingSnapRes,
   ] = await Promise.all([
     client.from('student_profiles').select('*').eq('id', studentProfileId).single(),
     client
@@ -84,11 +85,21 @@ export async function recalculateReadiness(studentProfileId: string): Promise<Re
       .eq('is_active', true)
       .maybeSingle(),
     client.from('student_tech_skills').select('*').eq('student_profile_id', studentProfileId),
+    client
+      .from('student_coding_snapshots')
+      .select('total_solved')
+      .eq('student_profile_id', studentProfileId)
+      .maybeSingle(),
   ])
 
   if (studentRes.error) throw studentRes.error
   if (resumeRes.error) throw resumeRes.error
   if (techSkillsRes.error) throw techSkillsRes.error
+  // Coding snapshot is optional — ignore missing-table / no-row errors.
+  const totalSolved =
+    codingSnapRes.error || codingSnapRes.data == null
+      ? null
+      : Number(codingSnapRes.data.total_solved ?? 0)
 
   const student = studentRes.data
   const { data: interviews, error: interviewError } = await client
@@ -104,6 +115,7 @@ export async function recalculateReadiness(studentProfileId: string): Promise<Re
     activeResume: resumeRes.data,
     techSkills: techSkillsRes.data ?? [],
     interviews: interviews ?? [],
+    totalSolved,
   })
 
   const { data: snapshot, error: snapshotError } = await client

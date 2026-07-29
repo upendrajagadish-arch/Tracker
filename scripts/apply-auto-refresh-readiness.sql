@@ -1,5 +1,7 @@
--- Auto-refresh readiness after public registration / resume upload.
--- Mirrors src/lib/placementReadiness.ts weights. Safe to re-run.
+-- Auto-refresh readiness from full student profile eligibility scan.
+-- Credits: resume, LinkedIn, coding platforms, CGPA, skills text, projects, certs,
+-- CodeNow / aptitude / verbal — not only formal tech-stack or communication evaluations.
+-- Safe to re-run. Mirrors src/lib/placementReadiness.ts
 
 CREATE OR REPLACE FUNCTION public.refresh_student_readiness(p_student_id uuid)
 RETURNS jsonb
@@ -16,16 +18,32 @@ DECLARE
   resume_score numeric := 0;
   profile_score numeric := 0;
   academic_score numeric := 50;
-  communication_score numeric := 40;
-  technical_score numeric := 25;
+  communication_score numeric := 28;
+  technical_score numeric := 18;
   interview_tech numeric := 0;
   interview_comm numeric := 0;
   interview_n int := 0;
   filled int := 0;
+  checklist int := 14;
+  platform_count int := 0;
+  total_solved int := 0;
+  from_platforms numeric := 0;
+  from_solved numeric := 0;
+  code_now numeric := 0;
+  aptitude numeric := 0;
+  primary_sig numeric := 0;
+  secondary_avg numeric := 0;
+  signal_sum numeric := 0;
+  signal_n int := 0;
+  skills_parts int := 0;
   overall numeric := 0;
   status text := 'not_ready';
   risk text := 'medium';
   risk_points int := 0;
+  has_resume boolean := false;
+  has_github boolean := false;
+  has_linkedin boolean := false;
+  has_skills_text boolean := false;
 BEGIN
   IF p_student_id IS NULL THEN
     RETURN jsonb_build_object('ok', false, 'error', 'student id required');
@@ -41,6 +59,34 @@ BEGIN
   WHERE student_profile_id = p_student_id AND is_active = true
   ORDER BY created_at DESC
   LIMIT 1;
+  has_resume := resume_row.id IS NOT NULL;
+
+  SELECT COALESCE((
+    SELECT snap.total_solved
+    FROM public.student_coding_snapshots snap
+    WHERE snap.student_profile_id = p_student_id
+    LIMIT 1
+  ), 0)
+  INTO total_solved;
+
+  SELECT count(*) INTO platform_count
+  FROM jsonb_each_text(COALESCE(s.platform_handles, '{}'::jsonb))
+  WHERE NULLIF(trim(value), '') IS NOT NULL;
+
+  has_github := NULLIF(trim(COALESCE(s.github_url, '')), '') IS NOT NULL
+    OR EXISTS (
+      SELECT 1 FROM jsonb_each_text(COALESCE(s.platform_handles, '{}'::jsonb)) e
+      WHERE e.key = 'github' AND NULLIF(trim(e.value), '') IS NOT NULL
+    );
+  IF has_github AND platform_count = 0 THEN
+    platform_count := 1;
+  ELSIF has_github THEN
+    -- github_url may duplicate platform_handles.github; count is fine either way
+    NULL;
+  END IF;
+
+  has_linkedin := NULLIF(trim(COALESCE(s.linkedin_url, '')), '') IS NOT NULL;
+  has_skills_text := NULLIF(trim(COALESCE(s.skills_summary, '')), '') IS NOT NULL;
 
   SELECT
     COALESCE(AVG(
@@ -61,10 +107,16 @@ BEGIN
 
   IF tech_count > 0 THEN
     tech_score := LEAST(100, tech_avg + LEAST(15, tech_count * 3));
+  ELSIF has_skills_text THEN
+    skills_parts := GREATEST(
+      1,
+      cardinality(regexp_split_to_array(trim(s.skills_summary), '[,;/|•\n]+'))
+    );
+    tech_score := LEAST(100, 35 + LEAST(45, skills_parts * 8));
   END IF;
 
-  IF resume_row.id IS NOT NULL THEN
-    resume_score := CASE WHEN COALESCE(resume_row.resume_score, 0) > 0 THEN resume_row.resume_score ELSE 45 END;
+  IF has_resume THEN
+    resume_score := CASE WHEN COALESCE(resume_row.resume_score, 0) > 0 THEN resume_row.resume_score ELSE 50 END;
     IF resume_row.review_status = 'approved' THEN resume_score := resume_score + 10; END IF;
     IF resume_row.review_status = 'needs_revision' THEN resume_score := resume_score + 5; END IF;
     IF resume_row.review_status = 'rejected' THEN resume_score := resume_score - 20; END IF;
@@ -77,13 +129,19 @@ BEGIN
   IF NULLIF(trim(COALESCE(s.email, '')), '') IS NOT NULL THEN filled := filled + 1; END IF;
   IF NULLIF(trim(COALESCE(s.phone, '')), '') IS NOT NULL THEN filled := filled + 1; END IF;
   IF NULLIF(trim(COALESCE(s.branch, '')), '') IS NOT NULL THEN filled := filled + 1; END IF;
-  IF NULLIF(trim(COALESCE(s.batch, '')), '') IS NOT NULL THEN filled := filled + 1; END IF;
+  IF NULLIF(trim(COALESCE(s.batch, '')), '') IS NOT NULL OR s.graduation_year IS NOT NULL THEN filled := filled + 1; END IF;
   IF s.cgpa IS NOT NULL THEN filled := filled + 1; END IF;
-  IF NULLIF(trim(COALESCE(s.linkedin_url, '')), '') IS NOT NULL THEN filled := filled + 1; END IF;
-  IF NULLIF(trim(COALESCE(s.github_url, '')), '') IS NOT NULL THEN filled := filled + 1; END IF;
-  IF NULLIF(trim(COALESCE(s.skills_summary, '')), '') IS NOT NULL THEN filled := filled + 1; END IF;
+  IF has_linkedin THEN filled := filled + 1; END IF;
+  IF has_github THEN filled := filled + 1; END IF;
+  IF platform_count > 0 THEN filled := filled + 1; END IF;
+  IF has_skills_text THEN filled := filled + 1; END IF;
   IF NULLIF(trim(COALESCE(s.career_interest, '')), '') IS NOT NULL THEN filled := filled + 1; END IF;
-  profile_score := ROUND((filled::numeric / 10) * 100);
+  IF NULLIF(trim(COALESCE(s.portfolio_url, '')), '') IS NOT NULL
+     OR NULLIF(trim(COALESCE(s.projects_summary, '')), '') IS NOT NULL THEN filled := filled + 1; END IF;
+  IF NULLIF(trim(COALESCE(s.certifications_summary, '')), '') IS NOT NULL
+     OR NULLIF(trim(COALESCE(s.internship_summary, '')), '') IS NOT NULL THEN filled := filled + 1; END IF;
+  IF has_resume THEN filled := filled + 1; END IF;
+  profile_score := ROUND((filled::numeric / checklist) * 100);
 
   IF s.cgpa IS NOT NULL THEN
     IF s.cgpa >= 9 THEN academic_score := 100;
@@ -95,10 +153,6 @@ BEGIN
   END IF;
   IF COALESCE(s.active_backlogs, 0) > 0 THEN
     academic_score := GREATEST(0, academic_score - LEAST(30, s.active_backlogs * 10));
-  END IF;
-
-  IF s.communication_score IS NOT NULL THEN
-    communication_score := GREATEST(0, LEAST(100, s.communication_score));
   END IF;
 
   SELECT
@@ -116,25 +170,52 @@ BEGIN
 
   IF interview_n > 0 AND interview_tech > 0 THEN
     technical_score := LEAST(100, interview_tech);
-  ELSIF s.codenow_score IS NOT NULL THEN
-    technical_score := GREATEST(0, LEAST(100, s.codenow_score));
-  ELSIF COALESCE(s.readiness_score, 0) > 0 THEN
-    technical_score := LEAST(100, s.readiness_score * 0.6);
   ELSE
-    technical_score := 25;
+    IF platform_count >= 1 THEN from_platforms := 38; END IF;
+    IF platform_count >= 2 THEN from_platforms := 50; END IF;
+    IF platform_count >= 3 THEN from_platforms := 62; END IF;
+    IF platform_count >= 4 THEN from_platforms := 72; END IF;
+    IF platform_count >= 5 THEN from_platforms := 82; END IF;
+    IF total_solved > 0 THEN from_solved := LEAST(100, total_solved::numeric / 3.0); END IF;
+    IF s.codenow_score IS NOT NULL THEN code_now := GREATEST(0, LEAST(100, s.codenow_score)); END IF;
+    IF s.aptitude_score IS NOT NULL THEN aptitude := GREATEST(0, LEAST(100, s.aptitude_score)); END IF;
+
+    signal_n := 0;
+    signal_sum := 0;
+    primary_sig := 0;
+    IF from_platforms > 0 THEN signal_n := signal_n + 1; signal_sum := signal_sum + from_platforms; primary_sig := GREATEST(primary_sig, from_platforms); END IF;
+    IF from_solved > 0 THEN signal_n := signal_n + 1; signal_sum := signal_sum + from_solved; primary_sig := GREATEST(primary_sig, from_solved); END IF;
+    IF code_now > 0 THEN signal_n := signal_n + 1; signal_sum := signal_sum + code_now; primary_sig := GREATEST(primary_sig, code_now); END IF;
+    IF aptitude > 0 THEN signal_n := signal_n + 1; signal_sum := signal_sum + aptitude; primary_sig := GREATEST(primary_sig, aptitude); END IF;
+
+    IF signal_n = 0 THEN
+      IF has_linkedin OR has_github THEN technical_score := 28; ELSE technical_score := 18; END IF;
+    ELSE
+      secondary_avg := signal_sum / signal_n;
+      technical_score := LEAST(100, ROUND(primary_sig * 0.65 + secondary_avg * 0.35));
+    END IF;
   END IF;
 
-  IF s.communication_score IS NULL AND interview_n > 0 AND interview_comm > 0 THEN
+  IF s.communication_score IS NOT NULL THEN
+    communication_score := GREATEST(0, LEAST(100, s.communication_score));
+  ELSIF interview_n > 0 AND interview_comm > 0 THEN
     communication_score := LEAST(100, interview_comm);
+  ELSIF s.verbal_score IS NOT NULL THEN
+    communication_score := GREATEST(0, LEAST(100, s.verbal_score));
+  ELSIF has_linkedin THEN
+    communication_score := 42;
+  ELSE
+    communication_score := 28;
   END IF;
 
+  -- Weights: profile 22%, resume 20%, technical 20%, academic 15%, techStack 13%, communication 10%
   overall := ROUND(
-    technical_score * 0.25
-    + communication_score * 0.20
+    profile_score * 0.22
     + resume_score * 0.20
-    + tech_score * 0.15
-    + profile_score * 0.10
-    + academic_score * 0.10
+    + technical_score * 0.20
+    + academic_score * 0.15
+    + tech_score * 0.13
+    + communication_score * 0.10
   );
   overall := GREATEST(0, LEAST(100, overall));
 
@@ -146,12 +227,13 @@ BEGIN
   END IF;
 
   risk_points := 0;
-  IF resume_row.id IS NULL THEN risk_points := risk_points + 2; END IF;
+  IF NOT has_resume THEN risk_points := risk_points + 2; END IF;
   IF overall < 50 THEN risk_points := risk_points + 2; END IF;
   IF COALESCE(s.active_backlogs, 0) > 0 THEN risk_points := risk_points + 1; END IF;
-  IF tech_count = 0 THEN risk_points := risk_points + 1; END IF;
-  IF interview_n = 0 THEN risk_points := risk_points + 1; END IF;
-  IF s.is_placement_eligible IS FALSE THEN risk_points := risk_points + 2; END IF;
+  IF tech_count = 0 AND NOT has_skills_text THEN risk_points := risk_points + 1; END IF;
+  IF platform_count = 0 THEN risk_points := risk_points + 1; END IF;
+  IF NOT has_linkedin THEN risk_points := risk_points + 1; END IF;
+  IF s.is_placement_eligible IS FALSE THEN risk_points := risk_points + 1; END IF;
   IF risk_points >= 5 THEN risk := 'high';
   ELSIF risk_points >= 2 THEN risk := 'medium';
   ELSE risk := 'low';
@@ -182,9 +264,12 @@ BEGIN
     status,
     jsonb_build_object(
       'weights', jsonb_build_object(
-        'technical', 0.25, 'communication', 0.2, 'resume', 0.2,
-        'techStack', 0.15, 'profile', 0.1, 'academic', 0.1
+        'profile', 0.22, 'resume', 0.2, 'technical', 0.2,
+        'academic', 0.15, 'techStack', 0.13, 'communication', 0.1
       ),
+      'platformCount', platform_count,
+      'totalSolved', total_solved,
+      'hasActiveResume', has_resume,
       'source', 'auto_refresh'
     )
   );
@@ -215,7 +300,12 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.refresh_student_readiness(uuid) TO anon, authenticated;
 
--- Auto-refresh when profile fields or resumes change (does not re-fire on readiness-only updates)
+DROP TRIGGER IF EXISTS trg_student_profiles_auto_readiness ON public.student_profiles;
+DROP TRIGGER IF EXISTS trg_student_resumes_auto_readiness ON public.student_resumes;
+DROP TRIGGER IF EXISTS trg_student_tech_skills_auto_readiness ON public.student_tech_skills;
+DROP TRIGGER IF EXISTS trg_student_tech_skills_auto_readiness_del ON public.student_tech_skills;
+DROP TRIGGER IF EXISTS trg_student_coding_snapshots_auto_readiness ON public.student_coding_snapshots;
+
 CREATE OR REPLACE FUNCTION public.trg_auto_refresh_readiness()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -225,12 +315,17 @@ AS $$
 DECLARE
   sid uuid;
 BEGIN
-  IF TG_TABLE_NAME = 'student_profiles' THEN
-    sid := NEW.id;
+  IF TG_OP = 'DELETE' THEN
+    IF TG_TABLE_NAME = 'student_profiles' THEN sid := OLD.id;
+    ELSE sid := OLD.student_profile_id;
+    END IF;
   ELSE
-    sid := NEW.student_profile_id;
+    IF TG_TABLE_NAME = 'student_profiles' THEN sid := NEW.id;
+    ELSE sid := NEW.student_profile_id;
+    END IF;
   END IF;
   IF sid IS NULL THEN
+    IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
     RETURN NEW;
   END IF;
   BEGIN
@@ -238,28 +333,41 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN
     NULL;
   END;
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
   RETURN NEW;
 END;
 $$;
 
-DROP TRIGGER IF EXISTS trg_student_profiles_auto_readiness ON public.student_profiles;
 CREATE TRIGGER trg_student_profiles_auto_readiness
 AFTER INSERT OR UPDATE OF
   full_name, email, phone, branch, batch, cgpa, linkedin_url, github_url,
-  skills_summary, career_interest, communication_score, codenow_score,
-  active_backlogs, is_placement_eligible
+  portfolio_url, skills_summary, career_interest, communication_score, codenow_score,
+  aptitude_score, verbal_score, active_backlogs, is_placement_eligible,
+  platform_handles, projects_summary, certifications_summary, internship_summary,
+  graduation_year
 ON public.student_profiles
 FOR EACH ROW
 EXECUTE FUNCTION public.trg_auto_refresh_readiness();
 
-DROP TRIGGER IF EXISTS trg_student_resumes_auto_readiness ON public.student_resumes;
 CREATE TRIGGER trg_student_resumes_auto_readiness
 AFTER INSERT OR UPDATE OF review_status, resume_score, ats_friendly, is_active, storage_path
 ON public.student_resumes
 FOR EACH ROW
 EXECUTE FUNCTION public.trg_auto_refresh_readiness();
 
--- Soft backfill: refresh students who still show 0 readiness but have profile data
+CREATE TRIGGER trg_student_tech_skills_auto_readiness
+AFTER INSERT OR UPDATE OR DELETE
+ON public.student_tech_skills
+FOR EACH ROW
+EXECUTE FUNCTION public.trg_auto_refresh_readiness();
+
+CREATE TRIGGER trg_student_coding_snapshots_auto_readiness
+AFTER INSERT OR UPDATE OF total_solved, linked_count
+ON public.student_coding_snapshots
+FOR EACH ROW
+EXECUTE FUNCTION public.trg_auto_refresh_readiness();
+
+-- Backfill all active students (scores may be stale under old formula)
 DO $$
 DECLARE
   rec record;
@@ -269,17 +377,8 @@ BEGIN
     SELECT sp.id
     FROM public.student_profiles sp
     WHERE sp.is_active = true
-      AND COALESCE(sp.readiness_score, 0) = 0
-      AND (
-        sp.cgpa IS NOT NULL
-        OR NULLIF(trim(COALESCE(sp.email, '')), '') IS NOT NULL
-        OR EXISTS (
-          SELECT 1 FROM public.student_resumes r
-          WHERE r.student_profile_id = sp.id AND r.is_active = true
-        )
-      )
     ORDER BY sp.updated_at DESC NULLS LAST
-    LIMIT 500
+    LIMIT 2000
   LOOP
     PERFORM public.refresh_student_readiness(rec.id);
     n := n + 1;
