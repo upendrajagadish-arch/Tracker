@@ -519,6 +519,9 @@ export async function createStudent(input: CreateStudentInput): Promise<StudentP
     metadata: { rollNumber: data.roll_number },
   })
 
+  const { refreshReadinessQuiet } = await import('@/api/placement/readiness')
+  void refreshReadinessQuiet(data.id)
+
   return data
 }
 
@@ -542,6 +545,9 @@ export async function updateStudent(studentId: string, input: UpdateStudentInput
     description: `Updated student ${data.roll_number}`,
     metadata: { fields: Object.keys(update) },
   })
+
+  const { refreshReadinessQuiet } = await import('@/api/placement/readiness')
+  void refreshReadinessQuiet(data.id)
 
   return data
 }

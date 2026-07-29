@@ -113,8 +113,10 @@ export function scoreTechStack(techSkills: StudentTechSkill[]): number {
 
 export function scoreResume(resume?: StudentResume | null): number {
   if (!resume) return 0
-  let score = resume.resume_score
+  // Unreviewed uploads often have resume_score = 0 — still credit having a file.
+  let score = Number(resume.resume_score) > 0 ? Number(resume.resume_score) : 45
   if (resume.review_status === 'approved') score += 10
+  if (resume.review_status === 'needs_revision') score += 5
   if (resume.review_status === 'rejected') score -= 20
   if (resume.ats_friendly) score += 5
   return clampScore(score)
@@ -145,7 +147,17 @@ export function riskLevelFromInput(input: ReadinessInput, overallScore: number):
 export function calculateReadiness(input: ReadinessInput): ReadinessResult {
   const { student, activeResume, techSkills = [], interviews = [] } = input
 
-  const technicalScore = averageInterviewScore(interviews, 'technical_score') || clampScore(student.readiness_score * 0.6)
+  const technicalScore = (() => {
+    const fromInterviews = averageInterviewScore(interviews, 'technical_score')
+    if (fromInterviews > 0) return fromInterviews
+    // Prefer coding / CodeNow signals when interviews are missing.
+    if (student.codenow_score != null && !Number.isNaN(Number(student.codenow_score))) {
+      return clampScore(Number(student.codenow_score))
+    }
+    if (student.readiness_score > 0) return clampScore(student.readiness_score * 0.6)
+    // Mild baseline so a filled profile is not stuck at 0 technical.
+    return 25
+  })()
 
   // Communication priority:
   // 1) structured evaluation on student profile

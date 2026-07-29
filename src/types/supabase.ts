@@ -1149,6 +1149,7 @@ export interface Database {
       }
       get_public_student_update_form: { Args: { p_token: string }; Returns: Json }
       get_public_campaign_registration_form: { Args: { p_campaign_id: string }; Returns: Json }
+      refresh_student_readiness: { Args: { p_student_id: string }; Returns: Json }
       submit_public_campaign_registration: { Args: { p_campaign_id: string; p_payload: Json }; Returns: Json }
       register_public_campaign_registration_resume: {
         Args: {

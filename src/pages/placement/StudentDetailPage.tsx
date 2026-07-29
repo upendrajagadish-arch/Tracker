@@ -35,6 +35,7 @@ import {
   totalScoreFromPercentage,
 } from '@/lib/communicationBadge'
 import { StudentPerformanceShare } from '@/components/placement/StudentPerformanceShare'
+import { ReadinessScorePopover } from '@/components/placement/ReadinessScorePopover'
 import { buildStudentPerformanceProfile } from '@/lib/buildStudentPerformanceProfile'
 import { downloadStudentPerformancePdf } from '@/lib/downloadStudentPerformancePdf'
 import { canManageStudents, canManageResumes, canManageReadiness } from '@/lib/placementNavigation'
@@ -331,7 +332,14 @@ export function StudentDetailPage() {
 
                 <PlacementSectionCard title="Readiness">
                   <dl>
-                    <DetailRow label="Readiness score">{student.readiness_score}</DetailRow>
+                    <DetailRow label="Readiness score">
+                      <ReadinessScorePopover
+                        studentId={student.id}
+                        score={student.readiness_score}
+                        status={student.readiness_status}
+                        profileCompleteness={student.profile_completeness}
+                      />
+                    </DetailRow>
                     <DetailRow label="Status"><ReadinessStatusBadge status={student.readiness_status} /></DetailRow>
                     <DetailRow label="Risk">{formatEnumLabel(student.risk_level)}</DetailRow>
                     <DetailRow label="Skills summary">{student.skills_summary || '—'}</DetailRow>

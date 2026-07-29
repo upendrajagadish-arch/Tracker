@@ -16,6 +16,7 @@ import {
   PlacementStatusBadge,
   ReadinessStatusBadge,
 } from '@/components/placement/PlacementBadges'
+import { ReadinessScorePopover } from '@/components/placement/ReadinessScorePopover'
 import {
   PlacementEmptyState,
   PlacementStatCard,
@@ -324,7 +325,12 @@ export function FacultyClassicDashboard() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-1">
-                            <span className="text-sm font-medium">{student.readiness_score}</span>
+                            <ReadinessScorePopover
+                              studentId={student.id}
+                              score={student.readiness_score}
+                              status={student.readiness_status}
+                              profileCompleteness={student.profile_completeness}
+                            />
                             <ReadinessStatusBadge status={student.readiness_status} />
                           </div>
                         </TableCell>

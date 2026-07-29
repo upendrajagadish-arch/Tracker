@@ -19,8 +19,8 @@ import {
   PlacementStatusBadge,
   ReadinessStatusBadge,
 } from '@/components/placement/PlacementBadges'
+import { ReadinessScorePopover } from '@/components/placement/ReadinessScorePopover'
 import type { StudentProfileRow } from '@/api/placement/students'
-import { cn } from '@/lib/utils'
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -35,12 +35,6 @@ function readinessTone(score: number) {
   if (score >= 75) return 'text-[#0ECB81]'
   if (score >= 50) return 'text-[#FF7A00]'
   return 'text-[#C45C1A]'
-}
-
-function readinessSign(score: number) {
-  if (score >= 75) return '+'
-  if (score >= 50) return ''
-  return '−'
 }
 
 /** Compact sparkline from available profile metrics (no historical prices). */
@@ -178,11 +172,12 @@ export function StudentMarketTable({
 
                 <TableCell className="text-right">
                   <div className="flex flex-col items-end gap-1">
-                    <span className={cn('tnum text-sm font-bold', readinessTone(readiness))}>
-                      {readinessSign(readiness)}
-                      {readiness}
-                      <span className="ml-0.5 text-[10px] font-semibold opacity-70">pts</span>
-                    </span>
+                    <ReadinessScorePopover
+                      studentId={student.id}
+                      score={readiness}
+                      status={student.readiness_status}
+                      profileCompleteness={student.profile_completeness}
+                    />
                     <ReadinessStatusBadge status={student.readiness_status} />
                   </div>
                 </TableCell>

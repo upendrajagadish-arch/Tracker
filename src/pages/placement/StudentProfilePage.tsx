@@ -9,6 +9,7 @@ import {
   PlacementStatusBadge,
   ReadinessStatusBadge,
 } from '@/components/placement/PlacementBadges'
+import { ReadinessScorePopover } from '@/components/placement/ReadinessScorePopover'
 import { PlacementEmptyState, PlacementErrorAlert, PlacementLoadingBlock } from '@/components/placement/PlacementStates'
 import { requireSupabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -135,7 +136,15 @@ export function StudentProfilePage() {
                 <DetailRow label="Placement"><PlacementStatusBadge status={profile.placement_status} /></DetailRow>
                 <DetailRow label="Completeness"><CompletenessBar value={profile.profile_completeness} /></DetailRow>
                 <DetailRow label="Readiness">
-                  {profile.readiness_score} · <ReadinessStatusBadge status={profile.readiness_status} />
+                  <span className="inline-flex flex-wrap items-center gap-2">
+                    <ReadinessScorePopover
+                      studentId={profile.id}
+                      score={profile.readiness_score}
+                      status={profile.readiness_status}
+                      profileCompleteness={profile.profile_completeness}
+                    />
+                    <ReadinessStatusBadge status={profile.readiness_status} />
+                  </span>
                 </DetailRow>
               </dl>
             </CardContent>

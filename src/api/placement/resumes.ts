@@ -132,6 +132,9 @@ export async function uploadResume(input: UploadResumeInput): Promise<StudentRes
     metadata: { studentProfileId: input.studentProfileId, storagePath },
   })
 
+  const { refreshReadinessQuiet } = await import('@/api/placement/readiness')
+  void refreshReadinessQuiet(input.studentProfileId)
+
   return data
 }
 
@@ -157,6 +160,9 @@ export async function updateReviewStatus(resumeId: string, input: UpdateReviewSt
     description: `Resume review set to ${input.reviewStatus}`,
     metadata: { reviewStatus: input.reviewStatus },
   })
+
+  const { refreshReadinessQuiet } = await import('@/api/placement/readiness')
+  void refreshReadinessQuiet(data.student_profile_id)
 
   return data
 }

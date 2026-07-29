@@ -25,6 +25,7 @@ import {
   type TrainingYear,
 } from '@/lib/trainingPrograms'
 import { usePassOutYearFilter } from '@/lib/placementYearFilter'
+import { ReadinessScorePopover } from '@/components/placement/ReadinessScorePopover'
 
 export interface TrainingProgramFilter {
   year: TrainingYear | 'all'
@@ -245,7 +246,13 @@ function StudentPreviewList({
                   <p className="truncate text-sm font-semibold text-foreground">{student.full_name}</p>
                   <p className="font-mono text-[11px] text-primary">{student.roll_number}</p>
                 </div>
-                <span className="tnum shrink-0 text-xs font-bold text-muted-foreground">{student.readiness_score}</span>
+                <ReadinessScorePopover
+                  studentId={student.id}
+                  score={student.readiness_score}
+                  status={student.readiness_status}
+                  profileCompleteness={student.profile_completeness}
+                  className="shrink-0 text-xs"
+                />
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 {student.email || 'Email n/a'} · {student.branch || 'Branch n/a'}

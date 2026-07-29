@@ -522,10 +522,16 @@ export async function submitPublicCampaignRegistration(
     updated?: boolean
     resumeUploadToken?: string
   }
+  const studentProfileId = result.studentProfileId
+  if (result.ok && studentProfileId) {
+    const { refreshReadinessQuiet } = await import('@/api/placement/readiness')
+    void refreshReadinessQuiet(studentProfileId)
+  }
+
   return {
     ok: Boolean(result.ok),
     error: result.error,
-    studentProfileId: result.studentProfileId,
+    studentProfileId,
     updated: Boolean(result.updated),
     resumeUploadToken: result.resumeUploadToken,
   }
@@ -600,6 +606,9 @@ export async function uploadPublicCampaignRegistrationResume(
     }
     throw new Error(result.error || 'Failed to register resume')
   }
+
+  const { refreshReadinessQuiet } = await import('@/api/placement/readiness')
+  void refreshReadinessQuiet(studentProfileId)
 }
 
 /** @deprecated Dangerous if granted to anon; keep revoked. Prefer staff-issued update tokens. */

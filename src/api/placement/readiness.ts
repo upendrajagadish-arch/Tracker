@@ -146,3 +146,34 @@ export async function recalculateReadiness(studentProfileId: string): Promise<Re
 
   return snapshot
 }
+
+/** Fire-and-forget readiness refresh (staff or public RPC). Never throws. */
+export async function refreshReadinessQuiet(studentProfileId: string): Promise<void> {
+  if (!studentProfileId) return
+  try {
+    const client = requireSupabase()
+    const { error: rpcError } = await client.rpc('refresh_student_readiness', {
+      p_student_id: studentProfileId,
+    })
+    if (!rpcError) return
+    // Fallback to TS calculator when SQL helper is not applied yet.
+    await recalculateReadiness(studentProfileId)
+  } catch {
+    // Ignore — readiness can be refreshed later from the readiness page.
+  }
+}
+
+export async function getLatestReadinessSnapshot(
+  studentProfileId: string,
+): Promise<ReadinessSnapshotRow | null> {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('readiness_snapshots')
+    .select('*')
+    .eq('student_profile_id', studentProfileId)
+    .order('calculated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data
+}

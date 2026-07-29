@@ -112,6 +112,15 @@ export function StudentsPage() {
     void load()
   }, [load])
 
+  // Pick up auto-refreshed readiness after campaign/profile updates.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void load()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [load])
+
   // Keep year roster in sync when year is changed from WorkspaceTabs / shared session filter.
   useEffect(() => {
     const nextYear = year === 'all' ? undefined : Number(year)
