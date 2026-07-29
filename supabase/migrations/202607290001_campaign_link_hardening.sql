@@ -367,39 +367,22 @@ BEGIN
   LIMIT 1;
 
   IF existing_id IS NOT NULL THEN
-    -- Ownership: if contact already on file, require matching email or phone
-    IF trim(COALESCE(existing_email, '')) <> '' THEN
-      IF verify_email = '' OR verify_email IS DISTINCT FROM lower(trim(existing_email)) THEN
-        RETURN jsonb_build_object(
-          'ok', false,
-          'error', 'This roll number is already registered. Enter the same email used before to update your details.'
-        );
-      END IF;
-    ELSIF trim(COALESCE(existing_phone, '')) <> '' THEN
-      IF verify_phone = '' OR verify_phone IS DISTINCT FROM regexp_replace(trim(existing_phone), '[^0-9+]', '', 'g') THEN
-        RETURN jsonb_build_object(
-          'ok', false,
-          'error', 'This roll number is already registered. Enter the same phone number used before to update your details.'
-        );
-      END IF;
-    ELSE
-      -- No contact on file yet: require email so future updates can be verified
-      IF verify_email = '' THEN
-        RETURN jsonb_build_object(
-          'ok', false,
-          'error', 'Email is required to update an existing registration.'
-        );
-      END IF;
-      next_email := COALESCE(next_email, verify_email);
-    END IF;
-
+    -- Unique roll: resubmit overwrites with newest details (no email/phone ownership gate).
     upload_tok := encode(extensions.gen_random_bytes(24), 'hex');
 
     UPDATE public.student_profiles sp
     SET
       full_name = clean_name,
-      email = COALESCE(next_email, CASE WHEN verify_email <> '' THEN verify_email ELSE NULL END, sp.email),
-      phone = COALESCE(next_phone, sp.phone),
+      email = CASE
+        WHEN verify_email <> '' THEN verify_email
+        WHEN next_email IS NOT NULL THEN next_email
+        ELSE sp.email
+      END,
+      phone = CASE
+        WHEN next_phone IS NOT NULL THEN next_phone
+        WHEN verify_phone <> '' THEN verify_phone
+        ELSE sp.phone
+      END,
       branch = COALESCE(next_branch, sp.branch),
       batch = CASE WHEN next_batch <> '' THEN next_batch ELSE sp.batch END,
       academic_batch = CASE WHEN next_academic <> '' THEN next_academic ELSE sp.academic_batch END,
@@ -431,11 +414,6 @@ BEGIN
     new_id := existing_id;
     did_update := true;
   ELSE
-    -- Always require email on first registration for ownership of future updates
-    IF verify_email = '' THEN
-      RETURN jsonb_build_object('ok', false, 'error', 'Email is required for registration');
-    END IF;
-
     upload_tok := encode(extensions.gen_random_bytes(24), 'hex');
 
     BEGIN
@@ -448,7 +426,7 @@ BEGIN
         campaign_resume_upload_token, campaign_resume_upload_expires_at, campaign_resume_upload_campaign_id
       ) VALUES (
         clean_roll, clean_name,
-        COALESCE(next_email, verify_email, ''),
+        COALESCE(next_email, NULLIF(verify_email, ''), ''),
         COALESCE(next_phone, ''),
         COALESCE(next_branch, ''),
         next_batch, next_academic, next_section,
@@ -469,7 +447,7 @@ BEGIN
       WHEN unique_violation THEN
         RETURN jsonb_build_object(
           'ok', false,
-          'error', 'This roll number was just registered. Refresh and try again with the same email to update.'
+          'error', 'This roll number was just registered. Submit again to update with the newest details.'
         );
     END;
   END IF;

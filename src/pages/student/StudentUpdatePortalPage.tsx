@@ -105,8 +105,8 @@ function RegistrationFields({
         <Input className="mt-1 border-border bg-card" required value={form.fullName} onChange={(e) => set('fullName', e.target.value)} />
       </label>
       <label className={fieldClass('email')}>
-        <span className="text-muted-foreground">Email * (required to register or update)</span>
-        <Input type="email" required className="mt-1 border-border bg-card" value={form.email} onChange={(e) => set('email', e.target.value)} />
+        <span className="text-muted-foreground">Email (resubmit same roll to overwrite with new details)</span>
+        <Input type="email" className="mt-1 border-border bg-card" value={form.email} onChange={(e) => set('email', e.target.value)} />
       </label>
       <label className={fieldClass('phone')}>
         <span className="text-muted-foreground">Phone</span>
@@ -269,7 +269,7 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
   const formatResumeUploadError = (resumeError: unknown) => {
     const message = resumeError instanceof Error ? resumeError.message : 'unknown error'
     if (/row-level security|violates row-level security|403|400|upload session expired|not found for this campaign/i.test(message)) {
-      return `${message} Ask placement staff to apply scripts/apply-campaign-link-hardening.sql in Supabase, then submit the form again to get a fresh resume upload session.`
+      return `${message} Ask placement staff to apply scripts/apply-fix-campaign-resume-storage-rls.sql in Supabase, then submit the form again to get a fresh resume upload session.`
     }
     return message
   }
@@ -302,10 +302,6 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
         setResumeUploadToken(null)
         setResumeFile(null)
         setFileInputKey((key) => key + 1)
-        return
-      }
-      if (!form.email.trim()) {
-        setError('Email is required to register or update your details.')
         return
       }
       const allowed = new Set(meta.allowlistedFields)

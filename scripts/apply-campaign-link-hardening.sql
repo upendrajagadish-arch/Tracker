@@ -367,39 +367,22 @@ BEGIN
   LIMIT 1;
 
   IF existing_id IS NOT NULL THEN
-    -- Ownership: if contact already on file, require matching email or phone
-    IF trim(COALESCE(existing_email, '')) <> '' THEN
-      IF verify_email = '' OR verify_email IS DISTINCT FROM lower(trim(existing_email)) THEN
-        RETURN jsonb_build_object(
-          'ok', false,
-          'error', 'This roll number is already registered. Enter the same email used before to update your details.'
-        );
-      END IF;
-    ELSIF trim(COALESCE(existing_phone, '')) <> '' THEN
-      IF verify_phone = '' OR verify_phone IS DISTINCT FROM regexp_replace(trim(existing_phone), '[^0-9+]', '', 'g') THEN
-        RETURN jsonb_build_object(
-          'ok', false,
-          'error', 'This roll number is already registered. Enter the same phone number used before to update your details.'
-        );
-      END IF;
-    ELSE
-      -- No contact on file yet: require email so future updates can be verified
-      IF verify_email = '' THEN
-        RETURN jsonb_build_object(
-          'ok', false,
-          'error', 'Email is required to update an existing registration.'
-        );
-      END IF;
-      next_email := COALESCE(next_email, verify_email);
-    END IF;
-
+    -- Unique roll: resubmit overwrites with newest details (no email/phone ownership gate).
     upload_tok := encode(extensions.gen_random_bytes(24), 'hex');
 
     UPDATE public.student_profiles sp
     SET
       full_name = clean_name,
-      email = COALESCE(next_email, CASE WHEN verify_email <> '' THEN verify_email ELSE NULL END, sp.email),
-      phone = COALESCE(next_phone, sp.phone),
+      email = CASE
+        WHEN verify_email <> '' THEN verify_email
+        WHEN next_email IS NOT NULL THEN next_email
+        ELSE sp.email
+      END,
+      phone = CASE
+        WHEN next_phone IS NOT NULL THEN next_phone
+        WHEN verify_phone <> '' THEN verify_phone
+        ELSE sp.phone
+      END,
       branch = COALESCE(next_branch, sp.branch),
       batch = CASE WHEN next_batch <> '' THEN next_batch ELSE sp.batch END,
       academic_batch = CASE WHEN next_academic <> '' THEN next_academic ELSE sp.academic_batch END,
@@ -431,11 +414,6 @@ BEGIN
     new_id := existing_id;
     did_update := true;
   ELSE
-    -- Always require email on first registration for ownership of future updates
-    IF verify_email = '' THEN
-      RETURN jsonb_build_object('ok', false, 'error', 'Email is required for registration');
-    END IF;
-
     upload_tok := encode(extensions.gen_random_bytes(24), 'hex');
 
     BEGIN
@@ -448,7 +426,7 @@ BEGIN
         campaign_resume_upload_token, campaign_resume_upload_expires_at, campaign_resume_upload_campaign_id
       ) VALUES (
         clean_roll, clean_name,
-        COALESCE(next_email, verify_email, ''),
+        COALESCE(next_email, NULLIF(verify_email, ''), ''),
         COALESCE(next_phone, ''),
         COALESCE(next_branch, ''),
         next_batch, next_academic, next_section,
@@ -469,7 +447,7 @@ BEGIN
       WHEN unique_violation THEN
         RETURN jsonb_build_object(
           'ok', false,
-          'error', 'This roll number was just registered. Refresh and try again with the same email to update.'
+          'error', 'This roll number was just registered. Submit again to update with the newest details.'
         );
     END;
   END IF;
@@ -617,10 +595,78 @@ $$;
 GRANT EXECUTE ON FUNCTION public.register_public_campaign_registration_resume(uuid, uuid, text, text, text, int, text) TO anon, authenticated;
 
 -- -----------------------------------------------------------------------------
--- Storage policies: no anon SELECT; hardened INSERT
+-- Storage policies: no anon SELECT; INSERT via SECURITY DEFINER helper
+-- (direct EXISTS on student_profiles fails for anon because of table RLS)
 -- -----------------------------------------------------------------------------
 DROP POLICY IF EXISTS "campaign registration resume read" ON storage.objects;
 DROP POLICY IF EXISTS "campaign registration resume upload" ON storage.objects;
+
+CREATE OR REPLACE FUNCTION public.can_upload_campaign_registration_resume(
+  p_object_name text,
+  p_mimetype text DEFAULT NULL,
+  p_size bigint DEFAULT NULL
+)
+RETURNS boolean
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  parts text[];
+  campaign_id_text text;
+  student_id_text text;
+  mime text := lower(trim(COALESCE(p_mimetype, '')));
+  sz bigint := COALESCE(p_size, 0);
+BEGIN
+  IF p_object_name IS NULL OR p_object_name = '' THEN
+    RETURN false;
+  END IF;
+
+  parts := storage.foldername(p_object_name);
+  IF parts IS NULL OR array_length(parts, 1) < 3 THEN
+    RETURN false;
+  END IF;
+  IF parts[1] IS DISTINCT FROM 'campaign-reg' THEN
+    RETURN false;
+  END IF;
+
+  campaign_id_text := parts[2];
+  student_id_text := parts[3];
+
+  IF mime <> '' AND mime NOT IN (
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ) THEN
+    RETURN false;
+  END IF;
+
+  IF sz < 0 OR sz > 10485760 THEN
+    RETURN false;
+  END IF;
+
+  RETURN EXISTS (
+    SELECT 1
+    FROM public.student_update_campaigns campaign
+    JOIN public.student_profiles student
+      ON student.id::text = student_id_text
+    WHERE campaign.id::text = campaign_id_text
+      AND campaign.status = 'active'
+      AND (campaign.expires_at IS NULL OR campaign.expires_at > now())
+      AND COALESCE(campaign.allowlisted_fields, '[]'::jsonb) ? 'resume'
+      AND student.is_active = true
+      AND student.registered_via_campaign_id = campaign.id
+      AND student.campaign_resume_upload_token IS NOT NULL
+      AND student.campaign_resume_upload_expires_at IS NOT NULL
+      AND student.campaign_resume_upload_expires_at > now()
+      AND student.campaign_resume_upload_campaign_id = campaign.id
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.can_upload_campaign_registration_resume(text, text, bigint) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.can_upload_campaign_registration_resume(text, text, bigint) TO anon, authenticated;
 
 CREATE POLICY "campaign registration resume upload"
   ON storage.objects FOR INSERT
@@ -628,30 +674,10 @@ CREATE POLICY "campaign registration resume upload"
   WITH CHECK (
     bucket_id = 'resumes'
     AND (storage.foldername(name))[1] = 'campaign-reg'
-    AND lower(COALESCE(metadata->>'mimetype', '')) IN (
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    )
-    AND COALESCE((metadata->>'size')::bigint, 0) BETWEEN 1 AND 10485760
-    AND EXISTS (
-      SELECT 1
-      FROM public.student_update_campaigns campaign
-      WHERE campaign.id::text = (storage.foldername(name))[2]
-        AND campaign.status = 'active'
-        AND (campaign.expires_at IS NULL OR campaign.expires_at > now())
-        AND COALESCE(campaign.allowlisted_fields, '[]'::jsonb) ? 'resume'
-    )
-    AND EXISTS (
-      SELECT 1
-      FROM public.student_profiles student
-      WHERE student.id::text = (storage.foldername(name))[3]
-        AND student.is_active = true
-        AND student.registered_via_campaign_id::text = (storage.foldername(name))[2]
-        AND student.campaign_resume_upload_token IS NOT NULL
-        AND student.campaign_resume_upload_expires_at IS NOT NULL
-        AND student.campaign_resume_upload_expires_at > now()
-        AND student.campaign_resume_upload_campaign_id::text = (storage.foldername(name))[2]
+    AND public.can_upload_campaign_registration_resume(
+      name,
+      COALESCE(metadata->>'mimetype', metadata->>'contentType'),
+      COALESCE((metadata->>'size')::bigint, 0)
     )
   );
 
