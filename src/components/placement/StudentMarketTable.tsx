@@ -31,12 +31,6 @@ function initials(name: string) {
     .join('')
 }
 
-function readinessTone(score: number) {
-  if (score >= 75) return 'text-[#0ECB81]'
-  if (score >= 50) return 'text-[#FF7A00]'
-  return 'text-[#C45C1A]'
-}
-
 /** Compact sparkline from available profile metrics (no historical prices). */
 function studentSparkPoints(student: StudentProfileRow) {
   const cgpa = student.cgpa == null ? 0 : Math.min(100, Number(student.cgpa) * 10)
