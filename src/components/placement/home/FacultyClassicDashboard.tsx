@@ -103,6 +103,15 @@ export function FacultyClassicDashboard() {
   }, [students])
 
   const registeredCount = students.filter((student) => student.registered_via_campaign_id).length
+  const readinessOver60 = students.filter((student) => Number(student.readiness_score ?? 0) >= 60).length
+  const readinessOver70 = students.filter((student) => Number(student.readiness_score ?? 0) >= 70).length
+  const readinessOver80 = students.filter((student) => Number(student.readiness_score ?? 0) >= 80).length
+  const avgProfileScore = students.length
+    ? Math.round(
+        students.reduce((sum, student) => sum + Number(student.profile_completeness ?? 0), 0) /
+          students.length,
+      )
+    : 0
 
   return (
     <div className="space-y-4">
@@ -126,6 +135,9 @@ export function FacultyClassicDashboard() {
             hint={appliedRoll ? 'Matching search' : 'Active in current year scope'}
           />
           <PlacementStatCard label="Campaign registered" value={registeredCount} hint="Via shared link" />
+          <PlacementStatCard label="Ready > 60%" value={readinessOver60} hint={`Avg profile ${avgProfileScore}%`} />
+          <PlacementStatCard label="Ready > 70%" value={readinessOver70} hint="Placement-ready band" />
+          <PlacementStatCard label="Ready > 80%" value={readinessOver80} hint="High readiness band" />
           {TRAINING_PROGRAMS.map((program) => (
             <PlacementStatCard
               key={program.id}
@@ -252,6 +264,7 @@ export function FacultyClassicDashboard() {
                   'CGPA',
                   'Status',
                   'Readiness',
+                  'Profile score',
                 ],
                 students.map((student) => {
                   const program = resolveStudentTrainingAssignment(
@@ -269,6 +282,7 @@ export function FacultyClassicDashboard() {
                     student.cgpa == null ? '' : String(student.cgpa),
                     student.placement_status,
                     String(student.readiness_score ?? ''),
+                    String(student.profile_completeness ?? ''),
                   ]
                 }),
               )}
@@ -285,6 +299,7 @@ export function FacultyClassicDashboard() {
                     <TableHead>CGPA</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Readiness</TableHead>
+                    <TableHead>Profile score</TableHead>
                     <TableHead />
                   </TableRow>
                 </TableHeader>
@@ -334,6 +349,7 @@ export function FacultyClassicDashboard() {
                             <ReadinessStatusBadge status={student.readiness_status} />
                           </div>
                         </TableCell>
+                        <TableCell>{Math.round(Number(student.profile_completeness ?? 0))}%</TableCell>
                         <TableCell>
                           {base ? (
                             <Button asChild variant="outline" size="sm">

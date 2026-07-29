@@ -1085,12 +1085,13 @@ export function PremiumDashboard({
         student.branch,
         student.cgpa == null ? '—' : Number(student.cgpa).toFixed(2),
         `${student.readinessScore}%`,
+        `${Math.round(Number(student.profileCompleteness ?? 0))}%`,
         student.placementStatus.replace(/_/g, ' '),
       ])
     setDetail({
       title,
       description,
-      columns: ['S.No', 'Student', 'Roll Number', 'Branch', 'CGPA', 'Readiness', 'Status'],
+      columns: ['S.No', 'Student', 'Roll Number', 'Branch', 'CGPA', 'Readiness', 'Profile', 'Status'],
       rows,
     })
   }
@@ -1117,7 +1118,7 @@ export function PremiumDashboard({
           onClick={() => openStudents('All students', 'Active students in the selected batch.', () => true)}
         />
         <MetricCard
-          title="Ready ≥ 60%"
+          title="Ready > 60%"
           value={readyAbove60}
           icon={<Target className="size-5" />}
           hint={`Avg readiness ${avgReadiness}%`}
@@ -1133,7 +1134,7 @@ export function PremiumDashboard({
           }
         />
         <MetricCard
-          title="Ready ≥ 70%"
+          title="Ready > 70%"
           value={readyAbove70}
           icon={<CheckCircle2 className="size-5" />}
           hint={`Avg profile ${avgProfile}%`}
@@ -1149,7 +1150,7 @@ export function PremiumDashboard({
           }
         />
         <MetricCard
-          title="Ready ≥ 80%"
+          title="Ready > 80%"
           value={readyAbove80}
           icon={<Trophy className="size-5" />}
           hint="Highly placement-ready band"
