@@ -1,10 +1,10 @@
 -- =============================================================================
 -- DO NOT RUN THIS SCRIPT
 -- =============================================================================
--- It re-opens anon SELECT on campaign-reg/ resumes (data leak) and is superseded by:
+-- It strips allowlist enforcement and loosens resume attach to any active student
+-- (IDOR). Superseded by:
 --   scripts/apply-campaign-link-hardening.sql
 -- =============================================================================
 
--- Intentionally left non-executable guidance only.
-SELECT 'DO NOT RUN apply-fix-campaign-resume-upload-rls.sql — use apply-campaign-link-hardening.sql instead'
+SELECT 'DO NOT RUN apply-fix-campaign-resume-student-lookup.sql — use apply-campaign-link-hardening.sql instead'
   AS warning;

@@ -1158,9 +1158,11 @@ export interface Database {
           p_storage_path: string
           p_mime_type: string
           p_file_size: number
+          p_upload_token?: string
         }
         Returns: Json
       }
+      get_public_campaign_registration_form_by_token: { Args: { p_token: string }; Returns: Json }
       resolve_public_campaign_student_token: { Args: { p_campaign_id: string; p_roll_number: string }; Returns: string | null }
       submit_public_student_update: { Args: { p_token: string; p_payload: Json }; Returns: Json }
       register_public_campaign_resume: {

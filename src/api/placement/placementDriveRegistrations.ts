@@ -12,7 +12,8 @@ export interface PublicDriveRegistrationForm {
   venue: string
   mode: string
   registrationClosesAt: string | null
-  placementEventId: string
+  /** Omitted from hardened public RPC; kept optional for older DBs. */
+  placementEventId?: string
 }
 
 export interface DriveRegistrationPayload {
@@ -121,7 +122,7 @@ export async function getPublicDriveRegistrationForm(
     venue: String(raw.venue ?? ''),
     mode: String(raw.mode ?? ''),
     registrationClosesAt: raw.registrationClosesAt == null ? null : String(raw.registrationClosesAt),
-    placementEventId: String(raw.placementEventId ?? ''),
+    placementEventId: raw.placementEventId == null ? undefined : String(raw.placementEventId),
   }
 }
 

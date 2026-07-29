@@ -73,7 +73,9 @@ export function StudentUpdateCampaignDetailPage() {
 
   const copyRegistrationLink = async () => {
     if (!campaign?.id || campaign.status !== 'active') return
-    await navigator.clipboard.writeText(campaignRegistrationUrl(campaign.id))
+    const token = (campaign as StudentUpdateCampaignRow & { public_link_token?: string | null })
+      .public_link_token
+    await navigator.clipboard.writeText(campaignRegistrationUrl(token || campaign.id))
     setSuccess('Registration link copied')
     setTimeout(() => setSuccess(null), 2000)
   }

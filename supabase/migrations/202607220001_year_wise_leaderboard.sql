@@ -129,11 +129,7 @@ BEGIN
         'codingScore', ROUND(coding_score)::int,
         'cgpa', cgpa,
         'totalSolved', total_solved,
-        'linkedCount', linked_count,
-        'shareToken', CASE
-          WHEN is_shareable = true AND share_token IS NOT NULL THEN share_token
-          ELSE NULL
-        END
+        'linkedCount', linked_count
       ) AS row_data
     FROM filtered
     ORDER BY rank, roll_number

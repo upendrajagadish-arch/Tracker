@@ -100,8 +100,8 @@ export function CampaignRegistrationBasicInfoForm({
   onSubmit,
 }: Props) {
   const isAllowed = (field: string) => {
+    if (field === 'roll_number' || field === 'full_name' || field === 'email') return true
     if (!allowedFields?.length) return true
-    if (field === 'roll_number' || field === 'full_name') return true
     return allowedFields.includes(field)
   }
 
@@ -262,11 +262,12 @@ export function CampaignRegistrationBasicInfoForm({
                 <FieldShell show={isAllowed('email')}>
                   <Label htmlFor="email" className="flex items-center gap-2">
                     <Mail className="h-4 w-4 text-muted-foreground" />
-                    Email address
+                    Email address *
                   </Label>
                   <Input
                     id="email"
                     type="email"
+                    required
                     placeholder="you@college.edu"
                     value={form.email}
                     onChange={(e) => set('email', e.target.value)}

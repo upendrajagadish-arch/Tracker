@@ -81,8 +81,8 @@ function RegistrationFields({
   allowedFields?: string[]
 }) {
   const isAllowed = (field: string) => {
+    if (field === 'roll_number' || field === 'full_name' || field === 'email') return true
     if (!allowedFields?.length) return true
-    if (field === 'roll_number' || field === 'full_name') return true
     return allowedFields.includes(field)
   }
   const fieldClass = (field: string, base = 'text-sm') =>
@@ -90,7 +90,7 @@ function RegistrationFields({
   const visiblePlatforms = ALL_PLATFORMS.filter(
     (platform) => isAllowed('platform_handles') || isAllowed(`platform_handles.${platform}`),
   )
-  const resumeAllowed = isAllowed('resume') || Boolean(allowedFields?.includes('platform_handles'))
+  const resumeAllowed = isAllowed('resume')
   // Year-wise data collection only for now — training program / batch not required.
   const showTrainingProgram = false
 
@@ -105,8 +105,8 @@ function RegistrationFields({
         <Input className="mt-1 border-border bg-card" required value={form.fullName} onChange={(e) => set('fullName', e.target.value)} />
       </label>
       <label className={fieldClass('email')}>
-        <span className="text-muted-foreground">Email</span>
-        <Input type="email" className="mt-1 border-border bg-card" value={form.email} onChange={(e) => set('email', e.target.value)} />
+        <span className="text-muted-foreground">Email * (required to register or update)</span>
+        <Input type="email" required className="mt-1 border-border bg-card" value={form.email} onChange={(e) => set('email', e.target.value)} />
       </label>
       <label className={fieldClass('phone')}>
         <span className="text-muted-foreground">Phone</span>
@@ -228,6 +228,7 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
   const [resumeFile, setResumeFile] = useState<File | null>(null)
   const [fileInputKey, setFileInputKey] = useState(0)
   const [registeredStudentId, setRegisteredStudentId] = useState<string | null>(null)
+  const [resumeUploadToken, setResumeUploadToken] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
 
   useEffect(() => {
@@ -267,8 +268,8 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
 
   const formatResumeUploadError = (resumeError: unknown) => {
     const message = resumeError instanceof Error ? resumeError.message : 'unknown error'
-    if (/row-level security|violates row-level security|403|400/i.test(message)) {
-      return `${message}. Placement admins should apply scripts/apply-fix-campaign-resume-upload-rls.sql on Supabase and retry.`
+    if (/row-level security|violates row-level security|403|400|upload session expired|not found for this campaign/i.test(message)) {
+      return `${message} Ask placement staff to apply scripts/apply-campaign-link-hardening.sql in Supabase, then submit the form again to get a fresh resume upload session.`
     }
     return message
   }
@@ -276,6 +277,7 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault()
     if (!meta) return
+    const resolvedCampaignId = meta.campaignId || campaignId
     setSaving(true)
     setError(null)
     setSuccess(null)
@@ -285,16 +287,25 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
           setError('Choose the resume file again to retry the upload.')
           return
         }
+        if (!resumeUploadToken) {
+          setError('Resume upload session expired. Fill the form and submit again, then upload the resume.')
+          return
+        }
         await uploadPublicCampaignRegistrationResume(
-          campaignId,
+          resolvedCampaignId,
           registeredStudentId,
           resumeFile,
-          form.rollNumber,
+          resumeUploadToken,
         )
         setSuccess('Resume uploaded successfully. Your registration is complete.')
         setRegisteredStudentId(null)
+        setResumeUploadToken(null)
         setResumeFile(null)
         setFileInputKey((key) => key + 1)
+        return
+      }
+      if (!form.email.trim()) {
+        setError('Email is required to register or update your details.')
         return
       }
       const allowed = new Set(meta.allowlistedFields)
@@ -308,15 +319,14 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
           ([platform]) => has('platform_handles') || has(`platform_handles.${platform}`),
         ),
       )
-      const result = await submitPublicCampaignRegistration(campaignId, {
+      const result = await submitPublicCampaignRegistration(resolvedCampaignId, {
         rollNumber: form.rollNumber.trim(),
         fullName: form.fullName.trim(),
-        ...(has('email') ? { email: form.email.trim() } : {}),
-        ...(has('phone') ? { phone: form.phone } : {}),
+        email: form.email.trim(),
+        ...(has('phone') ? { phone: form.phone } : { phone: form.phone }),
         ...(has('branch') ? { branch: form.branch } : {}),
         ...(has('batch') || has('academic_batch') || has('section')
           ? {
-              // Year of pass out only — training program / batch not required while collecting data.
               academicBatch: form.batch,
               graduationYear: form.batch ? Number(form.batch) : null,
               passOutYear: form.batch ? Number(form.batch) : null,
@@ -345,15 +355,24 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
       if (!result.studentProfileId) throw new Error('Registration succeeded but student id was missing')
 
       if (resumeFile) {
+        if (!result.resumeUploadToken) {
+          setRegisteredStudentId(result.studentProfileId)
+          setResumeUploadToken(null)
+          setError(
+            'Your profile was registered, but the resume upload session was not returned. Ask placement staff to apply scripts/apply-campaign-link-hardening.sql, then submit again.',
+          )
+          return
+        }
         try {
           await uploadPublicCampaignRegistrationResume(
-            campaignId,
+            resolvedCampaignId,
             result.studentProfileId,
             resumeFile,
-            form.rollNumber,
+            result.resumeUploadToken,
           )
         } catch (resumeError) {
           setRegisteredStudentId(result.studentProfileId)
+          setResumeUploadToken(result.resumeUploadToken)
           setError(
             `Your profile was registered, but resume upload failed: ${
               formatResumeUploadError(resumeError)
@@ -370,6 +389,8 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
       )
       setForm(emptyRegistrationForm)
       setResumeFile(null)
+      setResumeUploadToken(null)
+      setRegisteredStudentId(null)
       setFileInputKey((key) => key + 1)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to register')
@@ -500,7 +521,7 @@ function LegacyTokenUpdatePortal({ token }: { token: string }) {
           careerInterest: data.editable.careerInterest,
           platformHandles: data.editable.platformHandles,
           projectsSummary: data.editable.projectsSummary,
-          certificationsSummary: '',
+          certificationsSummary: data.editable.certificationsSummary || '',
         })
       } catch (e) {
         if (active) setError(e instanceof Error ? e.message : 'Failed to load update form')
@@ -531,7 +552,30 @@ function LegacyTokenUpdatePortal({ token }: { token: string }) {
     setError(null)
     setSuccess(null)
     try {
-      const result = await submitPublicStudentUpdate(token, form)
+      const allowed = new Set(meta.allowlistedFields)
+      const has = (field: string) => allowed.has(field)
+      const payload: Record<string, unknown> = {}
+      if (has('full_name') || has('fullName')) payload.fullName = form.fullName
+      if (has('email')) payload.email = form.email
+      if (has('phone')) payload.phone = form.phone
+      if (has('branch')) payload.branch = form.branch
+      if (has('batch') || has('academic_batch')) {
+        payload.batch = form.batch
+        payload.academicBatch = form.batch
+      }
+      if (has('date_of_birth')) payload.dateOfBirth = form.dateOfBirth
+      if (has('cgpa')) payload.cgpa = form.cgpa
+      if (has('active_backlogs')) payload.activeBacklogs = form.activeBacklogs
+      if (has('linkedin_url')) payload.linkedinUrl = form.linkedinUrl
+      if (has('github_url')) payload.githubUrl = form.githubUrl
+      if (has('portfolio_url')) payload.portfolioUrl = form.portfolioUrl
+      if (has('skills_summary')) payload.skillsSummary = form.skillsSummary
+      if (has('career_interest')) payload.careerInterest = form.careerInterest
+      if (has('projects_summary')) payload.projectsSummary = form.projectsSummary
+      if (has('certifications_summary')) payload.certificationsSummary = form.certificationsSummary
+      if (has('platform_handles')) payload.platformHandles = form.platformHandles
+
+      const result = await submitPublicStudentUpdate(token, payload)
       if (!result.ok) throw new Error(result.error || 'Update failed')
       if (resumeFile) await uploadPublicCampaignResume(token, resumeFile)
       setSuccess('Your profile was updated successfully.')

@@ -6,7 +6,7 @@ import type { Database, Json } from '@/types/supabase'
 export type StudentUpdateCampaignRow = Database['public']['Tables']['student_update_campaigns']['Row']
 export type StudentUpdateTokenRow = Database['public']['Tables']['student_update_tokens']['Row']
 
-/** Same profile fields as the staff edit-student form. */
+/** Public campaign allowlist — never include staff-only placement fields. */
 export const DEFAULT_CAMPAIGN_ALLOWLIST = [
   'roll_number',
   'full_name',
@@ -18,8 +18,6 @@ export const DEFAULT_CAMPAIGN_ALLOWLIST = [
   'date_of_birth',
   'cgpa',
   'active_backlogs',
-  'placement_status',
-  'is_placement_eligible',
   'linkedin_url',
   'github_url',
   'portfolio_url',
@@ -79,10 +77,13 @@ export interface CreateCampaignInput {
 }
 
 export interface PublicRegistrationForm {
+  /** Resolved campaign UUID used for submit / resume RPCs. */
+  campaignId: string
   campaignTitle: string
   campaignDescription: string
   expiresAt: string | null
   allowlistedFields: string[]
+  publicLinkToken: string | null
 }
 
 export interface PublicUpdateForm {
@@ -110,6 +111,7 @@ export interface PublicUpdateForm {
     careerInterest: string
     platformHandles: Record<string, string>
     projectsSummary: string
+    certificationsSummary: string
   }
   resumeFileName: string | null
 }
@@ -131,13 +133,19 @@ export function campaignUpdateUrl(token: string): string {
   return `${origin}/student/update/${token}`
 }
 
-export function campaignSharedUpdateUrl(campaignId: string): string {
+export function campaignSharedUpdateUrl(campaignIdOrPublicToken: string): string {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  return `${origin}/student/update/campaign/${campaignId}`
+  return `${origin}/student/update/campaign/${campaignIdOrPublicToken}`
 }
 
-export function campaignRegistrationUrl(campaignId: string): string {
-  return campaignSharedUpdateUrl(campaignId)
+export function campaignRegistrationUrl(campaignIdOrPublicToken: string): string {
+  return campaignSharedUpdateUrl(campaignIdOrPublicToken)
+}
+
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value.trim(),
+  )
 }
 
 export async function listCampaigns(): Promise<StudentUpdateCampaignRow[]> {
@@ -246,33 +254,58 @@ export async function createCampaignWithTokens(input: CreateCampaignInput): Prom
 
   const client = requireSupabase()
   const expiresAt = input.expiresAt || defaultExpiry(14)
-  const allowlistedFields = input.allowlistedFields?.length
+  const allowlistedFields = (input.allowlistedFields?.length
     ? input.allowlistedFields
     : [...DEFAULT_CAMPAIGN_ALLOWLIST]
+  ).filter((field) => field !== 'placement_status' && field !== 'is_placement_eligible')
 
-  const { data: campaign, error } = await client
-    .from('student_update_campaigns')
-    .insert({
-      title: input.title.trim(),
-      description: input.description?.trim() ?? '',
-      status: 'active',
-      filters: {} as Json,
-      allowlisted_fields: allowlistedFields as unknown as Json,
-      expires_at: expiresAt,
-    })
-    .select()
-    .single()
-  if (error) throw error
+  const publicLinkToken = createShareToken()
+  const baseInsert = {
+    title: input.title.trim(),
+    description: input.description?.trim() ?? '',
+    status: 'active' as const,
+    filters: {} as Json,
+    allowlisted_fields: allowlistedFields as unknown as Json,
+    expires_at: expiresAt,
+  }
+
+  let campaign: StudentUpdateCampaignRow
+  {
+    const first = await client
+      .from('student_update_campaigns')
+      .insert({ ...baseInsert, public_link_token: publicLinkToken } as never)
+      .select()
+      .single()
+    if (first.error && /public_link_token|column/i.test(first.error.message)) {
+      const fallback = await client.from('student_update_campaigns').insert(baseInsert).select().single()
+      if (fallback.error) throw fallback.error
+      campaign = fallback.data
+    } else if (first.error) {
+      throw first.error
+    } else {
+      campaign = first.data
+    }
+  }
+
+  const sharePath =
+    (campaign as StudentUpdateCampaignRow & { public_link_token?: string | null }).public_link_token ||
+    publicLinkToken ||
+    campaign.id
+  const registrationUrl = campaignRegistrationUrl(
+    (campaign as { public_link_token?: string | null }).public_link_token
+      ? String((campaign as { public_link_token?: string | null }).public_link_token)
+      : campaign.id,
+  )
 
   await logPlacementAudit({
     action: 'campaign.create',
     entityType: 'student_update_campaign',
     entityId: campaign.id,
     description: `Created registration campaign "${campaign.title}"`,
-    metadata: { registrationUrl: campaignRegistrationUrl(campaign.id) },
+    metadata: { registrationUrl, sharePath },
   })
 
-  return { campaign, registrationUrl: campaignRegistrationUrl(campaign.id) }
+  return { campaign, registrationUrl }
 }
 
 export async function deleteCampaign(campaignId: string): Promise<void> {
@@ -403,31 +436,71 @@ export async function getPublicStudentUpdateForm(token: string): Promise<PublicU
       careerInterest: String(profile.careerInterest ?? ''),
       platformHandles: (profile.platformHandles as Record<string, string>) ?? {},
       projectsSummary: String(profile.projectsSummary ?? ''),
+      certificationsSummary: String(profile.certificationsSummary ?? ''),
     },
     resumeFileName: (raw.resumeFileName as string | null) ?? null,
   }
 }
 
-export async function getPublicCampaignRegistrationForm(campaignId: string): Promise<PublicRegistrationForm | null> {
+export async function getPublicCampaignRegistrationForm(
+  campaignIdOrToken: string,
+): Promise<PublicRegistrationForm | null> {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('get_public_campaign_registration_form', { p_campaign_id: campaignId })
-  if (error) throw error
-  if (!data) return null
-  const raw = data as Record<string, unknown>
+  const key = campaignIdOrToken.trim()
+  let raw: Record<string, unknown> | null = null
+
+  if (isUuid(key)) {
+    const { data, error } = await client.rpc('get_public_campaign_registration_form', {
+      p_campaign_id: key,
+    })
+    if (error) throw error
+    if (data) {
+      raw = data as Record<string, unknown>
+      raw.campaignId = key
+    }
+  }
+
+  if (!raw) {
+    const { data, error } = await client.rpc('get_public_campaign_registration_form_by_token', {
+      p_token: key,
+    })
+    if (error) {
+      // Function may not exist until hardening SQL is applied — fall through.
+      if (!/could not find the function|schema cache|404/i.test(error.message)) throw error
+    } else if (data) {
+      raw = data as Record<string, unknown>
+    }
+  }
+
+  if (!raw) return null
+
+  const campaignId = String(raw.campaignId ?? (isUuid(key) ? key : ''))
+  if (!campaignId) return null
+
   return {
+    campaignId,
     campaignTitle: String(raw.campaignTitle ?? ''),
     campaignDescription: String(raw.campaignDescription ?? ''),
     expiresAt: (raw.expiresAt as string | null) ?? null,
     allowlistedFields: Array.isArray(raw.allowlistedFields)
-      ? (raw.allowlistedFields as string[])
+      ? (raw.allowlistedFields as string[]).filter(
+          (field) => field !== 'placement_status' && field !== 'is_placement_eligible',
+        )
       : [...DEFAULT_CAMPAIGN_ALLOWLIST],
+    publicLinkToken: raw.publicLinkToken == null ? null : String(raw.publicLinkToken),
   }
 }
 
 export async function submitPublicCampaignRegistration(
   campaignId: string,
   payload: Record<string, unknown>,
-): Promise<{ ok: boolean; error?: string; studentProfileId?: string; updated?: boolean }> {
+): Promise<{
+  ok: boolean
+  error?: string
+  studentProfileId?: string
+  updated?: boolean
+  resumeUploadToken?: string
+}> {
   const client = requireSupabase()
   const { data, error } = await client.rpc('submit_public_campaign_registration', {
     p_campaign_id: campaignId,
@@ -435,10 +508,9 @@ export async function submitPublicCampaignRegistration(
   })
   if (error) {
     const message = error.message || 'Registration failed'
-    // PostgREST maps missing SQL functions (e.g. gen_random_bytes) to HTTP 404.
     if (/gen_random_bytes|schema cache|could not find the function|42883/i.test(message)) {
       throw new Error(
-        'Registration is temporarily unavailable (database function needs a small update). Ask placement staff to apply scripts/fix-registration-gen-random-bytes.sql and scripts/allow-registration-upsert-by-roll.sql.',
+        'Registration is temporarily unavailable (database needs update). Ask placement staff to apply scripts/apply-campaign-link-hardening.sql in the Supabase SQL Editor.',
       )
     }
     throw error
@@ -448,12 +520,14 @@ export async function submitPublicCampaignRegistration(
     error?: string
     studentProfileId?: string
     updated?: boolean
+    resumeUploadToken?: string
   }
   return {
     ok: Boolean(result.ok),
     error: result.error,
     studentProfileId: result.studentProfileId,
     updated: Boolean(result.updated),
+    resumeUploadToken: result.resumeUploadToken,
   }
 }
 
@@ -461,9 +535,14 @@ export async function uploadPublicCampaignRegistrationResume(
   campaignId: string,
   studentProfileId: string,
   file: File,
-  _rollNumber?: string,
+  resumeUploadToken: string,
 ): Promise<void> {
   const client = requireSupabase()
+  if (!resumeUploadToken || resumeUploadToken.length < 32) {
+    throw new Error(
+      'Resume upload session expired. Submit the registration form again, then upload the resume.',
+    )
+  }
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
   const lowerName = file.name.toLowerCase()
   const guessedMime =
@@ -485,7 +564,6 @@ export async function uploadPublicCampaignRegistrationResume(
     throw new Error('Resume file must be between 1 byte and 10 MB.')
   }
   const metadata = { mimetype: guessedMime, size: String(file.size) }
-  // campaign-reg upload + campaign registration resume RPC.
   const storagePath = `campaign-reg/${campaignId}/${studentProfileId}/${Date.now()}-${safeName}`
   const { error: uploadError } = await client.storage.from('resumes').upload(storagePath, file, {
     contentType: guessedMime,
@@ -493,9 +571,7 @@ export async function uploadPublicCampaignRegistrationResume(
     metadata,
   })
   if (uploadError) {
-    throw new Error(
-      `Resume upload failed. ${uploadError.message}`,
-    )
+    throw new Error(`Resume upload failed. ${uploadError.message}`)
   }
 
   const { data, error } = await client.rpc('register_public_campaign_registration_resume', {
@@ -505,17 +581,32 @@ export async function uploadPublicCampaignRegistrationResume(
     p_storage_path: storagePath,
     p_mime_type: guessedMime,
     p_file_size: file.size,
+    p_upload_token: resumeUploadToken,
   })
   if (error) {
+    try {
+      await client.storage.from('resumes').remove([storagePath])
+    } catch {
+      // best-effort cleanup of orphan object
+    }
     throw new Error(error.message || 'Campaign resume registration failed')
   }
   const result = (data ?? {}) as { ok?: boolean; error?: string }
   if (!result.ok) {
+    try {
+      await client.storage.from('resumes').remove([storagePath])
+    } catch {
+      // best-effort cleanup
+    }
     throw new Error(result.error || 'Failed to register resume')
   }
 }
 
-export async function resolveCampaignStudentToken(campaignId: string, rollNumber: string): Promise<string | null> {
+/** @deprecated Dangerous if granted to anon; keep revoked. Prefer staff-issued update tokens. */
+export async function resolveCampaignStudentToken(
+  campaignId: string,
+  rollNumber: string,
+): Promise<string | null> {
   const client = requireSupabase()
   const { data, error } = await client.rpc('resolve_public_campaign_student_token', {
     p_campaign_id: campaignId,
@@ -531,9 +622,14 @@ export async function submitPublicStudentUpdate(
   payload: Record<string, unknown>,
 ): Promise<{ ok: boolean; error?: string; updatedFields?: string[] }> {
   const client = requireSupabase()
+  const sanitized = { ...payload }
+  delete sanitized.placementStatus
+  delete sanitized.placement_status
+  delete sanitized.isPlacementEligible
+  delete sanitized.is_placement_eligible
   const { data, error } = await client.rpc('submit_public_student_update', {
     p_token: token,
-    p_payload: payload as Json,
+    p_payload: sanitized as Json,
   })
   if (error) throw error
   const result = (data ?? {}) as { ok?: boolean; error?: string; updatedFields?: string[] }
@@ -547,11 +643,31 @@ export async function submitPublicStudentUpdate(
 export async function uploadPublicCampaignResume(token: string, file: File): Promise<void> {
   const client = requireSupabase()
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+  const lowerName = file.name.toLowerCase()
+  const guessedMime =
+    file.type ||
+    (lowerName.endsWith('.docx')
+      ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      : lowerName.endsWith('.doc')
+        ? 'application/msword'
+        : 'application/pdf')
+  const allowedMimes = new Set([
+    'application/pdf',
+    'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ])
+  if (!allowedMimes.has(guessedMime)) {
+    throw new Error('Only PDF, DOC, or DOCX resumes are allowed.')
+  }
+  if (!Number.isFinite(file.size) || file.size <= 0 || file.size > 10 * 1024 * 1024) {
+    throw new Error('Resume file must be between 1 byte and 10 MB.')
+  }
   const storagePath = `campaign/${token}/${Date.now()}-${safeName}`
 
   const { error: uploadError } = await client.storage.from('resumes').upload(storagePath, file, {
-    contentType: file.type || 'application/pdf',
+    contentType: guessedMime,
     upsert: false,
+    metadata: { mimetype: guessedMime, size: String(file.size) },
   })
   if (uploadError) throw uploadError
 
@@ -559,7 +675,7 @@ export async function uploadPublicCampaignResume(token: string, file: File): Pro
     p_token: token,
     p_file_name: file.name,
     p_storage_path: storagePath,
-    p_mime_type: file.type || 'application/pdf',
+    p_mime_type: guessedMime,
     p_file_size: file.size,
   })
   if (error) throw error
