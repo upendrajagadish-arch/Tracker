@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from '@tanstack/react-router'
+import { ArrowLeft } from 'lucide-react'
 import { SeoHead } from '@/components/SeoHead'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -14,6 +15,9 @@ export function PublicStudentPerformancePage() {
   const [loading, setLoading] = useState(true)
   const [downloading, setDownloading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const fromLeaderboard =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('from') === 'leaderboard'
 
   useEffect(() => {
     const meta = document.createElement('meta')
@@ -92,7 +96,18 @@ export function PublicStudentPerformancePage() {
         description={`Placement performance profile for ${profile.fullName}`}
       />
       <div className="flex-1 py-2">
-        <div className="mx-auto flex max-w-5xl justify-end px-4 pt-4 sm:px-6 md:px-8">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 pt-4 sm:px-6 md:px-8">
+          {fromLeaderboard ? (
+            <a
+              href="/public/leaderboard"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#D27918] hover:underline"
+            >
+              <ArrowLeft className="size-4" />
+              Back to leaderboard
+            </a>
+          ) : (
+            <span />
+          )}
           <Button
             type="button"
             variant="outline"
@@ -103,6 +118,9 @@ export function PublicStudentPerformancePage() {
             {downloading ? 'Preparing PDF…' : 'Download PDF'}
           </Button>
         </div>
+        <p className="mx-auto max-w-5xl px-4 pt-2 text-xs text-muted-foreground sm:px-6 md:px-8">
+          Live placement performance — scores update as staff evaluations and coding data change.
+        </p>
         <PublicStudentPerformanceCard profile={profile} />
       </div>
     </>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Flame, Search, Sparkles, Zap } from 'lucide-react'
+import { ChevronRight, Flame, Search, Sparkles, Zap } from 'lucide-react'
 import { SeoHead } from '@/components/SeoHead'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -60,7 +60,38 @@ function rankBadgeClasses(rank: number): string {
 }
 
 function profileHref(row: LeaderboardRow): string | null {
-  return row.shareToken ? publicStudentPerformanceUrl(row.shareToken) : null
+  if (!row.shareToken) return null
+  return `${publicStudentPerformanceUrl(row.shareToken)}?from=leaderboard`
+}
+
+function StudentLink({
+  row,
+  className,
+  children,
+}: {
+  row: LeaderboardRow
+  className?: string
+  children: React.ReactNode
+}) {
+  const href = profileHref(row)
+  if (!href) {
+    return (
+      <span className={className} title="Performance profile link is not ready yet">
+        {children}
+      </span>
+    )
+  }
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className={cn(className, 'cursor-pointer')}
+      title={`Open full performance profile for ${row.fullName}`}
+    >
+      {children}
+    </a>
+  )
 }
 
 function streakLabel(xp: number): string | null {
@@ -113,24 +144,6 @@ function scoreChips(row: LeaderboardRow) {
       <StatChip label="Coding" value={`${Math.round(row.codingScore)}`} />
       <StatChip label="Avg" value={`${row.avgScore}`} />
     </>
-  )
-}
-
-function StudentLink({
-  row,
-  className,
-  children,
-}: {
-  row: LeaderboardRow
-  className?: string
-  children: React.ReactNode
-}) {
-  const href = profileHref(row)
-  if (!href) return <span className={className}>{children}</span>
-  return (
-    <a href={href} target="_blank" rel="noreferrer" className={className}>
-      {children}
-    </a>
   )
 }
 
@@ -199,12 +212,18 @@ function PodiumCard({
       <p className={cn('mt-4 text-[11px] font-bold uppercase tracking-[0.2em]', style.text)}>
         {style.label}
       </p>
-      <p className="mt-1 max-w-[14rem] truncate font-heading text-[18px] font-bold text-foreground">
+      <p className="mt-1 max-w-[14rem] truncate font-heading text-[18px] font-bold text-foreground group-hover:text-[#D27918] group-hover:underline">
         {row.fullName}
       </p>
-      <p className="tnum mt-0.5 text-[12px] text-secondary group-hover:text-[#D27918] group-hover:underline">
+      <p className="tnum mt-0.5 text-[12px] text-secondary">
         {row.rollNumber}
       </p>
+      {row.shareToken ? (
+        <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#D27918]">
+          View full profile
+          <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+        </span>
+      ) : null}
       {streak ? (
         <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-[#D27918]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#D27918]">
           <Flame className="size-3" />
@@ -366,7 +385,8 @@ export function PublicLeaderboardPage() {
             </h1>
             <p className="relative mx-auto mt-2 max-w-xl text-[14px] leading-relaxed text-secondary">
               Ranked by Fame XP. Higher priority: Coding 20%, CodeNow 18%, Tech Stack 18%. Then Readiness 12%,
-              Communication 12%, Aptitude 10%, Verbal 10%. Cards show Comm, Tech, Coding, and Avg of all parameters.
+              Communication 12%, Aptitude 10%, Verbal 10%. Click any student name to open their full live
+              performance profile (scores, coding, tech stack, and more).
             </p>
 
             <div className="relative mx-auto mt-5 flex max-w-xl flex-wrap items-center justify-center gap-2">
@@ -571,7 +591,7 @@ export function PublicLeaderboardPage() {
                               </div>
                               <div className="min-w-0 flex-1">
                                 <div className="flex flex-wrap items-center gap-2">
-                                  <p className="truncate text-[14px] font-bold text-foreground">
+                                  <p className="truncate text-[14px] font-bold text-foreground group-hover:text-[#D27918] group-hover:underline">
                                     {row.fullName}
                                   </p>
                                   {streak ? (
@@ -584,7 +604,7 @@ export function PublicLeaderboardPage() {
                                     {row.fameLevel}
                                   </span>
                                 </div>
-                                <p className="tnum truncate text-[12px] text-secondary group-hover:text-[#D27918] group-hover:underline">
+                                <p className="tnum truncate text-[12px] text-secondary">
                                   {row.rollNumber}
                                   <span className="text-muted"> · {row.branch}</span>
                                   {row.academicBatch || row.batch ? (
@@ -607,6 +627,12 @@ export function PublicLeaderboardPage() {
                                   {row.fameXp}
                                 </p>
                                 <p className="tnum text-[11px] text-secondary">Avg {row.avgScore}</p>
+                                {row.shareToken ? (
+                                  <p className="mt-1 inline-flex items-center gap-0.5 text-[11px] font-semibold text-[#D27918]">
+                                    Profile
+                                    <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                                  </p>
+                                ) : null}
                               </div>
                             </StudentLink>
                           </motion.li>

@@ -34,13 +34,6 @@ function authenticated(Page: ComponentType) {
 }
 
 const AuthenticatedHomePage = authenticated(HomePage)
-const AuthenticatedGitHubPage = authenticated(GitHubPage)
-const AuthenticatedLeetCodePage = authenticated(LeetCodePage)
-const AuthenticatedCodeforcesPage = authenticated(CodeforcesPage)
-const AuthenticatedGFGPage = authenticated(GFGPage)
-const AuthenticatedCodeChefPage = authenticated(CodeChefPage)
-const AuthenticatedHackerRankPage = authenticated(HackerRankPage)
-const AuthenticatedTUFPage = authenticated(TUFPage)
 const AuthenticatedProfilePage = authenticated(ProfilePage)
 const AuthenticatedAccountPage = authenticated(AccountPage)
 
@@ -69,43 +62,43 @@ export const appRoute = createRoute({
 export const githubRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/github/$username',
-  component: AuthenticatedGitHubPage,
+  component: GitHubPage,
 })
 
 export const leetcodeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/leetcode/$username',
-  component: AuthenticatedLeetCodePage,
+  component: LeetCodePage,
 })
 
 export const codeforcesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/codeforces/$username',
-  component: AuthenticatedCodeforcesPage,
+  component: CodeforcesPage,
 })
 
 export const gfgRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/gfg/$username',
-  component: AuthenticatedGFGPage,
+  component: GFGPage,
 })
 
 export const codechefRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/codechef/$username',
-  component: AuthenticatedCodeChefPage,
+  component: CodeChefPage,
 })
 
 export const hackerrankRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/hackerrank/$username',
-  component: AuthenticatedHackerRankPage,
+  component: HackerRankPage,
 })
 
 export const tufRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/tuf/$username',
-  component: AuthenticatedTUFPage,
+  component: TUFPage,
 })
 
 export const profileRoute = createRoute({

@@ -391,7 +391,7 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
         <ShareProfileSection
           number="02"
           title="Coding Platform Performance"
-          description="Live platform cards where handles are linked"
+          description="Click any platform card to open full details — solved problems, contests, heatmaps, and more"
         >
           {profile.codingSyncedAt ? (
             <p className="mb-3 text-xs text-muted-foreground">
@@ -412,6 +412,7 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
                         platform={platform}
                         username={username}
                         animIndex={index}
+                        detailLink={`/${platform}/${username}`}
                       >
                         {CARD_RENDERERS[platform](username)}
                       </PlatformCard>
@@ -425,7 +426,7 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
           )}
         </ShareProfileSection>
 
-        <ShareProfileSection number="03" title="GitHub Activity" description="Public repositories and activity">
+        <ShareProfileSection number="03" title="GitHub Activity" description="Click the card for commits, repos, stars, and contribution details">
           {githubUsername || githubUrl ? (
             <div className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
@@ -438,7 +439,7 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
                         href={githubUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="break-all text-primary hover:underline"
+                        className="relative z-20 break-all text-primary hover:underline"
                       >
                         {githubUrl}
                       </a>
@@ -452,7 +453,12 @@ export function PublicStudentPerformanceCard({ profile }: { profile: PublicStude
                 isLoading && !githubCard ? (
                   <PlacementLoadingBlock label="Loading GitHub activity…" />
                 ) : (
-                  <PlatformCard platform="github" username={githubUsername} animIndex={0}>
+                  <PlatformCard
+                    platform="github"
+                    username={githubUsername}
+                    animIndex={0}
+                    detailLink={`/github/${githubUsername}`}
+                  >
                     <GitHubCard username={githubUsername} />
                   </PlatformCard>
                 )

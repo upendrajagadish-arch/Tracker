@@ -1,7 +1,26 @@
 -- Year-wise public leaderboard + include all active students (score 0 included).
 -- Fame XP priorities: Coding / CodeNow / Tech Stack (higher), then Comm / Aptitude / Verbal, plus Readiness.
+-- Also enables clickable profile links: every active student gets a share token.
 -- Safe to re-run. Paste into Supabase SQL Editor or:
 --   npx supabase db execute -f scripts/apply-year-wise-leaderboard.sql --linked
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
+
+-- Ensure every active student can open a live performance profile from the leaderboard.
+UPDATE public.student_profiles
+SET
+  share_token = CASE
+    WHEN share_token IS NULL OR length(share_token) < 48
+      THEN encode(extensions.gen_random_bytes(24), 'hex')
+    ELSE share_token
+  END,
+  is_shareable = true
+WHERE is_active = true
+  AND (
+    share_token IS NULL
+    OR length(share_token) < 48
+    OR is_shareable IS DISTINCT FROM true
+  );
 
 DROP FUNCTION IF EXISTS public.get_public_leaderboard(text, integer, integer);
 DROP FUNCTION IF EXISTS public.get_public_leaderboard(text, integer, integer, integer);
@@ -129,7 +148,11 @@ BEGIN
         'codingScore', ROUND(coding_score)::int,
         'cgpa', cgpa,
         'totalSolved', total_solved,
-        'linkedCount', linked_count
+        'linkedCount', linked_count,
+        'shareToken', CASE
+          WHEN share_token IS NOT NULL AND length(share_token) >= 48 THEN share_token
+          ELSE NULL
+        END
       ) AS row_data
     FROM filtered
     ORDER BY rank, roll_number
@@ -151,4 +174,6 @@ GRANT EXECUTE ON FUNCTION public.get_public_leaderboard(text, integer, integer, 
   TO anon, authenticated;
 
 COMMENT ON FUNCTION public.get_public_leaderboard(text, integer, integer, integer) IS
-  'Public year-wise leaderboard. Fame XP prioritizes coding, CodeNow, and tech stack.';
+  'Public year-wise leaderboard. Includes shareToken so each student name opens the live performance profile.';
+
+NOTIFY pgrst, 'reload schema';
