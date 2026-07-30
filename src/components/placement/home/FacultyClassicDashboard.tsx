@@ -126,16 +126,28 @@ export function FacultyClassicDashboard() {
     [students],
   )
 
+  const cgpaPercent = useCallback((value: number | null | undefined) => {
+    if (value == null || !Number.isFinite(Number(value))) return 0
+    return Math.max(0, Math.min(100, Number(value) * 10))
+  }, [])
+
+  const [cgpaBand, setCgpaBand] = useState<60 | 70 | 80 | null>(null)
+
   const registeredCount = students.filter((student) => student.registered_via_campaign_id).length
-  const readinessOver60 = students.filter((student) => effectiveReadiness(student) >= 60).length
-  const readinessOver70 = students.filter((student) => effectiveReadiness(student) >= 70).length
-  const readinessOver80 = students.filter((student) => effectiveReadiness(student) >= 80).length
+  const cgpaAbove60 = students.filter((student) => cgpaPercent(student.cgpa) >= 60).length
+  const cgpaAbove70 = students.filter((student) => cgpaPercent(student.cgpa) >= 70).length
+  const cgpaAbove80 = students.filter((student) => cgpaPercent(student.cgpa) >= 80).length
   const avgProfileScore = students.length
     ? Math.round(
         students.reduce((sum, student) => sum + Number(student.profile_completeness ?? 0), 0) /
           students.length,
       )
     : 0
+
+  const visibleStudents = useMemo(() => {
+    if (cgpaBand == null) return students
+    return students.filter((student) => cgpaPercent(student.cgpa) >= cgpaBand)
+  }, [cgpaBand, cgpaPercent, students])
 
   return (
     <div className="space-y-4">
@@ -157,11 +169,9 @@ export function FacultyClassicDashboard() {
             label={year === 'all' ? 'Students on page' : `${year} students`}
             value={students.length}
             hint={appliedRoll ? 'Matching search' : 'Active in current year scope'}
+            onClick={() => setCgpaBand(null)}
           />
           <PlacementStatCard label="Campaign registered" value={registeredCount} hint="Via shared link" />
-          <PlacementStatCard label="Ready > 60%" value={readinessOver60} hint={`Avg profile ${avgProfileScore}%`} />
-          <PlacementStatCard label="Ready > 70%" value={readinessOver70} hint="Placement-ready band" />
-          <PlacementStatCard label="Ready > 80%" value={readinessOver80} hint="High readiness band" />
           {TRAINING_PROGRAMS.map((program) => (
             <PlacementStatCard
               key={program.id}
@@ -170,6 +180,30 @@ export function FacultyClassicDashboard() {
               hint="Training program"
             />
           ))}
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <PlacementStatCard
+            label="CGPA > 60%"
+            value={cgpaAbove60}
+            hint={cgpaBand === 60 ? 'Showing matching students · click again to clear' : `CGPA ≥ 6.0 · Avg profile ${avgProfileScore}%`}
+            className={cgpaBand === 60 ? 'border-primary/60 ring-1 ring-primary/40' : undefined}
+            onClick={() => setCgpaBand((prev) => (prev === 60 ? null : 60))}
+          />
+          <PlacementStatCard
+            label="CGPA > 70%"
+            value={cgpaAbove70}
+            hint={cgpaBand === 70 ? 'Showing matching students · click again to clear' : 'CGPA ≥ 7.0'}
+            className={cgpaBand === 70 ? 'border-primary/60 ring-1 ring-primary/40' : undefined}
+            onClick={() => setCgpaBand((prev) => (prev === 70 ? null : 70))}
+          />
+          <PlacementStatCard
+            label="CGPA > 80%"
+            value={cgpaAbove80}
+            hint={cgpaBand === 80 ? 'Showing matching students · click again to clear' : 'CGPA ≥ 8.0'}
+            className={cgpaBand === 80 ? 'border-primary/60 ring-1 ring-primary/40' : undefined}
+            onClick={() => setCgpaBand((prev) => (prev === 80 ? null : 80))}
+          />
         </div>
 
         {campaignSummary ? (
@@ -264,18 +298,35 @@ export function FacultyClassicDashboard() {
           loading={loading}
           loadingLabel="Loading registered students…"
           empty={
-            !students.length ? (
+            !visibleStudents.length ? (
               <PlacementEmptyState
-                title="No registered students found"
-                description="Students who register through the shared campaign link appear here by pass-out year. Training program is optional for now."
+                title={cgpaBand != null ? `No students with CGPA > ${cgpaBand}%` : 'No registered students found'}
+                description={
+                  cgpaBand != null
+                    ? 'Try another threshold card, or clear the filter by clicking the active card again.'
+                    : 'Students who register through the shared campaign link appear here by pass-out year. Training program is optional for now.'
+                }
+                action={
+                  cgpaBand != null ? (
+                    <Button type="button" size="sm" variant="outline" onClick={() => setCgpaBand(null)}>
+                      Clear CGPA filter
+                    </Button>
+                  ) : undefined
+                }
               />
             ) : undefined
           }
         >
-          {students.length ? (
+          {visibleStudents.length ? (
             <PlacementTableCard
-              title={year === 'all' ? 'Registered student details' : `Registered students · ${year}`}
-              count={students.length}
+              title={
+                cgpaBand != null
+                  ? `Students · CGPA > ${cgpaBand}%${year === 'all' ? '' : ` · ${year}`}`
+                  : year === 'all'
+                    ? 'Registered student details'
+                    : `Registered students · ${year}`
+              }
+              count={visibleStudents.length}
               exportSection={tableSectionExport(
                 'Faculty registered students',
                 [
@@ -290,7 +341,7 @@ export function FacultyClassicDashboard() {
                   'Readiness',
                   'Profile score',
                 ],
-                students.map((student) => {
+                visibleStudents.map((student) => {
                   const program = resolveStudentTrainingAssignment(
                     student.section,
                     student.batch,
@@ -328,7 +379,7 @@ export function FacultyClassicDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {students.map((student) => {
+                  {visibleStudents.map((student) => {
                     const program = resolveStudentTrainingAssignment(
                       student.section,
                       student.batch,

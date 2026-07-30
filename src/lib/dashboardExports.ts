@@ -47,9 +47,9 @@ export function exportDashboardPdf(snapshot: DashboardSnapshot) {
 
   heading('Overview')
   line('Total students', snapshot.overview.totalStudents)
-  line('Readiness above 60%', snapshot.overview.above60)
-  line('Readiness above 70%', snapshot.overview.above70)
-  line('Readiness above 80%', snapshot.overview.above80)
+  line('CGPA above 60% (≥ 6.0)', snapshot.overview.above60)
+  line('CGPA above 70% (≥ 7.0)', snapshot.overview.above70)
+  line('CGPA above 80% (≥ 8.0)', snapshot.overview.above80)
   line('Placed students', snapshot.overview.placed)
   line('Unplaced students', snapshot.overview.unplaced)
   line('Placement percentage', `${snapshot.overview.placementPercentage}%`)
@@ -88,9 +88,9 @@ export async function exportDashboardXlsx(snapshot: DashboardSnapshot) {
     ['Metric', 'Value'],
     ['Batch', snapshot.batch === 'all' ? 'All batches' : snapshot.batch],
     ['Total Students', snapshot.overview.totalStudents],
-    ['Above 60%', snapshot.overview.above60],
-    ['Above 70%', snapshot.overview.above70],
-    ['Above 80%', snapshot.overview.above80],
+    ['CGPA above 60% (≥ 6.0)', snapshot.overview.above60],
+    ['CGPA above 70% (≥ 7.0)', snapshot.overview.above70],
+    ['CGPA above 80% (≥ 8.0)', snapshot.overview.above80],
     ['Placed', snapshot.overview.placed],
     ['Unplaced', snapshot.overview.unplaced],
     ['Placement Percentage', snapshot.overview.placementPercentage],

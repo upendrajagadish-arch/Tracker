@@ -7,18 +7,35 @@ export function PlacementStatCard({
   value,
   hint,
   className,
+  onClick,
 }: {
   label: string
   value: ReactNode
   hint?: string
   className?: string
+  onClick?: () => void
 }) {
   const display =
     value === null || value === undefined || value === ''
       ? '—'
       : value
   return (
-    <Card className={cn(className)}>
+    <Card
+      className={cn(className, onClick && 'cursor-pointer transition hover:border-primary/50')}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault()
+                onClick()
+              }
+            }
+          : undefined
+      }
+    >
       <CardContent className="pt-1">
         <p className="text-[12px] font-semibold text-secondary">{label}</p>
         <p className="tnum mt-2 text-[28px] font-bold tracking-tight text-binance">{display}</p>

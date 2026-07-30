@@ -448,8 +448,14 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
   const placed = students.filter((student) =>
     ['PLACED', 'OFFERED'].includes(String(student.placement_status || '').toUpperCase()),
   ).length
+  // Dashboard >60 / >70 / >80 cards are CGPA bands (6.0 / 7.0 / 8.0).
+  // Readiness is still tracked separately and often 0 until refresh SQL has been applied.
+  const cgpaPercents = students.map((student) => {
+    if (student.cgpa == null || !Number.isFinite(Number(student.cgpa))) return 0
+    return Math.max(0, Math.min(100, Number(student.cgpa) * 10))
+  })
+  const localEligibility = placementEligibilityCounts(cgpaPercents)
   const readiness = students.map((student) => effectiveReadinessScore(student))
-  const localEligibility = placementEligibilityCounts(readiness)
   // Year-scoped views must use filtered rows only. RPC aggregates are all-years and would hide the filter.
   const yearScoped = batch !== 'all'
   const aggregateTotal = yearScoped

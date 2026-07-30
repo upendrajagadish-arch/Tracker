@@ -1047,9 +1047,15 @@ export function PremiumDashboard({
   const { overview, management } = snapshot
   const managementHref = base ? `${base}/operations` : undefined
   const readinessSpark = snapshot.overview.readinessDistribution
-  const readyAbove60 = overview.above60
-  const readyAbove70 = overview.above70
-  const readyAbove80 = overview.above80
+  // Threshold cards use CGPA bands (CGPA 6.0 / 7.0 / 8.0 shown as >60% / >70% / >80%).
+  // Readiness is often still 0 for newly registered students until SQL refresh runs.
+  const cgpaPercent = (value: number | null | undefined) => {
+    if (value == null || !Number.isFinite(Number(value))) return 0
+    return Math.max(0, Math.min(100, Number(value) * 10))
+  }
+  const cgpaAbove60 = snapshot.studentDetails.filter((student) => cgpaPercent(student.cgpa) >= 60).length
+  const cgpaAbove70 = snapshot.studentDetails.filter((student) => cgpaPercent(student.cgpa) >= 70).length
+  const cgpaAbove80 = snapshot.studentDetails.filter((student) => cgpaPercent(student.cgpa) >= 80).length
   const avgReadiness = snapshot.studentDetails.length
     ? Math.round(
         snapshot.studentDetails.reduce((sum, s) => sum + (Number(s.readinessScore) || 0), 0) /
@@ -1118,50 +1124,50 @@ export function PremiumDashboard({
           onClick={() => openStudents('All students', 'Active students in the selected batch.', () => true)}
         />
         <MetricCard
-          title="Ready > 60%"
-          value={readyAbove60}
+          title="CGPA > 60%"
+          value={cgpaAbove60}
           icon={<Target className="size-5" />}
-          hint={`Avg readiness ${avgReadiness}%`}
+          hint={`CGPA ≥ 6.0 · Avg readiness ${avgReadiness}%`}
           spark={readinessSpark.slice(1)}
           color="#D27918"
           onClick={() =>
             openStudents(
-              'Students with readiness ≥ 60%',
-              'Students whose placement readiness score is at least 60%.',
-              (student) => student.readinessScore >= 60,
-              'readiness',
+              'Students with CGPA > 60%',
+              'Students with CGPA at or above 6.0 (shown with readiness and profile score).',
+              (student) => cgpaPercent(student.cgpa) >= 60,
+              'cgpa',
             )
           }
         />
         <MetricCard
-          title="Ready > 70%"
-          value={readyAbove70}
+          title="CGPA > 70%"
+          value={cgpaAbove70}
           icon={<CheckCircle2 className="size-5" />}
-          hint={`Avg profile ${avgProfile}%`}
+          hint={`CGPA ≥ 7.0 · Avg profile ${avgProfile}%`}
           spark={readinessSpark.slice(2)}
           color="#D27918"
           onClick={() =>
             openStudents(
-              'Students with readiness ≥ 70%',
-              'Students whose placement readiness score is at least 70%.',
-              (student) => student.readinessScore >= 70,
-              'readiness',
+              'Students with CGPA > 70%',
+              'Students with CGPA at or above 7.0 (shown with readiness and profile score).',
+              (student) => cgpaPercent(student.cgpa) >= 70,
+              'cgpa',
             )
           }
         />
         <MetricCard
-          title="Ready > 80%"
-          value={readyAbove80}
+          title="CGPA > 80%"
+          value={cgpaAbove80}
           icon={<Trophy className="size-5" />}
-          hint="Highly placement-ready band"
+          hint="CGPA ≥ 8.0 · high academic band"
           spark={readinessSpark.slice(2).reverse()}
           color="#D27918"
           onClick={() =>
             openStudents(
-              'Students with readiness ≥ 80%',
-              'Students whose placement readiness score is at least 80%.',
-              (student) => student.readinessScore >= 80,
-              'readiness',
+              'Students with CGPA > 80%',
+              'Students with CGPA at or above 8.0 (shown with readiness and profile score).',
+              (student) => cgpaPercent(student.cgpa) >= 80,
+              'cgpa',
             )
           }
         />
@@ -1171,7 +1177,7 @@ export function PremiumDashboard({
           icon={<UserCheck className="size-5" />}
           trend={`${overview.placementPercentage}% placement rate`}
           hint={`${overview.unplaced} students remaining`}
-          spark={[overview.unplaced, readyAbove60, readyAbove70, readyAbove80]}
+          spark={[overview.unplaced, cgpaAbove60, cgpaAbove70, cgpaAbove80]}
           color="#D27918"
           onClick={() => openStudents('Placed students', 'Students whose placement status is placed or offered.', (student) => ['PLACED', 'OFFERED'].includes(student.placementStatus.toUpperCase()))}
         />
