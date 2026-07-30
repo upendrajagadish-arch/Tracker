@@ -103,8 +103,19 @@ export function StudentDetailPage() {
     try {
       const data = await getStudent(id)
       if (!data) setError('Student not found')
-      setStudent(data)
       if (data) {
+        const { refreshReadinessResult } = await import('@/api/placement/readiness')
+        const refreshed = await refreshReadinessResult(data.id)
+        setStudent(
+          refreshed
+            ? {
+                ...data,
+                readiness_score: refreshed.readinessScore,
+                readiness_status: refreshed.readinessStatus,
+                profile_completeness: refreshed.profileCompleteness,
+              }
+            : data,
+        )
         const [skills, existingSnapshot, evaluation, evaluations] = await Promise.all([
           listStudentSkills(data.id),
           getStudentCodingSnapshot(data.id).catch(() => null),
@@ -115,6 +126,8 @@ export function StudentDetailPage() {
         setSnapshot(existingSnapshot)
         setCommEval(evaluation)
         setCommHistory(evaluations)
+      } else {
+        setStudent(null)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load student')

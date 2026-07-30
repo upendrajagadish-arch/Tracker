@@ -54,7 +54,18 @@ export function StudentProfilePage() {
         setProfile(null)
         return
       }
-      setProfile(student)
+
+      const { refreshReadinessResult } = await import('@/api/placement/readiness')
+      const refreshed = await refreshReadinessResult(student.id)
+      const nextProfile = refreshed
+        ? {
+            ...student,
+            readiness_score: refreshed.readinessScore,
+            readiness_status: refreshed.readinessStatus,
+            profile_completeness: refreshed.profileCompleteness,
+          }
+        : student
+      setProfile(nextProfile)
 
       const [resumeRes, skillsRes, readinessRes] = await Promise.all([
         listResumes({ studentProfileId: student.id, limit: 1 }).catch(() => ({ data: [] })),

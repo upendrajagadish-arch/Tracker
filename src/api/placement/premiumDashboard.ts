@@ -433,10 +433,22 @@ export async function getPremiumDashboard(batch = 'all'): Promise<DashboardSnaps
       ...allStudents.map(resolveStudentGraduationBatch).filter(Boolean),
     ]),
   ).sort()
-  const students =
+  let students =
     batch === 'all'
-      ? allStudents
+      ? [...allStudents]
       : allStudents.filter((student) => resolveStudentGraduationBatch(student) === batch)
+
+  // Auto-refresh readiness for students still stuck at 0 so dashboard scores appear without clicking.
+  try {
+    const { applyReadinessUpdates, syncStaleReadinessScores } = await import('@/api/placement/readiness')
+    const updates = await syncStaleReadinessScores(students, { limit: 200, concurrency: 8 })
+    if (updates.size) {
+      students = applyReadinessUpdates(students, updates)
+    }
+  } catch (error) {
+    console.warn('[dashboard] readiness auto-sync skipped:', error)
+  }
+
   const studentIds = new Set(students.map((student) => student.id))
   const rpcAggregate =
     dashboardAggregateData &&

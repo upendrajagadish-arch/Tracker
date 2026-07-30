@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   getLatestReadinessSnapshot,
-  refreshReadinessQuiet,
   type ReadinessSnapshotRow,
 } from '@/api/placement/readiness'
 import { READINESS_WEIGHTS } from '@/lib/placementReadiness'
@@ -130,6 +129,8 @@ export function ReadinessScorePopover({
   profileCompleteness,
   className,
   showPts = true,
+  autoRefresh = false,
+  onScoreChange,
 }: {
   studentId: string
   score: number | null | undefined
@@ -137,26 +138,57 @@ export function ReadinessScorePopover({
   profileCompleteness?: number | null
   className?: string
   showPts?: boolean
+  /** Refresh readiness as soon as the control mounts (no click needed). */
+  autoRefresh?: boolean
+  onScoreChange?: (next: {
+    readinessScore: number
+    readinessStatus: string
+    profileCompleteness: number
+  }) => void
 }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [snapshot, setSnapshot] = useState<ReadinessSnapshotRow | null>(null)
-
-  const displayScore = Math.round(Number(snapshot?.overall_score ?? score ?? 0))
-  const displayStatus = snapshot?.readiness_status ?? status
-  const completion = Number(
-    snapshot?.profile_score ?? profileCompleteness ?? 0,
-  )
+  const [liveScore, setLiveScore] = useState(Number(score ?? 0))
+  const [liveStatus, setLiveStatus] = useState(status)
+  const [liveCompletion, setLiveCompletion] = useState(Number(profileCompleteness ?? 0))
 
   useEffect(() => {
-    if (!open || !studentId) return
+    setLiveScore(Number(score ?? 0))
+  }, [score])
+  useEffect(() => {
+    setLiveStatus(status)
+  }, [status])
+  useEffect(() => {
+    setLiveCompletion(Number(profileCompleteness ?? 0))
+  }, [profileCompleteness])
+
+  const displayScore = Math.round(Number(snapshot?.overall_score ?? liveScore ?? 0))
+  const displayStatus = snapshot?.readiness_status ?? liveStatus
+  const completion = Number(snapshot?.profile_score ?? liveCompletion ?? 0)
+
+  useEffect(() => {
+    if (!studentId) return
+    if (!autoRefresh && !open) return
     let cancelled = false
     setLoading(true)
     void (async () => {
       try {
-        await refreshReadinessQuiet(studentId)
+        const { refreshReadinessResult } = await import('@/api/placement/readiness')
+        const refreshed = await refreshReadinessResult(studentId)
         const latest = await getLatestReadinessSnapshot(studentId)
-        if (!cancelled) setSnapshot(latest)
+        if (cancelled) return
+        setSnapshot(latest)
+        if (refreshed) {
+          setLiveScore(refreshed.readinessScore)
+          setLiveStatus(refreshed.readinessStatus)
+          setLiveCompletion(refreshed.profileCompleteness)
+          onScoreChange?.({
+            readinessScore: refreshed.readinessScore,
+            readinessStatus: refreshed.readinessStatus,
+            profileCompleteness: refreshed.profileCompleteness,
+          })
+        }
       } catch {
         if (!cancelled) setSnapshot(null)
       } finally {
@@ -166,7 +198,7 @@ export function ReadinessScorePopover({
     return () => {
       cancelled = true
     }
-  }, [open, studentId])
+  }, [autoRefresh, onScoreChange, open, studentId])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

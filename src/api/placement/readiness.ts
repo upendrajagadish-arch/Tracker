@@ -161,18 +161,102 @@ export async function recalculateReadiness(studentProfileId: string): Promise<Re
 
 /** Fire-and-forget readiness refresh (staff or public RPC). Never throws. */
 export async function refreshReadinessQuiet(studentProfileId: string): Promise<void> {
-  if (!studentProfileId) return
+  await refreshReadinessResult(studentProfileId)
+}
+
+export type ReadinessRefreshResult = {
+  studentId: string
+  readinessScore: number
+  readinessStatus: string
+  profileCompleteness: number
+  riskLevel?: string
+}
+
+/** Refresh one student and return the new scores. Never throws. */
+export async function refreshReadinessResult(
+  studentProfileId: string,
+): Promise<ReadinessRefreshResult | null> {
+  if (!studentProfileId) return null
   try {
     const client = requireSupabase()
-    const { error: rpcError } = await client.rpc('refresh_student_readiness', {
+    const { data, error: rpcError } = await client.rpc('refresh_student_readiness', {
       p_student_id: studentProfileId,
     })
-    if (!rpcError) return
+    if (!rpcError && data && typeof data === 'object' && !Array.isArray(data)) {
+      const payload = data as Record<string, unknown>
+      if (payload.ok === false) return null
+      return {
+        studentId: studentProfileId,
+        readinessScore: Math.round(Number(payload.overallScore ?? 0)),
+        readinessStatus: String(payload.readinessStatus ?? 'not_ready'),
+        profileCompleteness: Math.round(Number(payload.profileCompleteness ?? 0)),
+      }
+    }
     // Fallback to TS calculator when SQL helper is not applied yet.
-    await recalculateReadiness(studentProfileId)
+    const snapshot = await recalculateReadiness(studentProfileId)
+    return {
+      studentId: studentProfileId,
+      readinessScore: Math.round(Number(snapshot.overall_score ?? 0)),
+      readinessStatus: String(snapshot.readiness_status ?? 'not_ready'),
+      profileCompleteness: Math.round(Number(snapshot.profile_score ?? 0)),
+      riskLevel: snapshot.risk_level,
+    }
   } catch {
-    // Ignore — readiness can be refreshed later from the readiness page.
+    return null
   }
+}
+
+/**
+ * Automatically refresh readiness for students that still show 0 / stale scores.
+ * Runs in small concurrent batches so list/dashboard loads stay responsive.
+ */
+export async function syncStaleReadinessScores(
+  students: Array<{ id: string; readiness_score?: number | null; profile_completeness?: number | null }>,
+  options?: { concurrency?: number; limit?: number; forceAll?: boolean },
+): Promise<Map<string, ReadinessRefreshResult>> {
+  const concurrency = Math.max(1, Math.min(options?.concurrency ?? 6, 12))
+  const limit = Math.max(1, options?.limit ?? 120)
+  const forceAll = Boolean(options?.forceAll)
+
+  const staleIds = students
+    .filter((student) => {
+      if (!student?.id) return false
+      if (forceAll) return true
+      const readiness = Number(student.readiness_score ?? 0)
+      const profile = Number(student.profile_completeness ?? 0)
+      // Refresh when readiness is missing/zero, or profile completeness never filled.
+      return readiness <= 0 || profile <= 0
+    })
+    .map((student) => student.id)
+    .slice(0, limit)
+
+  const updated = new Map<string, ReadinessRefreshResult>()
+  for (let i = 0; i < staleIds.length; i += concurrency) {
+    const chunk = staleIds.slice(i, i + concurrency)
+    const results = await Promise.all(chunk.map((id) => refreshReadinessResult(id)))
+    for (const result of results) {
+      if (result) updated.set(result.studentId, result)
+    }
+  }
+  return updated
+}
+
+export function applyReadinessUpdates<T extends { id: string; readiness_score?: number; readiness_status?: string; profile_completeness?: number; risk_level?: string }>(
+  rows: T[],
+  updates: Map<string, ReadinessRefreshResult>,
+): T[] {
+  if (!updates.size) return rows
+  return rows.map((row) => {
+    const next = updates.get(row.id)
+    if (!next) return row
+    return {
+      ...row,
+      readiness_score: next.readinessScore,
+      readiness_status: next.readinessStatus,
+      profile_completeness: next.profileCompleteness,
+      ...(next.riskLevel ? { risk_level: next.riskLevel } : {}),
+    }
+  })
 }
 
 export async function getLatestReadinessSnapshot(

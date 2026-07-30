@@ -99,7 +99,12 @@ export function StudentsPage() {
           // Roster KPI stays year/section scoped — ignore search so Total students never blanks.
         }),
       ])
-      setResult(page)
+      const { applyReadinessUpdates, syncStaleReadinessScores } = await import('@/api/placement/readiness')
+      const updates = await syncStaleReadinessScores(page.data)
+      setResult({
+        ...page,
+        data: applyReadinessUpdates(page.data, updates),
+      })
       setRosterTotal(total)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load students')

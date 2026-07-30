@@ -76,7 +76,10 @@ export function FacultyClassicDashboard() {
         }),
         getCampaignSummary().catch(() => null),
       ])
-      setStudents(result.data.filter((student) => studentMatchesPassOutYear(student, year)))
+      const filtered = result.data.filter((student) => studentMatchesPassOutYear(student, year))
+      const { applyReadinessUpdates, syncStaleReadinessScores } = await import('@/api/placement/readiness')
+      const updates = await syncStaleReadinessScores(filtered)
+      setStudents(applyReadinessUpdates(filtered, updates))
       setCampaignSummary(summary)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load registered students')
