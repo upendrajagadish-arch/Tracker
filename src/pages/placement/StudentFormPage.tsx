@@ -16,6 +16,7 @@ import { canManageResumes, canManageStudents } from '@/lib/placementNavigation'
 import { ALL_PLATFORMS } from '@/api/unifiedClient'
 import type { PlatformHandles } from '@/lib/studentPlatformHandles'
 import { CertificationsListField } from '@/components/placement/CertificationsListField'
+import { normalizeCertificationsSummary } from '@/lib/certificationsSummary'
 import type { Platform } from '@/types/api'
 
 const emptyForm: CreateStudentInput = {
@@ -120,11 +121,15 @@ export function StudentFormPage() {
     setSaving(true)
     setError(null)
     try {
+      const payload = {
+        ...form,
+        certificationsSummary: normalizeCertificationsSummary(form.certificationsSummary),
+      }
       if (isEdit && id) {
-        await updateStudent(id, form)
+        await updateStudent(id, payload)
         router.history.push(`${base}/students/${id}`)
       } else {
-        const created = await createStudent(form)
+        const created = await createStudent(payload)
         router.history.push(`${base}/students/${created.id}`)
       }
     } catch (err) {

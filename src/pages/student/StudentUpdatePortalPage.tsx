@@ -22,6 +22,7 @@ import {
 import { BRAND_NAME } from '@/lib/brand'
 import { CertificationsListField } from '@/components/placement/CertificationsListField'
 import { CampaignRegistrationBasicInfoForm } from '@/components/placement/CampaignRegistrationBasicInfoForm'
+import { normalizeCertificationsSummary } from '@/lib/certificationsSummary'
 
 type RegistrationForm = {
   rollNumber: string
@@ -344,7 +345,7 @@ function CampaignRegistrationPortal({ campaignId }: { campaignId: string }) {
           : {}),
         ...(has('projects_summary') ? { projectsSummary: form.projectsSummary } : {}),
         ...(has('certifications_summary')
-          ? { certificationsSummary: form.certificationsSummary }
+          ? { certificationsSummary: normalizeCertificationsSummary(form.certificationsSummary) }
           : {}),
       })
       if (!result.ok) throw new Error(result.error || 'Registration failed')
@@ -568,7 +569,9 @@ function LegacyTokenUpdatePortal({ token }: { token: string }) {
       if (has('skills_summary')) payload.skillsSummary = form.skillsSummary
       if (has('career_interest')) payload.careerInterest = form.careerInterest
       if (has('projects_summary')) payload.projectsSummary = form.projectsSummary
-      if (has('certifications_summary')) payload.certificationsSummary = form.certificationsSummary
+      if (has('certifications_summary')) {
+        payload.certificationsSummary = normalizeCertificationsSummary(form.certificationsSummary)
+      }
       if (has('platform_handles')) payload.platformHandles = form.platformHandles
 
       const result = await submitPublicStudentUpdate(token, payload)
