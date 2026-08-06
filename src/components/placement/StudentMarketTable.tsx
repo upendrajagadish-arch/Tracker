@@ -24,8 +24,9 @@ import { ReadinessScorePopover } from '@/components/placement/ReadinessScorePopo
 import type { StudentProfileRow } from '@/api/placement/students'
 import { cn } from '@/lib/utils'
 
-const EDGE_ZONE_PX = 96
+const EDGE_ZONE_PX = 88
 const SCROLL_STEP_PX = 320
+const AUTO_SCROLL_SPEED = 16
 
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -106,14 +107,16 @@ export function StudentMarketTable({
 }) {
   const shellRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const edgeRef = useRef<'left' | 'right' | null>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
   const [canScrollRight, setCanScrollRight] = useState(false)
+  const [hovered, setHovered] = useState(false)
   const [edgeHover, setEdgeHover] = useState<'left' | 'right' | null>(null)
 
   const updateScrollState = useCallback(() => {
     const el = scrollRef.current
     if (!el) return
-    const max = el.scrollWidth - el.clientWidth
+    const max = Math.max(0, el.scrollWidth - el.clientWidth)
     setCanScrollLeft(el.scrollLeft > 2)
     setCanScrollRight(max > 2 && el.scrollLeft < max - 2)
   }, [])
@@ -143,17 +146,45 @@ export function StudentMarketTable({
     }
   }, [students.length, updateScrollState])
 
+  // Continuous auto-scroll while cursor stays in a side edge zone.
+  useEffect(() => {
+    if (!edgeHover) return
+
+    let raf = 0
+    const tick = () => {
+      const el = scrollRef.current
+      const edge = edgeRef.current
+      if (el && edge) {
+        if (edge === 'left') {
+          el.scrollLeft = Math.max(0, el.scrollLeft - AUTO_SCROLL_SPEED)
+        } else {
+          const max = Math.max(0, el.scrollWidth - el.clientWidth)
+          el.scrollLeft = Math.min(max, el.scrollLeft + AUTO_SCROLL_SPEED)
+        }
+        updateScrollState()
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [edgeHover, updateScrollState])
+
+  const setEdge = (next: 'left' | 'right' | null) => {
+    edgeRef.current = next
+    setEdgeHover(next)
+  }
+
   const onShellMouseMove = (event: MouseEvent<HTMLDivElement>) => {
     const shell = shellRef.current
     if (!shell) return
     const rect = shell.getBoundingClientRect()
     const x = event.clientX - rect.left
     if (x <= EDGE_ZONE_PX) {
-      setEdgeHover('left')
+      setEdge('left')
     } else if (x >= rect.width - EDGE_ZONE_PX) {
-      setEdgeHover('right')
+      setEdge('right')
     } else {
-      setEdgeHover(null)
+      setEdge(null)
     }
   }
 
@@ -166,20 +197,29 @@ export function StudentMarketTable({
     })
   }
 
-  const leftVisible = edgeHover === 'left' && canScrollLeft
-  const rightVisible = edgeHover === 'right' && canScrollRight
+  const leftVisible = hovered
+  const rightVisible = hovered
 
   return (
     <div
       ref={shellRef}
-      className="relative min-w-0"
-      onMouseEnter={updateScrollState}
-      onMouseLeave={() => setEdgeHover(null)}
+      className="relative min-w-0 w-full"
+      onMouseEnter={() => {
+        setHovered(true)
+        updateScrollState()
+      }}
+      onMouseLeave={() => {
+        setHovered(false)
+        setEdge(null)
+      }}
       onMouseMove={onShellMouseMove}
     >
-      <div ref={scrollRef} className="min-w-0 overflow-x-auto">
+      <div
+        ref={scrollRef}
+        className="min-w-0 w-full overflow-x-auto [scrollbar-width:thin]"
+      >
         <Table
-          className="min-w-[1180px] border-0"
+          className="w-max min-w-[1680px] border-0"
           containerClassName="overflow-visible rounded-none border-0 bg-transparent"
         >
           <TableHeader>
@@ -325,46 +365,56 @@ export function StudentMarketTable({
       <div
         aria-hidden
         className={cn(
-          'pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-[#12151A]/85 to-transparent transition-opacity duration-200',
-          leftVisible ? 'opacity-100' : 'opacity-0'
+          'pointer-events-none absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#12151A]/90 to-transparent transition-opacity duration-200',
+          hovered && canScrollLeft ? 'opacity-100' : 'opacity-0'
         )}
       />
       <div
         aria-hidden
         className={cn(
-          'pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-[#12151A]/85 to-transparent transition-opacity duration-200',
-          rightVisible ? 'opacity-100' : 'opacity-0'
+          'pointer-events-none absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#12151A]/90 to-transparent transition-opacity duration-200',
+          hovered && canScrollRight ? 'opacity-100' : 'opacity-0'
         )}
       />
 
       <button
         type="button"
         aria-label="Scroll table left"
-        tabIndex={leftVisible ? 0 : -1}
+        tabIndex={leftVisible && canScrollLeft ? 0 : -1}
+        disabled={!canScrollLeft}
         onClick={() => scrollByDir('left')}
+        onMouseEnter={() => {
+          if (canScrollLeft) setEdge('left')
+        }}
         className={cn(
-          'absolute top-1/2 left-3 z-30 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#FF7A00]/70 bg-[#12151A] text-[#FF7A00] shadow-[0_8px_24px_rgba(0,0,0,0.45)] transition-all duration-200',
-          leftVisible
-            ? 'pointer-events-auto opacity-100'
-            : 'pointer-events-none opacity-0'
+          'absolute top-1/2 left-3 z-30 flex size-12 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#FF7A00] bg-[#12151A] text-[#FF7A00] shadow-[0_8px_24px_rgba(0,0,0,0.5)] transition-all duration-200',
+          !leftVisible && 'pointer-events-none scale-90 opacity-0',
+          leftVisible && !canScrollLeft && 'pointer-events-none scale-100 opacity-40',
+          leftVisible && canScrollLeft && 'pointer-events-auto scale-100 opacity-100',
+          edgeHover === 'left' && canScrollLeft && 'bg-[#FF7A00] text-[#12151A]'
         )}
       >
-        <ChevronLeft className="size-6" strokeWidth={2.5} />
+        <ChevronLeft className="size-7" strokeWidth={2.75} />
       </button>
 
       <button
         type="button"
         aria-label="Scroll table right"
-        tabIndex={rightVisible ? 0 : -1}
+        tabIndex={rightVisible && canScrollRight ? 0 : -1}
+        disabled={!canScrollRight}
         onClick={() => scrollByDir('right')}
+        onMouseEnter={() => {
+          if (canScrollRight) setEdge('right')
+        }}
         className={cn(
-          'absolute top-1/2 right-3 z-30 flex size-11 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#FF7A00]/70 bg-[#12151A] text-[#FF7A00] shadow-[0_8px_24px_rgba(0,0,0,0.45)] transition-all duration-200',
-          rightVisible
-            ? 'pointer-events-auto opacity-100'
-            : 'pointer-events-none opacity-0'
+          'absolute top-1/2 right-3 z-30 flex size-12 -translate-y-1/2 items-center justify-center rounded-full border-2 border-[#FF7A00] bg-[#12151A] text-[#FF7A00] shadow-[0_8px_24px_rgba(0,0,0,0.5)] transition-all duration-200',
+          !rightVisible && 'pointer-events-none scale-90 opacity-0',
+          rightVisible && !canScrollRight && 'pointer-events-none scale-100 opacity-40',
+          rightVisible && canScrollRight && 'pointer-events-auto scale-100 opacity-100',
+          edgeHover === 'right' && canScrollRight && 'bg-[#FF7A00] text-[#12151A]'
         )}
       >
-        <ChevronRight className="size-6" strokeWidth={2.5} />
+        <ChevronRight className="size-7" strokeWidth={2.75} />
       </button>
     </div>
   )
