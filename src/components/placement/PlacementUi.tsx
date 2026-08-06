@@ -98,6 +98,7 @@ export function PlacementTableCard({
   children,
   footer,
   className,
+  bodyClassName,
   exportSection,
 }: {
   title: string
@@ -105,6 +106,8 @@ export function PlacementTableCard({
   children: ReactNode
   footer?: ReactNode
   className?: string
+  /** Override body overflow (e.g. let a child own horizontal scrolling). */
+  bodyClassName?: string
   exportSection?: SectionExportTable
 }) {
   return (
@@ -118,7 +121,7 @@ export function PlacementTableCard({
           {exportSection ? <SectionExportActions section={exportSection} size="xs" /> : null}
         </CardHeader>
       ) : null}
-      <div className="overflow-x-auto">{children}</div>
+      <div className={cn('overflow-x-auto', bodyClassName)}>{children}</div>
       {footer}
     </Card>
   )

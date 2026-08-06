@@ -433,6 +433,7 @@ export function StudentsPage() {
                     : `Student market · ${activeYearLabel}`
               }
               count={rows.length}
+              bodyClassName="min-w-0 overflow-hidden"
               exportSection={tableSectionExport(
                 isSearching ? 'Student roll search' : `Students ${activeYearLabel}`,
                 [
